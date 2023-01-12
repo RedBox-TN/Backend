@@ -8,11 +8,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.51.0" />
+        <PackageReference Include="MongoDB.Driver" Version="2.18.0" />
+        <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.49.0" />
+        <Folder Include="Protos" />
+        <Folder Include="Services" />
     </ItemGroup>
 
 </Project>
