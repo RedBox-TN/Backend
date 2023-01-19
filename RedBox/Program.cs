@@ -9,7 +9,7 @@ builder.Services.Configure<DatabaseSettings>(
 	builder.Configuration.GetSection("MongoDB"));
 
 var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
-if (redisHost == null) 
+if (redisHost == null)
 	Environment.Exit(-1);
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(
