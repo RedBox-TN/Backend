@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedBox", "RedBox\RedBox.csproj", "{0589F4AA-897E-4600-B84A-C63BC1C34020}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keychain", "Keychain\Keychain.csproj", "{EC170F1A-76BF-478F-B72C-6446982ACE3D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{0589F4AA-897E-4600-B84A-C63BC1C34020}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0589F4AA-897E-4600-B84A-C63BC1C34020}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0589F4AA-897E-4600-B84A-C63BC1C34020}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

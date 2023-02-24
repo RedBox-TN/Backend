@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package keychain;
+
+import "Protos/request.proto";
+import "Protos/response.proto";
+
+option csharp_namespace = "Keychain";
+
+message Nil {}
+message Token {
+  bytes token = 1;
+}
+
+service GrpcKeyService {
+  rpc GetToken(Nil) returns (Token);
+  rpc Create (CreateRequest) returns (KeyResponse);
+  rpc Get (GetRequest) returns (KeyResponse);
+  rpc Update (UpdateRequest) returns (KeyResponse);
+  rpc Delete (DeleteRequest) returns (Result);
+}
