@@ -4,6 +4,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedBox", "RedBox\RedBox.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keychain", "Keychain\Keychain.csproj", "{EC170F1A-76BF-478F-B72C-6446982ACE3D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedBoxAuth", "RedBoxAuth\RedBoxAuth.csproj", "{614B5AE7-EA83-4659-92B4-213D03156E4A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExpiredKeyRemover", "ExpiredKeyRemover\ExpiredKeyRemover.csproj", "{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,13 @@ Global
 		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{614B5AE7-EA83-4659-92B4-213D03156E4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{614B5AE7-EA83-4659-92B4-213D03156E4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{614B5AE7-EA83-4659-92B4-213D03156E4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{614B5AE7-EA83-4659-92B4-213D03156E4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
