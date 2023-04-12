@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package redbox_authentication;
+
+option csharp_namespace = "RedBoxAuthentication";
+
+enum LoginStatus {
+  INVALID_CREDENTIALS = 0;
+  ALREADY_LOGGED = 1;
+  USER_NOT_EXIST = 2;
+  LOGIN_SUCCESS = 3;
+  REQUIRE_2FA = 4;
+  IS_BLOCKED = 5;
+}
+
+enum LogoutStatus {
+  LOGOUT_SUCCESS = 0;
+  NOT_LOGGED = 1;
+}
+
+enum TwoFactorResponseCode {
+  VALID_CODE = 0;
+  INVALID_CODE = 1;
+  USER_NOT_LOGGED = 2;
+  TFA_NOT_ENABLED = 3;
+  ALREADY_VERIFIED = 4;
+}
+
+message Nil {}
+
+message LoginRequest {
+  string password = 3;
+  optional string username = 1;
+  optional string email = 2;
+}
+
+message LoginResponse {
+  LoginStatus status = 1;
+  optional string token = 2;
+  optional uint32 attempts_left = 3;
+}
+
+message TwoFactorRequest {
+  string two_fa_code = 1;
+  string token = 2;
+}
+
+message LogoutResponse {
+  LogoutStatus status = 1;
+}
+
+message TwoFactorResponse {
+  TwoFactorResponseCode code = 1;
+}
+
+service AuthenticationGrpcService {
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc Logout (Nil) returns (LogoutResponse);
+  rpc Verify2FA(TwoFactorRequest) returns (TwoFactorResponse);
+}
