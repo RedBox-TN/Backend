@@ -26,6 +26,11 @@ enum TwoFactorResponseCode {
   ALREADY_VERIFIED = 4;
 }
 
+enum RefreshTokenStatusCode {
+  INVALID_TOKEN = 0;
+  TOKEN_REFRESHED = 1;
+}
+
 message Nil {}
 
 message LoginRequest {
@@ -37,7 +42,8 @@ message LoginRequest {
 message LoginResponse {
   LoginStatus status = 1;
   optional string token = 2;
-  optional uint32 attempts_left = 3;
+  optional uint32 expiresAt = 3;
+  optional uint32 attempts_left = 4;
 }
 
 message TwoFactorRequest {
@@ -51,10 +57,18 @@ message LogoutResponse {
 
 message TwoFactorResponse {
   TwoFactorResponseCode code = 1;
+  uint32 tokenExpiresAt = 2;
+}
+
+message TokenRefreshResponse {
+  RefreshTokenStatusCode status = 1;
+  optional string Token = 2;
+  optional uint32 expiresAt = 3;
 }
 
 service AuthenticationGrpcService {
   rpc Login (LoginRequest) returns (LoginResponse);
   rpc Logout (Nil) returns (LogoutResponse);
   rpc Verify2FA(TwoFactorRequest) returns (TwoFactorResponse);
+  rpc RefreshToken(Nil) returns (TokenRefreshResponse);
 }

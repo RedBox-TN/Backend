@@ -5,22 +5,36 @@ using RedBoxAuth.Cache;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Security_hash_utility;
 using RedBoxAuth.Services;
+using RedBoxAuth.Settings;
 using RedBoxAuth.TOTP_utility;
+using StackExchange.Redis;
 
 namespace RedBoxAuth;
 
 public static class RequiredAuthServices
 {
-	public static void AddRedBoxAuth(this IServiceCollection collection)
+	public static void AddRedBoxAuthenticationAndAuthorization(this WebApplicationBuilder builder)
 	{
-		collection.AddSingleton<ITotpUtility, TotpUtility>();
-		collection.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
-		collection.AddSingleton<IPasswordUtility, PasswordUtility>();
-		collection.AddSingleton<IAuthCache, AuthCache>();
-		collection.AddHttpContextAccessor();
+		builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
+
+		builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection("AuthenticationOptions"));
+
+		var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
+		if (redisHost == null)
+			Environment.Exit(-1);
+
+		var redis = ConnectionMultiplexer.Connect(redisHost);
+
+		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
+
+		builder.Services.AddSingleton<ITotpUtility, TotpUtility>();
+		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
+		builder.Services.AddSingleton<IPasswordUtility, PasswordUtility>();
+		builder.Services.AddSingleton<IAuthCache, AuthCache>();
+		builder.Services.AddHttpContextAccessor();
 	}
 
-	public static void UseRedBoxAuth(this WebApplication builder)
+	public static void UseRedBoxAuthenticationAndAuthorization(this WebApplication builder)
 	{
 		builder.UseMiddleware<AuthorizationMiddleware>();
 		builder.MapGrpcService<AuthenticationService>();

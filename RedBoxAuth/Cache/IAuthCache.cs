@@ -4,11 +4,11 @@ namespace RedBoxAuth.Cache;
 
 public interface IAuthCache
 {
-	public string Store(User user);
-	public string StorePending(User user);
+	public string Store(User user, out uint expireAt);
+	public string StorePending(User user, out uint expireAt);
 	public bool KeyExists(string? key);
-	public void SetCompleted(string key);
+	public void SetCompleted(string key, out uint expiresAt);
 	public void Delete(string? key);
 	public bool TryToGet(string? key, out User? user);
-	public void RefreshExpireTime(string key);
+	public string RefreshToken(string oldToken, out uint expiresAt);
 }

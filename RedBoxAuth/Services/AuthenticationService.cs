@@ -26,7 +26,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	private readonly IMongoCollection<User> _userCollection;
 
 
-	public AuthenticationService(IOptions<AuthDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
+	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
 		IPasswordUtility passwordUtility, IOptions<AuthenticationOptions> authOptions, ISecurityHashUtility hashUtility)
 	{
 		_totp = totp;
@@ -103,16 +103,18 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers["User-Agent"],
 			context.GetHttpContext().Connection.RemoteIpAddress);
 
+		uint expireAt;
 		// La 2fa e' attiva?
 		if (user.IsFaEnable)
 			return new LoginResponse
 			{
 				Status = LoginStatus.Require2Fa,
-				Token = _authCache.StorePending(user)
+				Token = _authCache.StorePending(user, out expireAt),
+				ExpiresAt = expireAt
 			};
 
 		user.IsAuthenticated = true;
-		var key = _authCache.Store(user);
+		var key = _authCache.Store(user, out expireAt);
 
 		// Imposto l'ultimo accesso e azzero i tentativi falliti
 		await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq("Id", user.Id),
@@ -121,7 +123,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		return new LoginResponse
 		{
 			Status = LoginStatus.LoginSuccess,
-			Token = key
+			Token = key,
+			ExpiresAt = expireAt
 		};
 	}
 
@@ -170,8 +173,31 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				Code = TwoFactorResponseCode.InvalidCode
 			});
 
-		_authCache.SetCompleted(request.Token);
+		_authCache.SetCompleted(request.Token, out var expiresAt);
 
-		return Task.FromResult(new TwoFactorResponse { Code = TwoFactorResponseCode.ValidCode });
+		return Task.FromResult(new TwoFactorResponse
+		{
+			Code = TwoFactorResponseCode.ValidCode,
+			TokenExpiresAt = expiresAt
+		});
+	}
+
+	public override Task<TokenRefreshResponse> RefreshToken(Nil request, ServerCallContext context)
+	{
+		if (!context.GetHttpContext().Request.Headers.ContainsKey(HeaderName) ||
+		    !_authCache.KeyExists(context.GetHttpContext().Request.Headers[HeaderName]))
+			return Task.FromResult(new TokenRefreshResponse
+			{
+				Status = RefreshTokenStatusCode.InvalidToken
+			});
+
+
+		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[HeaderName]!, out var expiresAt);
+		return Task.FromResult(new TokenRefreshResponse
+		{
+			Status = RefreshTokenStatusCode.TokenRefreshed,
+			Token = token,
+			ExpiresAt = expiresAt
+		});
 	}
 }

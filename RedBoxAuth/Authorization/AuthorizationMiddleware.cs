@@ -1,8 +1,5 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 using RedBoxAuth.Cache;
-using RedBoxAuth.Models;
 using RedBoxAuth.Security_hash_utility;
 
 namespace RedBoxAuth.Authorization;
@@ -30,43 +27,28 @@ public class AuthorizationMiddleware
 			return;
 		}
 
-		User? user;
-		StringValues key;
+		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) ||
+		    !_authCache.TryToGet(key, out var user) || !_securityHash.IsValid(user!.SecurityHash,
+			    context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress))
+		{
+			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+			return;
+		}
 
 		if (metadata.Contains(new AuthenticationRequiredAttribute()))
 		{
-			if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out key) ||
-			    !_authCache.TryToGet(key, out user) || !_securityHash.IsValid(user!.SecurityHash,
-				    context.Request.Headers.UserAgent,
-				    context.Connection.RemoteIpAddress))
-			{
-				context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-				return;
-			}
-
-			context.User.AddIdentity(new ClaimsIdentity(user));
 			await _next(context);
 			return;
 		}
 
-		var required = metadata.GetMetadata<RequiredPermissionsAttribute>()!.Permission;
+		var requiredPermissions = metadata.GetMetadata<RequiredPermissionsAttribute>()!.Permission;
 
-		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out key) ||
-		    !_authCache.TryToGet(key, out user) || !_securityHash.IsValid(user!.SecurityHash,
-			    context.Request.Headers.UserAgent,
-			    context.Connection.RemoteIpAddress))
+		if ((user.Role.Permissions & requiredPermissions) != requiredPermissions)
 		{
 			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 			return;
 		}
 
-		if ((user.Role.Permissions & required) != required)
-		{
-			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-			return;
-		}
-
-		context.User.AddIdentity(new ClaimsIdentity(user));
 		await _next(context);
 	}
 }
