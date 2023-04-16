@@ -1,0 +1,40 @@
+[{
+  "_id": {
+    "$oid": "64285004e925897bffe90287"
+  },
+  "Surname": "than",
+  "Email": "i.than@cazoinc.business",
+  "Username": "admin",
+  "PasswordHash": {
+    "$binary": {
+      "base64": "v3Tx3MSHdp06O06WsCQ7hJtbxM7EGa0/7MNc/zu8X8fgKdyxNIxUVNcCoMX6/z+L7oExYKCIE/Ur1O9EbAwMYxvZYqAERTlsvsxz8POnOQFWMrXLxI1KGHx/Tndb0sOtgMDvQ7D0Hv30X/tdIQA6I3y0r5k86Qoy6G7/P+zIFrs=",
+      "subType": "00"
+    }
+  },
+  "Salt": {
+    "$binary": {
+      "base64": "rfflQCBKLC6P47aFXIYPYA==",
+      "subType": "00"
+    }
+  },
+  "PasswordHistory": null,
+  "InvalidLoginAttempts": 0,
+  "IsBlocked": false,
+  "IsFaEnable": false,
+  "FaSeed": {
+    "$binary": {
+      "base64": "2dIrYjUOC9Ic2uApzHZqvg==",
+      "subType": "00"
+    }
+  },
+  "LastAccess": {
+    "$date": {
+      "$numberLong": "1681426346104"
+    }
+  },
+  "ChatsIds": null,
+  "RoleId": {
+    "$oid": "642579fd406480a0d6208945"
+  },
+  "Name": "immanuel"
+}]
