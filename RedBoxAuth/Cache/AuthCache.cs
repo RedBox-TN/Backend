@@ -86,12 +86,12 @@ public class AuthCache : MemoryCache, IAuthCache
 	/// <inheritdoc />
 	public async void DeleteAsync(string? key)
 	{
-		if (key is null) return;
+		if (!KeyExists(key)) return;
 
-		var username = this.Get<User>(key)?.Username;
+		var username = this.Get<User>(key!)?.Username;
 		await _redis.KeyDeleteAsync(key, CommandFlags.FireAndForget);
 		await _redis.HashDeleteAsync(_options.UsersHashKey, username, CommandFlags.FireAndForget);
-		Remove(key);
+		Remove(key!);
 	}
 
 	/// <inheritdoc />
@@ -122,11 +122,8 @@ public class AuthCache : MemoryCache, IAuthCache
 		TryToGet(oldToken, out var user);
 
 		_redis.KeyRenameAsync(oldToken, token);
-
 		_redis.HashSetAsync(_options.UsersHashKey, user!.Username, token);
-
 		_redis.KeyExpireAsync(token, TimeSpan.FromMinutes(_options.SessionExpireMinutes));
-
 		expiresAt = ((DateTimeOffset)_redis.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds();
 
 		RenameLocal(oldToken, token);
@@ -138,8 +135,8 @@ public class AuthCache : MemoryCache, IAuthCache
 	{
 		var rndBuff = new byte[_options.TokenSizeBytes];
 		RandomNumberGenerator.Fill(rndBuff);
-
 		var token = Convert.ToBase64String(rndBuff);
+
 		while (_redis.KeyExists(token))
 		{
 			RandomNumberGenerator.Fill(rndBuff);
@@ -180,6 +177,12 @@ public class AuthCache : MemoryCache, IAuthCache
 
 	private User? RedisGet(string key, out TimeSpan remainingTime)
 	{
+		if (!KeyExists(key))
+		{
+			remainingTime = TimeSpan.Zero;
+			return null;
+		}
+
 		var stream = (byte[]?)_redis.StringGet(key);
 		remainingTime = _redis.KeyTimeToLive(key)!.Value;
 
