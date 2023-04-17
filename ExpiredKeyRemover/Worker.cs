@@ -6,12 +6,10 @@ namespace ExpiredKeyRemover;
 public class Worker : BackgroundService
 {
 	private readonly Config _config;
-	private readonly ILogger<Worker> _logger;
 	private readonly IConnectionMultiplexer _redis;
 
-	public Worker(ILogger<Worker> logger, IConnectionMultiplexer redis, IOptions<Config> config)
+	public Worker(IConnectionMultiplexer redis, IOptions<Config> config)
 	{
-		_logger = logger;
 		_redis = redis;
 		_config = config.Value;
 	}
@@ -31,7 +29,6 @@ public class Worker : BackgroundService
 			try
 			{
 				await Task.Delay(TimeSpan.FromSeconds(_config.ExpiredScanSleepSeconds), stoppingToken);
-				await Task.Delay(TimeSpan.FromSeconds(_config.ExpiredScanSleepSeconds), stoppingToken);
 			}
 			catch
 			{
@@ -50,11 +47,11 @@ public class Worker : BackgroundService
 
 			foreach (var hashEntry in userHash)
 				if (!_redis.GetDatabase().KeyExists(hashEntry.Value.ToString()))
-					await _redis.GetDatabase().HashDeleteAsync(_config.UsersHashKey, hashEntry.Value);
+					_redis.GetDatabase().HashDelete(_config.UsersHashKey, hashEntry.Name);
 
 			try
 			{
-				await Task.Delay(TimeSpan.FromSeconds(_config.DandlingScanSleepMinutes), stoppingToken);
+				await Task.Delay(TimeSpan.FromMinutes(_config.DandlingScanSleepMinutes), stoppingToken);
 			}
 			catch
 			{
