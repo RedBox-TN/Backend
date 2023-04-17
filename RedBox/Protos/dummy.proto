@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package redbox_services;
+
+option csharp_namespace = "RedBoxDummy";
+
+message Nil {}
+
+message HelloResponse {
+  string response = 1;
+}
+
+service DummyGrpcService {
+  rpc SayHello (Nil) returns (HelloResponse);
+}

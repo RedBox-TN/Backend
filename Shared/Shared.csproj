@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net7.0</TargetFramework>
-        <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Shared</RootNamespace>
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <PlatformTarget>AnyCPU</PlatformTarget>
+        <PlatformTarget>ARM64</PlatformTarget>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
@@ -19,17 +19,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.52.0"/>
+        <PackageReference Include="MemoryPack" Version="1.9.13"/>
         <PackageReference Include="MongoDB.Driver" Version="2.19.1"/>
-        <PackageReference Include="StackExchange.Redis" Version="2.6.104"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Protobuf Include="Protos\dummy.proto" GrpcServices="Server"/>
     </ItemGroup>
 
 </Project>

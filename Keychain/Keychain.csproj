@@ -13,9 +13,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.51.0"/>
-        <PackageReference Include="MongoDB.Driver" Version="2.19.0"/>
-        <PackageReference Include="StackExchange.Redis" Version="2.6.90"/>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.52.0"/>
+        <PackageReference Include="MongoDB.Driver" Version="2.19.1"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.6.104"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
     </ItemGroup>
 
 </Project>

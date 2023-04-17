@@ -7,17 +7,16 @@ services:
       - "6379:6379"
     restart: always
     volumes:
-      - ./config/redis/redis.conf:/etc/redis/redis.conf:ro
-      - ./data/redis/data:/data/
+      - redis_data:/data/
       - /etc/localtime:/etc/localtime:ro
-    command: [ "redis-server", "/etc/redis/redis.conf" ]  
   
   mongodb:
     container_name: MongoDB
     image: mongo:latest
     restart: always
     volumes:
-      - ./data/mongodb/data:/data/db
+      - mongo_data:/data/db
+      - ./init.js:/docker-entrypoint-initdb.d/init.js
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "27017:27017"
@@ -32,7 +31,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/localtime:/etc/localtime:ro
     command: --cleanup --interval 3600
-    
+
   redis-commander:
     container_name: redis-commander
     hostname: redis-commander
@@ -42,3 +41,8 @@ services:
       - REDIS_HOSTS=local:redis:6379
     ports:
       - "8081:8081"
+volumes:
+  redis_data:
+    external: true
+  mongo_data:
+    external: true
