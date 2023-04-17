@@ -3,7 +3,7 @@ using MemoryPack;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace RedBoxAuth.Models;
+namespace Shared.Models;
 
 [MemoryPackable]
 public partial class User : IIdentity

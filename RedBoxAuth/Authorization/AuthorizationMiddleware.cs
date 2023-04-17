@@ -4,12 +4,21 @@ using RedBoxAuth.Security_hash_utility;
 
 namespace RedBoxAuth.Authorization;
 
+/// <summary>
+///     Based on the applied attributes, provides access controls to incoming requests
+/// </summary>
 public class AuthorizationMiddleware
 {
 	private readonly IAuthCache _authCache;
 	private readonly RequestDelegate _next;
 	private readonly ISecurityHashUtility _securityHash;
 
+	/// <summary>
+	///     Dependency injection constructor
+	/// </summary>
+	/// <param name="authCache"></param>
+	/// <param name="securityHash"></param>
+	/// <param name="next"></param>
 	public AuthorizationMiddleware(IAuthCache authCache, ISecurityHashUtility securityHash, RequestDelegate next)
 	{
 		_authCache = authCache;
@@ -17,6 +26,10 @@ public class AuthorizationMiddleware
 		_next = next;
 	}
 
+	/// <summary>
+	///     Method invoked at every request
+	/// </summary>
+	/// <param name="context">Current Http context</param>
 	public async Task InvokeAsync(HttpContext context)
 	{
 		var metadata = context.GetEndpoint()!.Metadata;
@@ -41,7 +54,7 @@ public class AuthorizationMiddleware
 			return;
 		}
 
-		var requiredPermissions = metadata.GetMetadata<RequiredPermissionsAttribute>()!.Permission;
+		var requiredPermissions = metadata.GetMetadata<RequiredPermissionsAttribute>()!.Permissions;
 
 		if ((user.Role.Permissions & requiredPermissions) != requiredPermissions)
 		{

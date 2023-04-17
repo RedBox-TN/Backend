@@ -2,19 +2,22 @@ using System.Security.Cryptography;
 using MemoryPack;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using RedBoxAuth.Models;
 using RedBoxAuth.Settings;
+using Shared.Models;
 using StackExchange.Redis;
 using ZstdSharp;
 
 namespace RedBoxAuth.Cache;
 
+#pragma warning disable CS1591
 public class AuthCache : MemoryCache, IAuthCache
+#pragma warning restore CS1591
 {
 	private static uint _scanMinutes;
 	private readonly AuthenticationOptions _options;
 	private readonly IDatabase _redis;
 
+	/// <inheritdoc />
 	public AuthCache(IConnectionMultiplexer redis, IOptions<AuthenticationOptions> options) : base(
 		new MemoryCacheOptions
 			{ ExpirationScanFrequency = TimeSpan.FromMinutes(_scanMinutes) })
@@ -24,13 +27,14 @@ public class AuthCache : MemoryCache, IAuthCache
 		_scanMinutes = options.Value.LocalCacheExpirationScanMinutes;
 	}
 
-	public string Store(User user, out uint expireAt)
+	/// <inheritdoc />
+	public string Store(User user, out long expireAt)
 	{
 		var key = GenerateToken();
 		if (!_redis.HashSet(_options.UsersHashKey, user.Username, key, When.NotExists))
 		{
 			key = _redis.HashGet(_options.UsersHashKey, user.Username);
-			expireAt = (uint)_redis.KeyExpireTime(key)!.Value.Millisecond;
+			expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 			if (!TryGetValue(key!, out _)) return key!;
 
 			StoreLocal(user, key!, _options.SessionExpireMinutes);
@@ -39,32 +43,35 @@ public class AuthCache : MemoryCache, IAuthCache
 
 		user.IsAuthenticated = true;
 		StoreRedis(user, key, _options.SessionExpireMinutes);
-		expireAt = (uint)_redis.KeyExpireTime(key)!.Value.Millisecond;
+		expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 		StoreLocal(user, key, _options.SessionExpireMinutes);
 		return key;
 	}
 
-	public string StorePending(User user, out uint expireAt)
+	/// <inheritdoc />
+	public string StorePending(User user, out long expireAt)
 	{
 		var key = GenerateToken();
 		if (!_redis.HashSet(_options.UsersHashKey, user.Username, key, When.NotExists))
 		{
 			key = _redis.HashGet(_options.UsersHashKey, user.Username);
-			expireAt = (uint)_redis.KeyExpireTime(key)!.Value.Millisecond;
+			expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 			return key!;
 		}
 
 		StoreRedis(user, key, _options.PendingAuthMinutes);
-		expireAt = (uint)_redis.KeyExpireTime(key)!.Value.Millisecond;
+		expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 		return key;
 	}
 
+	/// <inheritdoc />
 	public bool KeyExists(string? key)
 	{
 		return _redis.KeyExists(key);
 	}
 
-	public void SetCompleted(string key, out uint expiresAt)
+	/// <inheritdoc />
+	public void SetCompleted(string key, out long expiresAt)
 	{
 		var user = RedisGet(key, out _);
 		_redis.KeyDeleteAsync(key, CommandFlags.FireAndForget);
@@ -72,11 +79,12 @@ public class AuthCache : MemoryCache, IAuthCache
 		user!.IsAuthenticated = true;
 
 		StoreRedis(user, key, _options.SessionExpireMinutes);
-		expiresAt = (uint)_redis.KeyExpireTime(key)!.Value.Millisecond;
+		expiresAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 		StoreLocal(user, key, _options.SessionExpireMinutes);
 	}
 
-	public async void Delete(string? key)
+	/// <inheritdoc />
+	public async void DeleteAsync(string? key)
 	{
 		if (key is null) return;
 
@@ -86,6 +94,7 @@ public class AuthCache : MemoryCache, IAuthCache
 		Remove(key);
 	}
 
+	/// <inheritdoc />
 	public bool TryToGet(string? key, out User? user)
 	{
 		if (!KeyExists(key))
@@ -105,7 +114,8 @@ public class AuthCache : MemoryCache, IAuthCache
 		return true;
 	}
 
-	public string RefreshToken(string oldToken, out uint expiresAt)
+	/// <inheritdoc />
+	public string RefreshToken(string oldToken, out long expiresAt)
 	{
 		var token = GenerateToken();
 		_redis.KeyRenameAsync(oldToken, token);
@@ -116,7 +126,7 @@ public class AuthCache : MemoryCache, IAuthCache
 
 		_redis.KeyExpireAsync(token, TimeSpan.FromMinutes(_options.SessionExpireMinutes));
 
-		expiresAt = (uint)_redis.KeyExpireTime(token)!.Value.Millisecond;
+		expiresAt = ((DateTimeOffset)_redis.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds();
 
 		RenameLocal(oldToken, token);
 

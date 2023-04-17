@@ -1,4 +1,4 @@
-using RedBoxAuth.Settings;
+using Shared.Settings;
 
 namespace RedBox.Settings;
 

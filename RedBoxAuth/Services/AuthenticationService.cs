@@ -3,15 +3,16 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth.Authorization;
 using RedBoxAuth.Cache;
-using RedBoxAuth.Models;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Security_hash_utility;
 using RedBoxAuth.Settings;
 using RedBoxAuth.TOTP_utility;
 using RedBoxAuthentication;
+using Shared.Models;
 
 namespace RedBoxAuth.Services;
 
+/// <inheritdoc />
 [Anonymous]
 public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrpcServiceBase
 {
@@ -26,6 +27,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	private readonly IMongoCollection<User> _userCollection;
 
 
+	/// <inheritdoc />
 	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
 		IPasswordUtility passwordUtility, IOptions<AuthenticationOptions> authOptions, ISecurityHashUtility hashUtility)
 	{
@@ -41,9 +43,9 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		_roleCollection = db.GetCollection<Role>(dbOptions.Value.RolesCollection);
 	}
 
+	/// <inheritdoc />
 	public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
 	{
-		// L'utente e' gia' loggato?
 		if (context.GetHttpContext().Request.Headers.ContainsKey(HeaderName) &&
 		    _authCache.KeyExists(context.GetHttpContext().Request.Headers[HeaderName]))
 			return new LoginResponse
@@ -51,37 +53,31 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				Status = LoginStatus.AlreadyLogged
 			};
 
-		// L'utente esiste?
 		User? user;
 		if (request.HasUsername)
 			user = await _userCollection.Find(u => u.Username == request.Username.Normalize()).FirstOrDefaultAsync();
 		else
 			user = await _userCollection.Find(u => u.Email == request.Email.Normalize()).FirstOrDefaultAsync();
 
-		// L'utente esiste?
 		if (user is null)
 			return new LoginResponse
 			{
 				Status = LoginStatus.UserNotExist
 			};
 
-		// L'utente e' bloccato?
 		if (user.IsBlocked)
 			return new LoginResponse
 			{
 				Status = LoginStatus.IsBlocked
 			};
 
-		// La password e' corretta?
-		if (!_passwordUtility.VerifyPassword(request.Password, user.PasswordHash, user.Salt))
+		if (!_passwordUtility.VerifyPassword(request.Password, user.Salt, user.PasswordHash))
 		{
-			// Incremento il contatore dei tentativi falliti
 			var filter = Builders<User>.Filter.Eq("Id", user.Id);
 			var updates = Builders<User>.Update.Inc("InvalidLoginAttempts", 1);
 			await _userCollection.FindOneAndUpdateAsync(filter, updates);
 			user.InvalidLoginAttempts++;
 
-			// L'utente ha superato il limite dei tentativi?
 			if (user.InvalidLoginAttempts < _authOptions.MaxLoginAttempts)
 				return new LoginResponse
 				{
@@ -89,7 +85,6 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 					AttemptsLeft = _authOptions.MaxLoginAttempts - user.InvalidLoginAttempts
 				};
 
-			// Se si blocco l'utente
 			updates = Builders<User>.Update.Set("IsBlocked", true);
 			await _userCollection.FindOneAndUpdateAsync(filter, updates);
 			return new LoginResponse
@@ -103,8 +98,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers["User-Agent"],
 			context.GetHttpContext().Connection.RemoteIpAddress);
 
-		uint expireAt;
-		// La 2fa e' attiva?
+		long expireAt;
 		if (user.IsFaEnable)
 			return new LoginResponse
 			{
@@ -116,7 +110,6 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		user.IsAuthenticated = true;
 		var key = _authCache.Store(user, out expireAt);
 
-		// Imposto l'ultimo accesso e azzero i tentativi falliti
 		await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq("Id", user.Id),
 			Builders<User>.Update.Set("LastAccess", DateTime.Now).Set("InvalidLoginAttempts", 0));
 
@@ -128,6 +121,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		};
 	}
 
+	/// <inheritdoc />
 	public override Task<LogoutResponse> Logout(Nil request, ServerCallContext context)
 	{
 		if (!context.GetHttpContext().Request.Headers.TryGetValue(HeaderName, out var key) ||
@@ -137,7 +131,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				Status = LogoutStatus.NotLogged
 			});
 
-		_authCache.Delete(key);
+		_authCache.DeleteAsync(key);
 
 		return Task.FromResult(new LogoutResponse
 		{
@@ -145,6 +139,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		});
 	}
 
+	/// <inheritdoc />
 	public override Task<TwoFactorResponse> Verify2FA(TwoFactorRequest request, ServerCallContext context)
 	{
 		if (!_authCache.TryToGet(request.Token, out var user))
@@ -182,6 +177,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		});
 	}
 
+	/// <inheritdoc />
 	public override Task<TokenRefreshResponse> RefreshToken(Nil request, ServerCallContext context)
 	{
 		if (!context.GetHttpContext().Request.Headers.ContainsKey(HeaderName) ||

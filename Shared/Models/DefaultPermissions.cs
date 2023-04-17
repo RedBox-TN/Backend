@@ -1,4 +1,4 @@
-namespace RedBoxAuth.Models;
+namespace Shared.Models;
 
 public struct DefaultPermissions
 {

@@ -1,6 +1,12 @@
 namespace RedBoxAuth;
 
+/// <summary>
+///     Contains useful constants used in the library
+/// </summary>
 public struct Constants
 {
-	public const string TokenHeaderName = "Auth-Token";
+	/// <summary>
+	///     Name of the header containing the authentication token
+	/// </summary>
+	internal const string TokenHeaderName = "Auth-Token";
 }
