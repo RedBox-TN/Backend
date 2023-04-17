@@ -1,3 +1,4 @@
+using RedBox.Services;
 using RedBox.Settings;
 using RedBoxAuth;
 
@@ -13,5 +14,7 @@ builder.Services.AddGrpc();
 var app = builder.Build();
 
 app.UseRedBoxAuthenticationAndAuthorization();
+
+app.MapGrpcService<DummyService>();
 
 app.Run();
