@@ -118,9 +118,10 @@ public class AuthCache : MemoryCache, IAuthCache
 	public string RefreshToken(string oldToken, out long expiresAt)
 	{
 		var token = GenerateToken();
-		_redis.KeyRenameAsync(oldToken, token);
 
 		TryToGet(oldToken, out var user);
+
+		_redis.KeyRenameAsync(oldToken, token);
 
 		_redis.HashSetAsync(_options.UsersHashKey, user!.Username, token);
 

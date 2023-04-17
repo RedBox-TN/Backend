@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="Services" type="CompoundRunConfigurationType">
+        <toRun name="ExpiredKeyRemover" type="LaunchSettings"/>
+        <toRun name="RedBox: http" type="LaunchSettings"/>
+        <method v="2"/>
+    </configuration>
+</component>

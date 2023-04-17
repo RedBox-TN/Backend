@@ -7,6 +7,17 @@
         <UserSecretsId>dotnet-ExpiredKeyRemover-443FE74B-9DED-4982-8024-54E1BCF12B5A</UserSecretsId>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <ServerGarbageCollection>true</ServerGarbageCollection>
+        <Configurations>Debug;Release;Release ARM</Configurations>
+        <Platforms>AnyCPU;ARM64</Platforms>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
+        <PlatformTarget>ARM64</PlatformTarget>
+        <Optimize Condition=" '$(Optimize)' == '' ">true</Optimize>
     </PropertyGroup>
 
     <ItemGroup>

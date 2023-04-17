@@ -6,6 +6,8 @@
         <Nullable>enable</Nullable>
         <RootNamespace>RedBoxAuth</RootNamespace>
         <UserSecretsId>a465cde5-21b7-42c1-813b-b292652ada31</UserSecretsId>
+        <Configurations>Debug;Release;Release ARM</Configurations>
+        <Platforms>AnyCPU;ARM64</Platforms>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -14,6 +16,13 @@
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
         <DocumentationFile>bin\Release\net7.0\RedBoxAuth.xml</DocumentationFile>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
+        <DocumentationFile>bin\Release\net7.0\RedBoxAuth.xml</DocumentationFile>
+        <PlatformTarget>ARM64</PlatformTarget>
+        <Optimize Condition=" '$(Optimize)' == '' ">true</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
