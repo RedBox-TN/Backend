@@ -11,8 +11,15 @@ using StackExchange.Redis;
 
 namespace RedBoxAuth;
 
+/// <summary>
+///     Contains statics methods that add required components in order to allow authentication and authorization
+/// </summary>
 public static class RequiredAuthServices
 {
+	/// <summary>
+	///     Add required dependencies for authentication and authorization
+	/// </summary>
+	/// <param name="builder">WebApplicationBuilder of the current application</param>
 	public static void AddRedBoxAuthenticationAndAuthorization(this WebApplicationBuilder builder)
 	{
 		builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
@@ -34,9 +41,13 @@ public static class RequiredAuthServices
 		builder.Services.AddHttpContextAccessor();
 	}
 
-	public static void UseRedBoxAuthenticationAndAuthorization(this WebApplication builder)
+	/// <summary>
+	///     Enable authentication and authorization services
+	/// </summary>
+	/// <param name="app">current WebApplication instance</param>
+	public static void UseRedBoxAuthenticationAndAuthorization(this WebApplication app)
 	{
-		builder.UseMiddleware<AuthorizationMiddleware>();
-		builder.MapGrpcService<AuthenticationService>();
+		app.UseMiddleware<AuthorizationMiddleware>();
+		app.MapGrpcService<AuthenticationService>();
 	}
 }

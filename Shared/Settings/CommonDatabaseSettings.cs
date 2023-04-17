@@ -1,4 +1,4 @@
-namespace RedBoxAuth.Settings;
+namespace Shared.Settings;
 
 public abstract class CommonDatabaseSettings
 {

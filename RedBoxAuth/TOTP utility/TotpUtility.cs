@@ -5,15 +5,18 @@ using RedBoxAuth.Settings;
 
 namespace RedBoxAuth.TOTP_utility;
 
+/// <inheritdoc />
 public class TotpUtility : ITotpUtility
 {
 	private readonly AuthenticationOptions _authOptions;
 
+#pragma warning disable CS1591
 	public TotpUtility(IOptions<AuthenticationOptions> authOptions)
 	{
 		_authOptions = authOptions.Value;
 	}
 
+	/// <inheritdoc />
 	public bool VerifyCode(byte[] faSeed, string code)
 	{
 		var tfa = new TwoFactorAuthenticator();
@@ -21,6 +24,7 @@ public class TotpUtility : ITotpUtility
 	}
 
 	public byte[] CreateSharedSecret(string email, out string? base64Image, out string? manualCode)
+#pragma warning restore CS1591
 	{
 		var key = RandomNumberGenerator.GetBytes(_authOptions.TotpSharedSecretSize);
 		var tfa = new TwoFactorAuthenticator();

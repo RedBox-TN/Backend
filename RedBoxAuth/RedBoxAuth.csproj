@@ -5,6 +5,15 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>RedBoxAuth</RootNamespace>
+        <UserSecretsId>a465cde5-21b7-42c1-813b-b292652ada31</UserSecretsId>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <DocumentationFile>bin\Debug\net7.0\RedBoxAuth.xml</DocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DocumentationFile>bin\Release\net7.0\RedBoxAuth.xml</DocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,6 +29,10 @@
 
     <ItemGroup>
         <Protobuf Include="Protos\authentication.proto" GrpcServices="Server"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Shared\Shared.csproj"/>
     </ItemGroup>
 
 </Project>

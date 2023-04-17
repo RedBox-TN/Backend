@@ -42,7 +42,7 @@ message LoginRequest {
 message LoginResponse {
   LoginStatus status = 1;
   optional string token = 2;
-  optional uint32 expiresAt = 3;
+  optional int64 expiresAt = 3;
   optional uint32 attempts_left = 4;
 }
 
@@ -57,13 +57,13 @@ message LogoutResponse {
 
 message TwoFactorResponse {
   TwoFactorResponseCode code = 1;
-  uint32 tokenExpiresAt = 2;
+  optional int64 tokenExpiresAt = 2;
 }
 
 message TokenRefreshResponse {
   RefreshTokenStatusCode status = 1;
   optional string Token = 2;
-  optional uint32 expiresAt = 3;
+  optional int64 expiresAt = 3;
 }
 
 service AuthenticationGrpcService {

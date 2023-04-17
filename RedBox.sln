@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedBoxAuth", "RedBoxAuth\Re
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExpiredKeyRemover", "ExpiredKeyRemover\ExpiredKeyRemover.csproj", "{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{D4409F80-69C1-453C-94C6-DFFBCA6517E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4409F80-69C1-453C-94C6-DFFBCA6517E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4409F80-69C1-453C-94C6-DFFBCA6517E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4409F80-69C1-453C-94C6-DFFBCA6517E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4409F80-69C1-453C-94C6-DFFBCA6517E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,7 +1,11 @@
 namespace RedBoxAuth.Settings;
 
+/// <summary>
+///     Configurable parameters for authentication mirroring the settings.json
+/// </summary>
 public class AuthenticationOptions
 {
+#pragma warning disable CS1591
 	public string UsersHashKey { get; set; } = "users";
 	public uint MaxLoginAttempts { get; set; } = 3;
 	public uint PendingAuthMinutes { get; set; } = 5;
@@ -16,4 +20,5 @@ public class AuthenticationOptions
 	public int Argon2IdMemorySizeKb { get; set; } = 512000;
 	public int Argon2IdHashSize { get; set; } = 128;
 	public string Argon2IdPepper { get; set; } = "";
+#pragma warning restore CS1591
 }
