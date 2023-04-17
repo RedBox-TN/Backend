@@ -1,5 +1,6 @@
 using Keychain.Services;
 using Keychain.Settings;
+using RedBoxAuth;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,8 +18,7 @@ var redis = ConnectionMultiplexer.Connect(redisHost);
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
-builder.Services.AddSingleton<ISessionEncryptionSettings>(
-	new SessionEncryptionSettings(redis));
+RequiredAuthServices.Add(builder.Services);
 
 builder.Services.AddGrpc();
 
