@@ -42,6 +42,22 @@ public static class RequiredAuthServices
 	}
 
 	/// <summary>
+	///     Add required dependencies for basic user retrieval
+	/// </summary>
+	/// <param name="builder">WebApplicationBuilder of the current application</param>
+	public static void AddUserRetrieval(this WebApplicationBuilder builder)
+	{
+		var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
+		if (redisHost == null)
+			Environment.Exit(-1);
+
+		var redis = ConnectionMultiplexer.Connect(redisHost);
+
+		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
+		builder.Services.AddSingleton<IBasicAuthCache, BasicAuthCache>();
+	}
+
+	/// <summary>
 	///     Enable authentication and authorization services
 	/// </summary>
 	/// <param name="app">current WebApplication instance</param>
