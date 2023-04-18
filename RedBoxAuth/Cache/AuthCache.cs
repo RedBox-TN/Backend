@@ -9,9 +9,11 @@ using ZstdSharp;
 
 namespace RedBoxAuth.Cache;
 
-#pragma warning disable CS1591
+/// <summary>
+///     Implementation of IAuthCache, combining redis and local cache
+/// </summary>
 public class AuthCache : MemoryCache, IAuthCache
-#pragma warning restore CS1591
+
 {
 	private static uint _scanMinutes;
 	private readonly AuthenticationOptions _options;
