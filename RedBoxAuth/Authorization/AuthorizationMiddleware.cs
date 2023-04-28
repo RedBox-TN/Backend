@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using RedBoxAuth.Cache;
 using RedBoxAuth.Security_hash_utility;
+using Shared.Models;
 
 namespace RedBoxAuth.Authorization;
 
@@ -9,7 +10,7 @@ namespace RedBoxAuth.Authorization;
 /// </summary>
 public class AuthorizationMiddleware
 {
-	private readonly IAuthCache _authCache;
+	private readonly IBasicAuthCache _authCache;
 	private readonly RequestDelegate _next;
 	private readonly ISecurityHashUtility _securityHash;
 
@@ -19,7 +20,7 @@ public class AuthorizationMiddleware
 	/// <param name="authCache"></param>
 	/// <param name="securityHash"></param>
 	/// <param name="next"></param>
-	public AuthorizationMiddleware(IAuthCache authCache, ISecurityHashUtility securityHash, RequestDelegate next)
+	public AuthorizationMiddleware(IBasicAuthCache authCache, ISecurityHashUtility securityHash, RequestDelegate next)
 	{
 		_authCache = authCache;
 		_securityHash = securityHash;
@@ -34,34 +35,46 @@ public class AuthorizationMiddleware
 	{
 		var metadata = context.GetEndpoint()!.Metadata;
 
-		if (metadata.Contains(new AnonymousAttribute()))
-		{
-			await _next(context);
-			return;
-		}
+		User? user;
 
-		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) ||
-		    !_authCache.TryToGet(key, out var user) || !_securityHash.IsValid(user!.SecurityHash,
-			    context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress))
-		{
-			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-			return;
-		}
+		var permAttribute = metadata.GetMetadata<RequiredPermissionsAttribute>();
+
+		if (permAttribute is not null)
+			if (IsUserAuthenticated(context, out user) &&
+			    (user!.Role.Permissions & permAttribute.Permissions) == permAttribute.Permissions)
+			{
+				context.Items[Constants.UserContextKey] = user;
+				await _next(context);
+				return;
+			}
+			else
+			{
+				context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+				return;
+			}
 
 		if (metadata.Contains(new AuthenticationRequiredAttribute()))
 		{
-			await _next(context);
-			return;
-		}
+			if (IsUserAuthenticated(context, out user))
+			{
+				context.Items[Constants.UserContextKey] = user;
+				await _next(context);
+				return;
+			}
 
-		var requiredPermissions = metadata.GetMetadata<RequiredPermissionsAttribute>()!.Permissions;
-
-		if ((user.Role.Permissions & requiredPermissions) != requiredPermissions)
-		{
 			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 			return;
 		}
 
 		await _next(context);
+	}
+
+
+	private bool IsUserAuthenticated(HttpContext context, out User? user)
+	{
+		user = null;
+		return context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) &&
+		        _authCache.TryToGet(key, out user) && _securityHash.IsValid(user!.SecurityHash,
+			        context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress);
 	}
 }

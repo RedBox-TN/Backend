@@ -13,13 +13,12 @@ using Shared.Models;
 namespace RedBoxAuth.Services;
 
 /// <inheritdoc />
-[Anonymous]
 public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrpcServiceBase
 {
 	private const string HeaderName = Constants.TokenHeaderName;
 
 	private readonly IAuthCache _authCache;
-	private readonly AuthenticationOptions _authOptions;
+	private readonly SecurityOptions _authOptions;
 	private readonly ISecurityHashUtility _hashUtility;
 	private readonly IPasswordUtility _passwordUtility;
 	private readonly IMongoCollection<Role> _roleCollection;
@@ -29,7 +28,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 	/// <inheritdoc />
 	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
-		IPasswordUtility passwordUtility, IOptions<AuthenticationOptions> authOptions, ISecurityHashUtility hashUtility)
+		IPasswordUtility passwordUtility, IOptions<SecurityOptions> authOptions, ISecurityHashUtility hashUtility)
 	{
 		_totp = totp;
 		_hashUtility = hashUtility;
@@ -73,8 +72,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 		if (!_passwordUtility.VerifyPassword(request.Password, user.Salt, user.PasswordHash))
 		{
-			var filter = Builders<User>.Filter.Eq("Id", user.Id);
-			var updates = Builders<User>.Update.Inc("InvalidLoginAttempts", 1);
+			var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
+			var updates = Builders<User>.Update.Inc(u => u.InvalidLoginAttempts, 1);
 			await _userCollection.FindOneAndUpdateAsync(filter, updates);
 			user.InvalidLoginAttempts++;
 
@@ -85,7 +84,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 					AttemptsLeft = _authOptions.MaxLoginAttempts - user.InvalidLoginAttempts
 				};
 
-			updates = Builders<User>.Update.Set("IsBlocked", true);
+			updates = Builders<User>.Update.Set(u => u.IsBlocked, true);
 			await _userCollection.FindOneAndUpdateAsync(filter, updates);
 			return new LoginResponse
 			{
@@ -110,8 +109,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		user.IsAuthenticated = true;
 		var key = _authCache.Store(user, out expireAt);
 
-		await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq("Id", user.Id),
-			Builders<User>.Update.Set("LastAccess", DateTime.Now).Set("InvalidLoginAttempts", 0));
+		await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq(u => u.Id, user.Id),
+			Builders<User>.Update.Set(u => u.LastAccess, DateTime.Now).Set(u => u.InvalidLoginAttempts, 0));
 
 		return new LoginResponse
 		{
@@ -122,21 +121,14 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	}
 
 	/// <inheritdoc />
-	public override Task<LogoutResponse> Logout(Nil request, ServerCallContext context)
+	[AuthenticationRequired]
+	public override Task<Nil> Logout(Nil request, ServerCallContext context)
 	{
-		if (!context.GetHttpContext().Request.Headers.TryGetValue(HeaderName, out var key) ||
-		    string.IsNullOrEmpty(key))
-			return Task.FromResult(new LogoutResponse
-			{
-				Status = LogoutStatus.NotLogged
-			});
+		var key = context.GetHttpContext().Request.Headers[HeaderName];
 
 		_authCache.DeleteAsync(key);
 
-		return Task.FromResult(new LogoutResponse
-		{
-			Status = LogoutStatus.LogoutSuccess
-		});
+		return Task.FromResult(new Nil());
 	}
 
 	/// <inheritdoc />
@@ -178,20 +170,13 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	}
 
 	/// <inheritdoc />
+	[AuthenticationRequired]
 	public override Task<TokenRefreshResponse> RefreshToken(Nil request, ServerCallContext context)
 	{
-		if (!context.GetHttpContext().Request.Headers.ContainsKey(HeaderName) ||
-		    !_authCache.KeyExists(context.GetHttpContext().Request.Headers[HeaderName]))
-			return Task.FromResult(new TokenRefreshResponse
-			{
-				Status = RefreshTokenStatusCode.InvalidToken
-			});
-
-
-		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[HeaderName]!, out var expiresAt);
+		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[HeaderName]!,
+			out var expiresAt);
 		return Task.FromResult(new TokenRefreshResponse
 		{
-			Status = RefreshTokenStatusCode.TokenRefreshed,
 			Token = token,
 			ExpiresAt = expiresAt
 		});

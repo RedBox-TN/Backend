@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RedBox.Models;
 
-public class Message
+public sealed class Message
 {
 	[BsonId]
 	[BsonRepresentation(BsonType.ObjectId)]
@@ -15,7 +15,6 @@ public class Message
 	public byte[]? Text { get; set; } = null!;
 
 	public Attachment Attachment { get; set; } = null!;
-	public DateTime? Timestamp { get; set; }
-
-	public DateTime? DeletedAt { get; set; }
+	
+	public DateTime? Timestamp { get; set; } = null!;
 }
