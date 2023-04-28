@@ -9,10 +9,10 @@ namespace RedBoxAuth.Password_utility;
 /// <inheritdoc />
 public class PasswordUtility : IPasswordUtility
 {
-	private readonly AuthenticationOptions _hashingOptions;
+	private readonly SecurityOptions _hashingOptions;
 
 #pragma warning disable CS1591
-	public PasswordUtility(IOptions<AuthenticationOptions> authOptions)
+	public PasswordUtility(IOptions<SecurityOptions> authOptions)
 #pragma warning restore CS1591
 	{
 		_hashingOptions = authOptions.Value;

@@ -9,18 +9,14 @@
         <Platforms>AnyCPU;ARM64</Platforms>
     </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <PlatformTarget>ARM64</PlatformTarget>
-    </PropertyGroup>
-
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
         <PlatformTarget>ARM64</PlatformTarget>
         <Optimize Condition=" '$(Optimize)' == '' ">true</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MemoryPack" Version="1.9.13"/>
-        <PackageReference Include="MongoDB.Driver" Version="2.19.1"/>
+        <PackageReference Include="MemoryPack" Version="1.9.13" />
+        <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
     </ItemGroup>
 
 </Project>

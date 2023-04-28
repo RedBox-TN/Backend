@@ -6,9 +6,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keychain", "Keychain\Keycha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedBoxAuth", "RedBoxAuth\RedBoxAuth.csproj", "{614B5AE7-EA83-4659-92B4-213D03156E4A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExpiredKeyRemover", "ExpiredKeyRemover\ExpiredKeyRemover.csproj", "{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackgroundServices", "BackgroundServices\BackgroundServices.csproj", "{E7DC880E-B0BE-4174-AFEC-5E85C21006BB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{D4409F80-69C1-453C-94C6-DFFBCA6517E6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedBoxTests", "RedBoxTests\RedBoxTests.csproj", "{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,7 +30,6 @@ Global
 		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release ARM|ARM64.ActiveCfg = Release ARM|ARM64
-		{EC170F1A-76BF-478F-B72C-6446982ACE3D}.Release ARM|ARM64.Build.0 = Release ARM|ARM64
 		{614B5AE7-EA83-4659-92B4-213D03156E4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{614B5AE7-EA83-4659-92B4-213D03156E4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{614B5AE7-EA83-4659-92B4-213D03156E4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -47,5 +48,11 @@ Global
 		{D4409F80-69C1-453C-94C6-DFFBCA6517E6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D4409F80-69C1-453C-94C6-DFFBCA6517E6}.Release ARM|ARM64.ActiveCfg = Release ARM|ARM64
 		{D4409F80-69C1-453C-94C6-DFFBCA6517E6}.Release ARM|ARM64.Build.0 = Release ARM|ARM64
+		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Release ARM|ARM64.ActiveCfg = Debug|Any CPU
+		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Release ARM|ARM64.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

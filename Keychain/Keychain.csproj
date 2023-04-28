@@ -4,22 +4,31 @@
         <TargetFramework>net7.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <Configurations>Debug;Release;Release ARM</Configurations>
+        <Platforms>AnyCPU;ARM64</Platforms>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <DebugSymbols>false</DebugSymbols>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
+      <DebugSymbols>false</DebugSymbols>
     </PropertyGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\service.proto" GrpcServices="Server"/>
-        <Protobuf Include="Protos\request.proto" GrpcServices="Server"/>
-        <Protobuf Include="Protos\response.proto" GrpcServices="Server"/>
+        <Protobuf Include="Protos\keychain.proto" GrpcServices="Server" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.52.0"/>
-        <PackageReference Include="MongoDB.Driver" Version="2.19.1"/>
-        <PackageReference Include="StackExchange.Redis" Version="2.6.104"/>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.52.0" />
+        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.52.0" />
+        <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
+        <PackageReference Include="StackExchange.Redis" Version="2.6.104" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
+        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj" />
     </ItemGroup>
 
 </Project>

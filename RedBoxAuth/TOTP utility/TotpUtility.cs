@@ -8,10 +8,10 @@ namespace RedBoxAuth.TOTP_utility;
 /// <inheritdoc />
 public class TotpUtility : ITotpUtility
 {
-	private readonly AuthenticationOptions _authOptions;
+	private readonly SecurityOptions _authOptions;
 
 #pragma warning disable CS1591
-	public TotpUtility(IOptions<AuthenticationOptions> authOptions)
+	public TotpUtility(IOptions<SecurityOptions> authOptions)
 	{
 		_authOptions = authOptions.Value;
 	}

@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace RedBox.Models;
 
-public class Attachment
+public sealed class Attachment
 {
 	[BsonId]
 	[BsonRepresentation(BsonType.ObjectId)]

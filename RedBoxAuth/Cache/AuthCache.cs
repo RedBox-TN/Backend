@@ -9,16 +9,18 @@ using ZstdSharp;
 
 namespace RedBoxAuth.Cache;
 
-#pragma warning disable CS1591
+/// <summary>
+///     Implementation of IAuthCache, combining redis and local cache
+/// </summary>
 public class AuthCache : MemoryCache, IAuthCache
-#pragma warning restore CS1591
+
 {
 	private static uint _scanMinutes;
-	private readonly AuthenticationOptions _options;
+	private readonly SecurityOptions _options;
 	private readonly IDatabase _redis;
 
 	/// <inheritdoc />
-	public AuthCache(IConnectionMultiplexer redis, IOptions<AuthenticationOptions> options) : base(
+	public AuthCache(IConnectionMultiplexer redis, IOptions<SecurityOptions> options) : base(
 		new MemoryCacheOptions
 			{ ExpirationScanFrequency = TimeSpan.FromMinutes(_scanMinutes) })
 	{
@@ -86,12 +88,15 @@ public class AuthCache : MemoryCache, IAuthCache
 	/// <inheritdoc />
 	public async void DeleteAsync(string? key)
 	{
-		if (!KeyExists(key)) return;
+		if (!TryToGet(key, out var user))
+		{
+			return;
+		}
 
-		var username = this.Get<User>(key!)?.Username;
+		var username = user!.Username;
 		await _redis.KeyDeleteAsync(key, CommandFlags.FireAndForget);
 		await _redis.HashDeleteAsync(_options.UsersHashKey, username, CommandFlags.FireAndForget);
-		Remove(key!);
+		if (key != null) Remove(key);
 	}
 
 	/// <inheritdoc />

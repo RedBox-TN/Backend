@@ -6,15 +6,15 @@ namespace Keychain.Models;
 public class Key
 {
 	[BsonId]
-	[BsonRequired]
 	[BsonRepresentation(BsonType.ObjectId)]
 	public string? Id { get; set; }
 
-	[BsonRequired] public byte[]? Data { get; set; }
+	public byte[]? Data { get; set; }
 
-	[BsonRequired]
+	[BsonIgnoreIfNull]
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string? UserId { get; set; }
+	public string? UserOwnerId { get; set; }
 
-	[BsonIgnore] public KeyType? KeyType { get; set; }
+	[BsonIgnoreIfNull]
+	public bool? IsEncryptedWithUserKey { get; set; }
 }
