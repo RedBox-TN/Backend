@@ -5,6 +5,5 @@ namespace Keychain.Models;
 
 public sealed class GroupKey : Key
 {
-	[BsonRepresentation(BsonType.ObjectId)]
-	public string? GroupId { get; set; }
+	public string? GroupCollectionName { get; set; }
 }

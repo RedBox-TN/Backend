@@ -4,15 +4,21 @@ using RedBoxAuth;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddGrpcReflection();
+
 builder.Services.Configure<DatabaseSettings>(
 	builder.Configuration.GetSection("MongoDB"));
 
-builder.AddUserRetrieval();
+builder.AddRedBoxBasicAuthorization();
 
 builder.Services.AddGrpc();
 
 var app = builder.Build();
 
-app.MapGrpcService<KeychainService>();
+if (app.Environment.IsDevelopment()) app.MapGrpcReflectionService();
+
+app.UseRedBoxBasicAuthorization();
+
+app.MapGrpcService<InsertKeyService>();
 
 app.Run();

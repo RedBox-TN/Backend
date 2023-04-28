@@ -3,7 +3,7 @@ using Shared.Models;
 namespace RedBoxAuth.Cache;
 
 /// <summary>
-/// Expose basic methods for interacting with the authenticated users
+///     Expose basic methods for interacting with the authenticated users
 /// </summary>
 public interface IBasicAuthCache
 {

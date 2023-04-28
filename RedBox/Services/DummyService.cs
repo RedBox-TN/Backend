@@ -1,5 +1,10 @@
 using Grpc.Core;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+using RedBox.Settings;
+using RedBoxAuth;
 using RedBoxAuth.Authorization;
+using RedBoxAuth.Settings;
 using RedBoxDummy;
 using Shared.Models;
 

@@ -24,7 +24,7 @@ public static class RequiredAuthServices
 	{
 		builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
 
-		builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection("AuthenticationOptions"));
+		builder.Services.Configure<SecurityOptions>(builder.Configuration.GetSection("SecurityOptions"));
 
 		var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
 		if (redisHost == null)
@@ -38,14 +38,15 @@ public static class RequiredAuthServices
 		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
 		builder.Services.AddSingleton<IPasswordUtility, PasswordUtility>();
 		builder.Services.AddSingleton<IAuthCache, AuthCache>();
+		builder.Services.AddSingleton<IBasicAuthCache, AuthCache>();
 		builder.Services.AddHttpContextAccessor();
 	}
 
 	/// <summary>
-	///     Add required dependencies for basic user retrieval
+	///     Add required dependencies for basic authorization of users and ability to access authenticated users
 	/// </summary>
 	/// <param name="builder">WebApplicationBuilder of the current application</param>
-	public static void AddUserRetrieval(this WebApplicationBuilder builder)
+	public static void AddRedBoxBasicAuthorization(this WebApplicationBuilder builder)
 	{
 		var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
 		if (redisHost == null)
@@ -55,6 +56,16 @@ public static class RequiredAuthServices
 
 		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 		builder.Services.AddSingleton<IBasicAuthCache, BasicAuthCache>();
+		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
+	}
+
+	/// <summary>
+	///     Enable basic authorization middleware
+	/// </summary>
+	/// <param name="app">current WebApplication instance</param>
+	public static void UseRedBoxBasicAuthorization(this WebApplication app)
+	{
+		app.UseMiddleware<AuthorizationMiddleware>();
 	}
 
 	/// <summary>

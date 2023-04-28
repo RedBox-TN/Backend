@@ -5,6 +5,8 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
+    expose:
+      - 6379
     restart: always
     volumes:
       - redis_data:/data/
@@ -16,21 +18,12 @@ services:
     restart: always
     volumes:
       - mongo_data:/data/db
-      - ./init.js:/docker-entrypoint-initdb.d/init.js
+      - ./init.js:/docker-entrypoint-initdb.d/init.js:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "27017:27017"
     environment:
-      - MONGO_INITDB_DATABASE=redbox
-
-  watchtower:
-    container_name: watchtower
-    image: containrrr/watchtower
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/localtime:/etc/localtime:ro
-    command: --cleanup --interval 3600
+      - MONGO_INITDB_DATABASE=redbox-accounts
 
   redis-commander:
     container_name: redis-commander
@@ -41,6 +34,21 @@ services:
       - REDIS_HOSTS=local:redis:6379
     ports:
       - "8081:8081"
+    links:
+      - redis
+    depends_on: 
+      - redis
+  
+  background_services:
+    container_name: background_services
+    image: background-services:latest
+    volumes:
+      - ./appsettings.json:/app/appsettings.json
+    links:
+      - redis
+    depends_on: 
+      - redis
+
 volumes:
   redis_data:
     external: true
