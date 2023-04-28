@@ -5,8 +5,15 @@ namespace RedBoxAuth.Cache;
 /// <summary>
 ///     Expose methods for working whit authenticated users
 /// </summary>
-public interface IAuthCache
+public interface IAuthCache : IBasicAuthCache
 {
+	/// <summary>
+	///     Check if the token correspond to a user authenticated
+	/// </summary>
+	/// <param name="key">The token</param>
+	/// <returns>Bool, the result of the check</returns>
+	public bool KeyExists(string? key);
+
 	/// <summary>
 	///     Store the user in the cache
 	/// </summary>
@@ -24,13 +31,6 @@ public interface IAuthCache
 	public string StorePending(User user, out long expireAt);
 
 	/// <summary>
-	///     Check if the token correspond to a user authenticated
-	/// </summary>
-	/// <param name="key">The token</param>
-	/// <returns>Bool, the result of the check</returns>
-	public bool KeyExists(string? key);
-
-	/// <summary>
 	///     Set the authentication of the user as complete, after 2FA is verified
 	/// </summary>
 	/// <param name="key">The token</param>
@@ -42,14 +42,6 @@ public interface IAuthCache
 	/// </summary>
 	/// <param name="key">The token</param>
 	public void DeleteAsync(string? key);
-
-	/// <summary>
-	///     Try to retrieve the user, if the token is invalid, return false
-	/// </summary>
-	/// <param name="key">The token</param>
-	/// <param name="user">out, the user corresponding to the token</param>
-	/// <returns>Bool, true if token is valid, false if not</returns>
-	public bool TryToGet(string? key, out User? user);
 
 	/// <summary>
 	///     Refresh the token, creating a new one

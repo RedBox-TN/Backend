@@ -1,4 +1,3 @@
-using System.Security.Principal;
 using MemoryPack;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -6,7 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Shared.Models;
 
 [MemoryPackable]
-public partial class User : IIdentity
+public partial class User
 {
 	[BsonId]
 	[BsonRepresentation(BsonType.ObjectId)]
@@ -25,7 +24,8 @@ public partial class User : IIdentity
 	[BsonIgnore] public ulong SecurityHash { get; set; }
 
 	[MemoryPackIgnore] public DateTime LastAccess { get; set; }
-	public string[] ChatsIds { get; set; } = null!;
+	public string[] ChatsCollectionNames { get; set; } = null!;
+	public string[] GroupsCollectionNames { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.ObjectId)]
 	[MemoryPackIgnore]
@@ -34,6 +34,4 @@ public partial class User : IIdentity
 	[BsonIgnore] public Role Role { get; set; } = null!;
 	public string Name { get; set; } = null!;
 	[BsonIgnore] public bool IsAuthenticated { get; set; }
-
-	[MemoryPackIgnore] [BsonIgnore] public string? AuthenticationType => "token";
 }

@@ -28,11 +28,3 @@ public class RequiredPermissionsAttribute : Attribute
 public class AuthenticationRequiredAttribute : Attribute
 {
 }
-
-/// <summary>
-///     Consent to everyone to access the tagged method or class, whether the user is authenticated or not
-/// </summary>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class AnonymousAttribute : Attribute
-{
-}
