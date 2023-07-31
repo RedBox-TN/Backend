@@ -8,13 +8,12 @@ namespace RedBoxTests.Authentication;
 public class Authentication
 {
 	private readonly AuthenticationGrpcService.AuthenticationGrpcServiceClient _client;
-
 	private readonly ITestOutputHelper _testOutputHelper;
 
 	public Authentication(ITestOutputHelper testOutputHelper)
 	{
 		_testOutputHelper = testOutputHelper;
-		var channel = GrpcChannel.ForAddress(Common.ServerAddress);
+		var channel = GrpcChannel.ForAddress(Common.RedBoxServerAddress);
 		_client = new AuthenticationGrpcService.AuthenticationGrpcServiceClient(channel);
 	}
 
@@ -23,8 +22,8 @@ public class Authentication
 	{
 		var response = await _client.LoginAsync(new LoginRequest
 		{
-			Email = "admin@redbox.it",
-			Password = "password"
+			Username = Common.User,
+			Password = Common.Password
 		});
 		return response.Token;
 	}

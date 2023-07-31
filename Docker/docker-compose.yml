@@ -17,13 +17,12 @@ services:
     image: mongo:latest
     restart: always
     volumes:
+      - mongo_config:/data/configdb
       - mongo_data:/data/db
       - ./init.js:/docker-entrypoint-initdb.d/init.js:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=redbox-accounts
 
   redis-commander:
     container_name: redis-commander
@@ -41,9 +40,10 @@ services:
   
   background_services:
     container_name: background_services
-    image: background-services:latest
+    image: registry.cazoinc.business/background-services:latest
+    restart: always
     volumes:
-      - ./appsettings.json:/app/appsettings.json
+      - ./Background Services/appsettings.json:/app/appsettings.json
     links:
       - redis
     depends_on: 
@@ -51,6 +51,5 @@ services:
 
 volumes:
   redis_data:
-    external: true
   mongo_data:
-    external: true
+  mongo_config:

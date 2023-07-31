@@ -19,6 +19,6 @@ if (app.Environment.IsDevelopment()) app.MapGrpcReflectionService();
 
 app.UseRedBoxBasicAuthorization();
 
-app.MapGrpcService<InsertKeyService>();
+app.MapGrpcService<KeysCreationService>();
 
 app.Run();

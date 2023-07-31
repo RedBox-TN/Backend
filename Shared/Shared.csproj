@@ -15,8 +15,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MemoryPack" Version="1.9.13" />
-        <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
+        <PackageReference Include="MemoryPack" Version="1.9.16"/>
+        <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
     </ItemGroup>
 
 </Project>

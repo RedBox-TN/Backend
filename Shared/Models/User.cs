@@ -11,6 +11,9 @@ public partial class User
 	[BsonRepresentation(BsonType.ObjectId)]
 	public string Id { get; set; } = null!;
 
+	[BsonRepresentation(BsonType.ObjectId)]
+	public string MasterKeyId { get; set; } = null!;
+
 	public string Surname { get; set; } = null!;
 	public string Email { get; set; } = null!;
 	public string Username { get; set; } = null!;

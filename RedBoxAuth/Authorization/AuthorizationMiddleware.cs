@@ -37,7 +37,7 @@ public class AuthorizationMiddleware
 
 		User? user;
 
-		var permAttribute = metadata.GetMetadata<RequiredPermissionsAttribute>();
+		var permAttribute = metadata.GetMetadata<PermissionsRequiredAttribute>();
 
 		if (permAttribute is not null)
 			if (IsUserAuthenticated(context, out user) &&
@@ -74,7 +74,7 @@ public class AuthorizationMiddleware
 	{
 		user = null;
 		return context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) &&
-		        _authCache.TryToGet(key, out user) && _securityHash.IsValid(user!.SecurityHash,
-			        context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress);
+		       _authCache.TryToGet(key, out user) && _securityHash.IsValid(user!.SecurityHash,
+			       context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress);
 	}
 }

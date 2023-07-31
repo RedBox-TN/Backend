@@ -1,6 +1,39 @@
-db = db.getSiblingDB('redbox-accounts')
-db.createCollection('Users')
-db.createCollection('Roles')
+db = db.getSiblingDB("admin")
+db.createUser(
+    {
+        user: "redboxUsers",
+        pwd: "pGv9n*@@c^wfFQRt$_W31D94v",
+        roles: [
+            { role: "readWrite", db: "redbox-accounts" }
+        ]
+    }
+)
+
+db.createUser(
+    {
+        user: "redboxKeychain",
+        pwd: "9e51SfysAvkygFi9ohh|@AZ2J",
+        roles: [
+            { role: "readWrite", db: "redbox-keychain" }
+        ]
+    }
+)
+
+db.createUser(
+    {
+        user: "redbox",
+        pwd: "M=EccO5rIKDtER**^t7Sw8*Vz",
+        roles: [
+            { role: "readWrite", db: "redbox" },
+            { role: "readWrite", db: "redbox-chats" },
+            { role: "readWrite", db: "redbox-groups" }
+        ]
+    }
+)
+
+db = db.getSiblingDB("redbox-accounts")
+db.createCollection("Users")
+db.createCollection("Roles")
 
 db.Users.createIndex(
     {
@@ -21,28 +54,19 @@ db.Users.createIndex(
 
 db.Roles.createIndex(
     {
-        "Username": 1
+        "Name": 1
     },
     {
         unique: true
     }
 )
 
-db.Roles.insertOne(
-    {
-        "_id": ObjectId("642579fd406480a0d6208945"),
-        "Name": "admin",
-        "Permissions": 129
-    }
-)
-
-db = db.getSiblingDB('redbox-keychain')
-db.createCollection('UsersPublicKeys')
-db.createCollection('UsersPrivateKeys')
-db.createCollection('GroupsPublicKeys')
-db.createCollection('GroupsPrivateKeys')
-db.createCollection('SupervisorsPublicKeys')
-db.createCollection('SupervisorsPrivateKeys')
+db = db.getSiblingDB("redbox-keychain")
+db.createCollection("UsersPublicKeys")
+db.createCollection("UsersPrivateKeys")
+db.createCollection("ChatsKeys")
+db.createCollection("GroupsKeys")
+db.createCollection("SupervisorsKeys")
 
 db.UsersPublicKeys.createIndex(
     {
@@ -62,37 +86,39 @@ db.UsersPrivateKeys.createIndex(
     }
 )
 
-db.GroupsPublicKeys.createIndex(
-    {
-        "GroupCollectionName": 1
-    },
-    {
-        unique: true
-    }
-)
-
-db.GroupsPrivateKeys.createIndex(
+db.ChatsKeys.createIndex(
     {
         "UserOwnerId": 1,
-        "GroupCollectionName": 1
+        "ChatCollectionName": 1
     },
     {
         unique: true
     }
 )
 
-db.SupervisorsPrivateKeys.createIndex(
+db.GroupsKeys.createIndex(
     {
-        "UserOwnerId": 1
+        "UserOwnerId": 1,
+        "ChatCollectionName": 1
     },
     {
         unique: true
     }
 )
 
-db = db.getSiblingDB('redbox')
-db.createCollection('Chats')
-db.createCollection('Groups')
+db.SupervisorsKeys.createIndex(
+    {
+        "UserOwnerId": 1,
+        "ChatCollectionName": 1
+    },
+    {
+        unique: true
+    }
+)
+
+db = db.getSiblingDB("redbox")
+db.createCollection("Chats")
+db.createCollection("Groups")
 
 db.Chats.createIndex(
     {
@@ -139,14 +165,8 @@ db.Groups.createIndex(
     }
 )
 
-db = db.getSiblingDB('redbox-chats')
-db.createCollection('Broadcast')
+db = db.getSiblingDB("redbox-chats")
+db.createCollection("Default")
 
-db = db.getSiblingDB('redbox-supervisedChats')
-db.createCollection('Default')
-
-db = db.getSiblingDB('redbox-groups')
-db.createCollection('Default')
-
-db = db.getSiblingDB('redbox-supervisedGroups')
-db.createCollection('Default')
+db = db.getSiblingDB("redbox-groups")
+db.createCollection("Broadcast")

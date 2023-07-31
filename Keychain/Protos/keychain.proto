@@ -4,90 +4,159 @@ package keychain;
 
 option csharp_namespace = "keychain";
 
-enum KeyType {
-  BOTH = 0;
-  PUBLIC = 1;
-  PRIVATE = 2;
-}
-
 message Nil {}
-
-message KeyMessage {
+/*
+  Message describing the main aes key which is used to encrypt all other keys
+*/
+message MasterKey {
+  bytes encryptedData = 1;
+  bytes iv = 2;
+}
+/*
+  Message describing the key pair of individual user, used to exchange keys with other users  
+*/
+message UserKeyPairCreationRequest {
+  bytes public_key = 1;
+  bytes encrypted_private_key = 2;
+  bytes iv = 3; // iv of the encrypted private key
+}
+/*
+  Message describing the key of a chat
+*/
+message ChatKeyCreationRequest {
+  string chat_collection_name = 1;
+  string other_user_id = 2;
+  bytes encrypted_key_for_other_user = 3;
+  bytes encrypted_key = 4;
+  bytes iv = 5;
+  bytes encrypted_key_for_supervisors = 6;
+}
+/*
+  Message describing the key of a member of a group when is created
+*/
+message GroupMemberKey {
   string user_id = 1;
   bytes data = 2;
+  bytes iv = 3;
 }
-
-message InsertUserKeysRequest {
+/*
+  Message describing keys created when a group chat is crated, creator_key is the key of the chat
+  encrypted with user master key, members_keys is the chat key encrypted with the public key of each
+  member added during creation 
+*/
+message GroupKeysCreationRequest {
+  bytes encrypted_creator_key = 1;
+  bytes iv = 2;
+  string group_collection_name = 3;
+  bytes encrypted_key_for_supervisors = 4;
+  repeated GroupMemberKey members_keys = 5;
+}
+/*
+  Message describing the key of a member of a group added later, the key is encrypted with the user public
+*/
+message UserGroupKeyCreationRequest {
+  string user_id = 1;
+  string chat_collection_name = 2;
+  bytes encrypted_key = 3;
+}
+/*
+  Message representing a supervisor key encrypted with user public key or master key
+*/
+message SupervisorKeyCreationRequest {
+  bytes encrypted_key = 1;
+  string user_id = 2;
+  optional bytes iv = 3;
+}
+/*
+  Retrieve a key given an id which is specialized by the context
+*/
+message KeyFromIdRequest {
+  string id = 1;
+}
+/*
+  Message used to update an existing key, id is specialized by the context
+*/
+message UpdateKeyRequest {
+  string key_id = 1;
+  bytes key = 2;
+  bytes iv = 3;
+}
+/*
+  Message used to update an existing key pair, id is specialized by the context
+*/
+message UpdateUserKeyPairRequest {
   bytes public_key = 1;
   bytes private_key = 2;
+  bytes iv = 3;
 }
 
-message InsertGroupKeysRequest {
-  bytes creator_private_key = 1;
-  bytes group_public_key = 2;
-  string group_id = 3;
-  repeated KeyMessage members_private = 4;
+service GrpcKeysCreationServices {
+  rpc CreateUserMasterKey(MasterKey) returns (Result);
+  rpc CreateUserKeys (UserKeyPairCreationRequest) returns (Result);
+  rpc CreateChatKeys (ChatKeyCreationRequest) returns (Result);
+  rpc CreateGroupKeys (GroupKeysCreationRequest) returns (Result);
+  rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (Result);
+  rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (Result);
+  rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (Result);
 }
 
-message InsertSupervisorKeysRequest {
-  bytes private_key = 1;
-  bytes public_key = 2;
-}
-
-message InsertUserAdditionalKeyRequest {
-  string context_id = 1;
-  KeyMessage private = 2;
-}
-
-message RequestWithId {
- string id = 1;
-}
-
-message UpdateKeyRequest {
-  string id = 1;
-  bytes data = 2;
-}
-
-service GrpcInsertKeyServices {
-  rpc InsertUserKeys (InsertUserKeysRequest) returns (Result);
-  rpc InsertGroupKeys (InsertGroupKeysRequest) returns (Result);
-  rpc InsertSupervisorKeys (InsertSupervisorKeysRequest) returns (Result);
-  rpc InsertUserGroupKey (InsertUserAdditionalKeyRequest) returns (Result);
-  rpc InsertUserSupervisorKey (InsertUserAdditionalKeyRequest) returns (Result);
-}
-
-service GrpcGetKeyServices {
-  rpc GetUserPublicKey (RequestWithId) returns (KeyResponse);
-  rpc GetGroupPublicKey (RequestWithId) returns (KeyResponse);
-  rpc GetSupervisorPublicKey (RequestWithId) returns (KeyResponse);
+service GrpcKeysRetrievingServices {
+  rpc GetUserMasterKey(Nil) returns (KeyResponse);
+  rpc GetUserPublicKey (KeyFromIdRequest) returns (KeyResponse);
+  rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
   rpc GetUserPrivateKey (Nil) returns (KeyResponse);
-  rpc GetGroupPrivateKey(RequestWithId) returns (KeyResponse);
-  rpc GetSupervisorPrivateKey(RequestWithId) returns (KeyResponse);
+  rpc GetUserGroupKey(KeyFromIdRequest) returns (KeyResponse);
+  rpc GetUserSupervisorKey(KeyFromIdRequest) returns (KeyResponse);
+  rpc GetUserKeysEncryptedWithPublicKey(Nil) returns (UserKeysEncryptedWithPublicKeyResponse);
+  rpc GetSupervisorKeysEncryptedWithPublicKey(Nil) returns (SupervisorsKeysEncryptedWithPublicKeyResponse);
 }
 
-service GrpcUpdateKeyServices {
-  rpc UpdateUserPrivate (UpdateKeyRequest) returns (Result);
+
+service GrpcKeysUpdatingServices {
+  rpc UpdateUserMasterKey(MasterKey) returns (Result);
+  rpc UpdateUserKeyPair (UpdateUserKeyPairRequest) returns (Result);
+  rpc UpdateUserChatKey (UpdateKeyRequest) returns (Result);
   rpc UpdateUserGroupKey (UpdateKeyRequest) returns (Result);
   rpc UpdateUserSupervisorKey (UpdateKeyRequest) returns (Result);
 }
 
-service GrpcDeleteKeyServices {
-  rpc DeleteUserKeys (RequestWithId) returns (Result);
-  rpc DeleteUserGroupKey (RequestWithId) returns (Result);
-  rpc UserSupervisorKey (RequestWithId) returns (Result);
+service GrpcKeysDeletionServices {
+  rpc DeleteUserMasterKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteUserKeyPair (KeyFromIdRequest) returns (Result);
+  rpc DeleteUserChatKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteUserGroupKey (KeyFromIdRequest) returns (Result);
+  rpc UserSupervisorKey (KeyFromIdRequest) returns (Result);
 }
 
 enum Status {
   OK = 0;
   ERROR = 1;
-  NOT_AUTHORIZED = 2;
 }
 
 message Result {
   Status status = 1;
+  optional string error = 2;
 }
 
 message KeyResponse {
-  Status status = 1;
+  Result result = 1;
   optional bytes data = 2;
+  optional bytes iv = 3;
+  optional string chat_collection_name = 4;
+}
+
+message GenericKey {
+  bytes encrypted_key_data = 1;
+  string chat_collection_name = 2;
+}
+
+message UserKeysEncryptedWithPublicKeyResponse {
+  Status status = 1;
+  repeated GenericKey chat_keys = 2;
+  repeated GenericKey group_keys = 3;
+}
+
+message SupervisorsKeysEncryptedWithPublicKeyResponse {
+  Status status = 1;
+  repeated GenericKey keys = 2;
 }
