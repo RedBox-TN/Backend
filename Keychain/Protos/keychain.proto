@@ -100,17 +100,34 @@ service GrpcKeysCreationServices {
   rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (Result);
 }
 
-service GrpcKeysRetrievingServices {
+service GrpcUserKeysRetrievingServices {
   rpc GetUserMasterKey(Nil) returns (KeyResponse);
   rpc GetUserPublicKey (KeyFromIdRequest) returns (KeyResponse);
-  rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
   rpc GetUserPrivateKey (Nil) returns (KeyResponse);
-  rpc GetUserGroupKey(KeyFromIdRequest) returns (KeyResponse);
-  rpc GetUserSupervisorKey(KeyFromIdRequest) returns (KeyResponse);
-  rpc GetUserKeysEncryptedWithPublicKey(Nil) returns (UserKeysEncryptedWithPublicKeyResponse);
-  rpc GetSupervisorKeysEncryptedWithPublicKey(Nil) returns (SupervisorsKeysEncryptedWithPublicKeyResponse);
+  
+  rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
+  rpc GetGroupKey(KeyFromIdRequest) returns (KeyResponse);
+  rpc GetChatsKeys (KeyFromIdRequest) returns (KeysResponse);
+  rpc GetGroupsKey(KeyFromIdRequest) returns (KeysResponse);
+
+  rpc GetUserChatKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
+  rpc GetUserGroupKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
 }
 
+service GrpcSupervisorKeysRetrievingServices {
+  rpc GetUserSupervisorMasterKey(Nil) returns (KeyResponse);
+  rpc GetSupervisorPublicKey(Nil) returns (KeyResponse);
+  rpc GetSupervisorPrivateKey(Nil) returns (KeyResponse);
+
+  rpc GetSupervisedChatKey(KeyFromIdRequest) returns (KeyResponse);
+  rpc GetSupervisedGroupKey(KeyFromIdRequest) returns (KeyResponse);
+  rpc GetSupervisedChatsKeys(Nil) returns (KeysResponse);
+  rpc GetSupervisedGroupsKeys(Nil) returns (KeysResponse);
+
+  rpc GetUserSupervisorKeyEncryptedWithPublicKey(Nil) returns (KeyEncryptedWithPublicKey);
+  rpc GetSupervisedChatsKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
+  rpc GetSupervisedGroupsKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
+}
 
 service GrpcKeysUpdatingServices {
   rpc UpdateUserMasterKey(MasterKey) returns (Result);
@@ -139,24 +156,20 @@ message Result {
 }
 
 message KeyResponse {
-  Result result = 1;
-  optional bytes data = 2;
-  optional bytes iv = 3;
-  optional string chat_collection_name = 4;
+  optional bytes data = 1;
+  optional bytes iv = 2;
+  optional string chat_collection_name = 3;
 }
 
-message GenericKey {
+message KeysResponse {
+  repeated KeyResponse keys = 1;
+}
+
+message KeyEncryptedWithPublicKey {
   bytes encrypted_key_data = 1;
-  string chat_collection_name = 2;
+  string key_id = 2;
 }
 
-message UserKeysEncryptedWithPublicKeyResponse {
-  Status status = 1;
-  repeated GenericKey chat_keys = 2;
-  repeated GenericKey group_keys = 3;
-}
-
-message SupervisorsKeysEncryptedWithPublicKeyResponse {
-  Status status = 1;
-  repeated GenericKey keys = 2;
+message KeysEncryptedWithPublicKey {
+  repeated KeyEncryptedWithPublicKey keys = 1;
 }

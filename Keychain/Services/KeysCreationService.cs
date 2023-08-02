@@ -170,14 +170,15 @@ public class KeysCreationService : GrpcKeysCreationServices.GrpcKeysCreationServ
 	public override async Task<Result> CreateSupervisorUserMasterKey(SupervisorKeyCreationRequest request,
 		ServerCallContext context)
 	{
-		var keysCollection = _database.GetCollection<ChatKey>(_settings.SupervisorsMasterKeysCollection);
+		var keysCollection = _database.GetCollection<Key>(_settings.SupervisorsMasterKeysCollection);
 
 		try
 		{
-			await keysCollection.InsertOneAsync(new ChatKey
+			await keysCollection.InsertOneAsync(new Key
 			{
 				UserOwnerId = request.UserId,
-				Data = request.EncryptedKey.ToByteArray()
+				Data = request.EncryptedKey.ToByteArray(),
+				IsEncryptedWithUserPublicKey = true
 			});
 		}
 		catch (MongoWriteException e)
@@ -255,7 +256,7 @@ public class KeysCreationService : GrpcKeysCreationServices.GrpcKeysCreationServ
 					IsEncryptedWithUserPublicKey = true
 				}
 			});
-			await keySupervisorsCollection.InsertOneAsync(new ChatKey()
+			await keySupervisorsCollection.InsertOneAsync(new ChatKey
 			{
 				ChatCollectionName = request.ChatCollectionName,
 				Data = request.EncryptedKeyForSupervisors.ToByteArray(),

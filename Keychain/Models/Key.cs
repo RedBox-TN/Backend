@@ -16,4 +16,8 @@ public class Key
 	[BsonRepresentation(BsonType.ObjectId)]
 	[BsonIgnoreIfNull]
 	public string? UserOwnerId { get; set; }
+
+	[BsonIgnoreIfNull]
+	[BsonIgnoreIfDefault]
+	public bool? IsEncryptedWithUserPublicKey { get; set; }
 }
