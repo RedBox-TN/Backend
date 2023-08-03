@@ -82,6 +82,12 @@ message UpdateKeyRequest {
   bytes iv = 3;
 }
 /*
+  Message representing multiple keys that need to be updated
+*/
+message UpdateKeysRequest {
+  repeated UpdateKeyRequest keys = 1;
+}
+/*
   Message used to update an existing key pair, id is specialized by the context
 */
 message UpdateUserKeyPairRequest {
@@ -96,6 +102,7 @@ service GrpcKeysCreationServices {
   rpc CreateChatKeys (ChatKeyCreationRequest) returns (Result);
   rpc CreateGroupKeys (GroupKeysCreationRequest) returns (Result);
   rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (Result);
+
   rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (Result);
   rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (Result);
 }
@@ -124,17 +131,24 @@ service GrpcSupervisorKeysRetrievingServices {
   rpc GetSupervisedChatsKeys(Nil) returns (KeysResponse);
   rpc GetSupervisedGroupsKeys(Nil) returns (KeysResponse);
 
-  rpc GetUserSupervisorKeyEncryptedWithPublicKey(Nil) returns (KeyEncryptedWithPublicKey);
+  rpc GetUserSupervisorMasterKeyEncryptedWithPublicKey(Nil) returns (KeyEncryptedWithPublicKey);
   rpc GetSupervisedChatsKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
   rpc GetSupervisedGroupsKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
 }
 
-service GrpcKeysUpdatingServices {
+service GrpcUserKeysUpdatingServices {
   rpc UpdateUserMasterKey(MasterKey) returns (Result);
   rpc UpdateUserKeyPair (UpdateUserKeyPairRequest) returns (Result);
   rpc UpdateUserChatKey (UpdateKeyRequest) returns (Result);
   rpc UpdateUserGroupKey (UpdateKeyRequest) returns (Result);
-  rpc UpdateUserSupervisorKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateMultipleUserKeys (UpdateKeysRequest) returns (Result);
+}
+
+service GrpcSupervisorKeysUpdatingServices {
+  rpc UpdateUserSupervisorMasterKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateSupervisedChatKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateSupervisedGroupKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateMultipleSupervisorKeys (UpdateKeysRequest) returns (Result);
 }
 
 service GrpcKeysDeletionServices {
