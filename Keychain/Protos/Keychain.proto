@@ -88,18 +88,24 @@ message UpdateKeyRequest {
 message UpdateKeysRequest {
   repeated UpdateKeyRequest chat_keys = 1;
   repeated UpdateKeyRequest group_keys = 2;
-  optional UpdateKeyRequest private_key = 3;
-  optional UpdateKeyRequest supervisor_key = 4;
+  optional UpdateUserKeyPairRequest key_pair = 3;
+  optional MasterKey master_key = 4;
 }
 /*
   Message used to update an existing key pair, id is specialized by the context
 */
 message UpdateUserKeyPairRequest {
-  string public_key_id = 1;
-  bytes public_key_data = 2;
-  string private_key_id = 3;
+  optional bytes public_key_data = 2;
   bytes private_key_data = 4;
   bytes private_key_iv = 5;
+}
+/*
+    Message representing multiple supervisor keys that need to be updated
+*/
+message UpdateSupervisorKeysRequest {
+  repeated UpdateKeyRequest chat_keys = 1;
+  repeated UpdateKeyRequest group_keys = 2;
+  optional MasterKey master_key = 3;
 }
 
 service GrpcKeysCreationServices {
@@ -143,7 +149,7 @@ service GrpcSupervisorKeysRetrievingServices {
 }
 
 service GrpcUserKeysUpdatingServices {
-  rpc UpdateUserMasterKey(UpdateKeyRequest) returns (Result);
+  rpc UpdateUserMasterKey(MasterKey) returns (Result);
   rpc UpdateUserKeyPair (UpdateUserKeyPairRequest) returns (Result);
   rpc UpdateUserChatKey (UpdateKeyRequest) returns (Result);
   rpc UpdateUserGroupKey (UpdateKeyRequest) returns (Result);
@@ -151,10 +157,10 @@ service GrpcUserKeysUpdatingServices {
 }
 
 service GrpcSupervisorKeysUpdatingServices {
-  rpc UpdateUserSupervisorMasterKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateUserSupervisorMasterKey (MasterKey) returns (Result);
   rpc UpdateSupervisedChatKey (UpdateKeyRequest) returns (Result);
   rpc UpdateSupervisedGroupKey (UpdateKeyRequest) returns (Result);
-  rpc UpdateMultipleSupervisorKeys (UpdateKeysRequest) returns (Result);
+  rpc UpdateMultipleSupervisorKeys (UpdateSupervisorKeysRequest) returns (Result);
 }
 
 service GrpcKeysDeletionServices {

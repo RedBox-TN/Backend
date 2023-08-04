@@ -4,6 +4,7 @@ using Keychain.Models;
 using Keychain.Settings;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using RedBoxAuth;
 using RedBoxAuth.Authorization;
 using Status = keychain.Status;
 
@@ -22,22 +23,18 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
 		_database = mongodbClient.GetDatabase(options.Value.DatabaseName);
 	}
 
-	public override async Task<Result> UpdateUserMasterKey(UpdateKeyRequest request, ServerCallContext context)
+	public override async Task<Result> UpdateUserMasterKey(MasterKey request, ServerCallContext context)
 	{
 		try
 		{
+			var id = context.GetUser().Id;
 			var collection = _database.GetCollection<Key>(_settings.UsersMasterKeysCollection);
 
 			var update = Builders<Key>.Update
-				.Set(k => k.Data, request.KeyData.ToByteArray())
+				.Set(k => k.Data, request.EncryptedData.ToByteArray())
 				.Set(k => k.Iv, request.Iv.ToByteArray());
 
-			update = request.IsEncryptedWithPublicKey
-				? update.Set(k => k.IsEncryptedWithUserPublicKey, true)
-				: update.Unset(k => k.IsEncryptedWithUserPublicKey);
-
-
-			await collection.UpdateOneAsync(k => k.Id == request.KeyId, update);
+			await collection.UpdateOneAsync(k => k.UserOwnerId == id, update);
 
 			return new Result
 			{
@@ -58,24 +55,25 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
 	{
 		try
 		{
+			var id = context.GetUser().Id;
+
 			var privateKeys = _database.GetCollection<Key>(_settings.UsersPrivateKeysCollection);
-			var publicKeys = _database.GetCollection<Key>(_settings.UsersPublicKeysCollection);
 
 			var privateKeyUpdate = Builders<Key>.Update
 				.Set(k => k.Data, request.PrivateKeyData.ToByteArray())
 				.Set(k => k.Iv, request.PrivateKeyIv.ToByteArray());
 
-			await privateKeys.UpdateOneAsync(k => k.Id == request.PrivateKeyId, privateKeyUpdate);
+			await privateKeys.UpdateOneAsync(k => k.UserOwnerId == id, privateKeyUpdate);
 
-			var publicKeyUpdate = Builders<Key>.Update
-				.Set(k => k.Data, request.PublicKeyData.ToByteArray());
-
-			await publicKeys.UpdateOneAsync(k => k.Id == request.PublicKeyId, publicKeyUpdate);
-
-			return new Result
+			if (request.HasPublicKeyData)
 			{
-				Status = Status.Ok
-			};
+				var publicKeys = _database.GetCollection<Key>(_settings.UsersPublicKeysCollection);
+
+				var publicKeyUpdate = Builders<Key>.Update
+					.Set(k => k.Data, request.PublicKeyData.ToByteArray());
+
+				await publicKeys.UpdateOneAsync(k => k.UserOwnerId == id, publicKeyUpdate);
+			}
 		}
 		catch (MongoException e)
 		{
@@ -85,6 +83,11 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
 				Error = e.Message
 			};
 		}
+
+		return new Result
+		{
+			Status = Status.Ok
+		};
 	}
 
 	public override async Task<Result> UpdateUserChatKey(UpdateKeyRequest request, ServerCallContext context)
@@ -153,35 +156,38 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
 	{
 		try
 		{
-			if (request.SupervisorKey is not null)
+			var id = context.GetUser().Id;
+			if (request.MasterKey is not null)
 			{
-				var supervisorKeysCollection =
-					_database.GetCollection<ChatKey>(_settings.SupervisorsMasterKeysCollection);
+				var collection = _database.GetCollection<Key>(_settings.UsersMasterKeysCollection);
 
-				var update = Builders<ChatKey>.Update
-					.Set(k => k.Data, request.SupervisorKey.KeyData.ToByteArray())
-					.Set(k => k.Iv, request.SupervisorKey.Iv.ToByteArray());
+				var update = Builders<Key>.Update
+					.Set(k => k.Data, request.MasterKey.EncryptedData.ToByteArray())
+					.Set(k => k.Iv, request.MasterKey.Iv.ToByteArray());
 
-				update = request.SupervisorKey.IsEncryptedWithPublicKey
-					? update.Set(k => k.IsEncryptedWithUserPublicKey, true)
-					: update.Unset(k => k.IsEncryptedWithUserPublicKey);
 
-				await supervisorKeysCollection.UpdateOneAsync(k => k.Id == request.SupervisorKey.KeyId, update);
+				await collection.UpdateOneAsync(k => k.UserOwnerId == id, update);
 			}
 
-			if (request.PrivateKey is not null)
+			if (request.KeyPair is not null)
 			{
 				var privateKeysCollection = _database.GetCollection<ChatKey>(_settings.UsersPrivateKeysCollection);
 
 				var update = Builders<ChatKey>.Update
-					.Set(k => k.Data, request.PrivateKey.KeyData.ToByteArray())
-					.Set(k => k.Iv, request.PrivateKey.Iv.ToByteArray());
+					.Set(k => k.Data, request.KeyPair.PrivateKeyData.ToByteArray())
+					.Set(k => k.Iv, request.KeyPair.PrivateKeyIv.ToByteArray());
 
-				update = request.PrivateKey.IsEncryptedWithPublicKey
-					? update.Set(k => k.IsEncryptedWithUserPublicKey, true)
-					: update.Unset(k => k.IsEncryptedWithUserPublicKey);
+				await privateKeysCollection.UpdateOneAsync(k => k.UserOwnerId == id, update);
 
-				await privateKeysCollection.UpdateOneAsync(k => k.Id == request.PrivateKey.KeyId, update);
+				if (request.KeyPair.HasPublicKeyData)
+				{
+					var publicKeysCollection = _database.GetCollection<ChatKey>(_settings.UsersPublicKeysCollection);
+
+					update = Builders<ChatKey>.Update
+						.Set(k => k.Data, request.KeyPair.PublicKeyData.ToByteArray());
+
+					await publicKeysCollection.UpdateOneAsync(k => k.UserOwnerId == id, update);
+				}
 			}
 
 			if (request.ChatKeys is not null)

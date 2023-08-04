@@ -17,7 +17,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\Keychain.proto" GrpcServices="Server"/>
+        <Protobuf Include="Protos\Keychain.proto" GrpcServices="Server"
+                  AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
     </ItemGroup>
 
     <ItemGroup>
