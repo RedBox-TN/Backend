@@ -34,6 +34,7 @@ public class
 
 		return new KeyResponse
 		{
+			Id = key.Id,
 			Data = ByteString.CopyFrom(key.Data),
 			Iv = ByteString.CopyFrom(key.Iv)
 		};
@@ -46,6 +47,7 @@ public class
 
 		return new KeyResponse
 		{
+			Id = key.Id,
 			Data = ByteString.CopyFrom(key.Data)
 		};
 	}
@@ -58,6 +60,7 @@ public class
 
 		return new KeyResponse
 		{
+			Id = key.Id,
 			Data = ByteString.CopyFrom(key.Data),
 			Iv = ByteString.CopyFrom(key.Iv)
 		};
@@ -72,6 +75,7 @@ public class
 
 		return new KeyResponse
 		{
+			Id = key.Id,
 			ChatCollectionName = key.ChatCollectionName,
 			Data = ByteString.CopyFrom(key.Data),
 			Iv = ByteString.CopyFrom(key.Iv)
@@ -87,6 +91,7 @@ public class
 
 		return new KeyResponse
 		{
+			Id = key.Id,
 			ChatCollectionName = key.ChatCollectionName,
 			Data = ByteString.CopyFrom(key.Data),
 			Iv = ByteString.CopyFrom(key.Iv)
