@@ -12,12 +12,12 @@ using Status = keychain.Status;
 namespace Keychain.Services;
 
 [AuthenticationRequired]
-public class KeysCreationService : GrpcKeysCreationServices.GrpcKeysCreationServicesBase
+public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeysCreationServicesBase
 {
 	private readonly IMongoDatabase _database;
 	private readonly DatabaseSettings _settings;
 
-	public KeysCreationService(IOptions<DatabaseSettings> options)
+	public UserKeysCreationService(IOptions<DatabaseSettings> options)
 	{
 		_settings = options.Value;
 		var mongodbClient = new MongoClient(options.Value.ConnectionString);
@@ -149,70 +149,6 @@ public class KeysCreationService : GrpcKeysCreationServices.GrpcKeysCreationServ
 				ChatCollectionName = request.ChatCollectionName,
 				Data = request.EncryptedKey.ToByteArray(),
 				IsEncryptedWithUserPublicKey = true
-			});
-		}
-		catch (MongoWriteException e)
-		{
-			return new Result
-			{
-				Error = e.WriteError.Message,
-				Status = Status.Error
-			};
-		}
-
-		return new Result
-		{
-			Status = Status.Ok
-		};
-	}
-
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
-	public override async Task<Result> CreateSupervisorUserMasterKey(SupervisorKeyCreationRequest request,
-		ServerCallContext context)
-	{
-		var keysCollection = _database.GetCollection<Key>(_settings.SupervisorsMasterKeysCollection);
-
-		try
-		{
-			await keysCollection.InsertOneAsync(new Key
-			{
-				UserOwnerId = request.UserId,
-				Data = request.EncryptedKey.ToByteArray(),
-				IsEncryptedWithUserPublicKey = true
-			});
-		}
-		catch (MongoWriteException e)
-		{
-			return new Result
-			{
-				Error = e.WriteError.Message,
-				Status = Status.Error
-			};
-		}
-
-		return new Result
-		{
-			Status = Status.Ok
-		};
-	}
-
-	[PermissionsRequired(DefaultPermissions.Administrator)]
-	public override async Task<Result> CreateSupervisorKeyPair(UserKeyPairCreationRequest request,
-		ServerCallContext context)
-	{
-		var privateKeys = _database.GetCollection<Key>(_settings.SupervisorPrivateKeyCollection);
-		var publicKeys = _database.GetCollection<Key>(_settings.SupervisorPublicKeyCollection);
-
-		try
-		{
-			await privateKeys.InsertOneAsync(new Key
-			{
-				Data = request.EncryptedPrivateKey.ToByteArray(),
-				Iv = request.Iv.ToByteArray()
-			});
-			await publicKeys.InsertOneAsync(new Key
-			{
-				Data = request.PublicKey.ToByteArray()
 			});
 		}
 		catch (MongoWriteException e)

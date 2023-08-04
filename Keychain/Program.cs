@@ -19,10 +19,12 @@ if (app.Environment.IsDevelopment()) app.MapGrpcReflectionService();
 
 app.UseRedBoxBasicAuthorization();
 
-app.MapGrpcService<KeysCreationService>();
+app.MapGrpcService<UserKeysCreationService>();
 app.MapGrpcService<UserKeysRetrievingServices>();
-app.MapGrpcService<SupervisorKeysRetrievingService>();
 app.MapGrpcService<UserKeysUpdatingService>();
+
+app.MapGrpcService<SupervisorKeysCreationService>();
+app.MapGrpcService<SupervisorKeysRetrievingService>();
 app.MapGrpcService<SupervisorKeysUpdatingService>();
 
 app.Run();

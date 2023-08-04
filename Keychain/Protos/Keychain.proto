@@ -108,13 +108,45 @@ message UpdateSupervisorKeysRequest {
   optional MasterKey master_key = 3;
 }
 
-service GrpcKeysCreationServices {
+enum Status {
+  OK = 0;
+  ERROR = 1;
+}
+
+message Result {
+  Status status = 1;
+  optional string error = 2;
+}
+
+message KeyResponse {
+  optional string id = 1;
+  optional bytes data = 2;
+  optional bytes iv = 3;
+  optional string chat_collection_name = 4;
+}
+
+message KeysResponse {
+  repeated KeyResponse keys = 1;
+}
+
+message KeyEncryptedWithPublicKey {
+  bytes encrypted_key_data = 1;
+  string key_id = 2;
+}
+
+message KeysEncryptedWithPublicKey {
+  repeated KeyEncryptedWithPublicKey keys = 1;
+}
+
+service GrpcUserKeysCreationServices {
   rpc CreateUserMasterKey(MasterKey) returns (Result);
   rpc CreateUserKeys (UserKeyPairCreationRequest) returns (Result);
   rpc CreateChatKeys (ChatKeyCreationRequest) returns (Result);
   rpc CreateGroupKeys (GroupKeysCreationRequest) returns (Result);
   rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (Result);
+}
 
+service GrpcSupervisorKeysCreationServices {
   rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (Result);
   rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (Result);
 }
@@ -126,8 +158,8 @@ service GrpcUserKeysRetrievingServices {
   
   rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
   rpc GetGroupKey(KeyFromIdRequest) returns (KeyResponse);
-  rpc GetChatsKeys (KeyFromIdRequest) returns (KeysResponse);
-  rpc GetGroupsKey(KeyFromIdRequest) returns (KeysResponse);
+  rpc GetChatsKeys (Nil) returns (KeysResponse);
+  rpc GetGroupsKey(Nil) returns (KeysResponse);
 
   rpc GetUserChatKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
   rpc GetUserGroupKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
@@ -169,34 +201,4 @@ service GrpcKeysDeletionServices {
   rpc DeleteUserChatKey (KeyFromIdRequest) returns (Result);
   rpc DeleteUserGroupKey (KeyFromIdRequest) returns (Result);
   rpc UserSupervisorKey (KeyFromIdRequest) returns (Result);
-}
-
-enum Status {
-  OK = 0;
-  ERROR = 1;
-}
-
-message Result {
-  Status status = 1;
-  optional string error = 2;
-}
-
-message KeyResponse {
-  optional string id = 1;
-  optional bytes data = 2;
-  optional bytes iv = 3;
-  optional string chat_collection_name = 4;
-}
-
-message KeysResponse {
-  repeated KeyResponse keys = 1;
-}
-
-message KeyEncryptedWithPublicKey {
-  bytes encrypted_key_data = 1;
-  string key_id = 2;
-}
-
-message KeysEncryptedWithPublicKey {
-  repeated KeyEncryptedWithPublicKey keys = 1;
 }

@@ -92,7 +92,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 		};
 	}
 
-	public override async Task<KeysResponse> GetChatsKeys(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<KeysResponse> GetChatsKeys(Nil request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection)
@@ -116,7 +116,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 		};
 	}
 
-	public override async Task<KeysResponse> GetGroupsKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<KeysResponse> GetGroupsKey(Nil request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection)
