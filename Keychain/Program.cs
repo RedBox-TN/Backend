@@ -22,6 +22,7 @@ app.UseRedBoxBasicAuthorization();
 app.MapGrpcService<UserKeysCreationService>();
 app.MapGrpcService<UserKeysRetrievingServices>();
 app.MapGrpcService<UserKeysUpdatingService>();
+app.MapGrpcService<UserKeysDeletionService>();
 
 app.MapGrpcService<SupervisorKeysCreationService>();
 app.MapGrpcService<SupervisorKeysRetrievingService>();
