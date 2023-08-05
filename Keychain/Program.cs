@@ -26,5 +26,6 @@ app.MapGrpcService<UserKeysUpdatingService>();
 app.MapGrpcService<SupervisorKeysCreationService>();
 app.MapGrpcService<SupervisorKeysRetrievingService>();
 app.MapGrpcService<SupervisorKeysUpdatingService>();
+app.MapGrpcService<SupervisorKeysDeletionService>();
 
 app.Run();

@@ -25,7 +25,7 @@ public class
 		_database = mongodbClient.GetDatabase(options.Value.DatabaseName);
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeyResponse> GetUserSupervisorMasterKey(Nil request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
@@ -52,7 +52,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeyResponse> GetSupervisorPrivateKey(Nil request, ServerCallContext context)
 	{
 		var key = await _database.GetCollection<Key>(_settings.SupervisorPrivateKeyCollection).Find(_ => true)
@@ -66,7 +66,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeyResponse> GetSupervisedChatKey(KeyFromIdRequest request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
@@ -82,7 +82,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeyResponse> GetSupervisedGroupKey(KeyFromIdRequest request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
@@ -98,7 +98,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeysResponse> GetSupervisedChatsKeys(Nil request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
@@ -120,7 +120,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeysResponse> GetSupervisedGroupsKeys(Nil request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
@@ -142,7 +142,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeyEncryptedWithPublicKey> GetUserSupervisorMasterKeyEncryptedWithPublicKey(Nil request,
 		ServerCallContext context)
 	{
@@ -157,7 +157,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeysEncryptedWithPublicKey> GetSupervisedChatsKeysEncryptedWithPublicKey(Nil request,
 		ServerCallContext context)
 	{
@@ -178,7 +178,7 @@ public class
 		};
 	}
 
-	[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeysEncryptedWithPublicKey> GetSupervisedGroupsKeysEncryptedWithPublicKey(Nil request,
 		ServerCallContext context)
 	{

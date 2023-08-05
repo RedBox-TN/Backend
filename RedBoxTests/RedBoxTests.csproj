@@ -32,7 +32,7 @@
 
     <ItemGroup>
         <Protobuf Include="..\RedBoxAuth\Protos\authentication.proto" GrpcServices="Client"/>
-        <Protobuf Include="..\Keychain\Protos\Keychain.proto" GrpcServices="Client"/>
+        <Protobuf Include="..\Keychain\Protos\Keychain.proto" GrpcServices="Client" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
     </ItemGroup>
 
     <ItemGroup>

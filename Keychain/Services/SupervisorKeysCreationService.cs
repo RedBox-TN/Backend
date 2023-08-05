@@ -10,7 +10,7 @@ using Status = keychain.Status;
 
 namespace Keychain.Services;
 
-[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 public class SupervisorKeysCreationService : GrpcSupervisorKeysCreationServices.GrpcSupervisorKeysCreationServicesBase
 {
 	private readonly IMongoDatabase _database;

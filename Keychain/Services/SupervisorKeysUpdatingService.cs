@@ -11,7 +11,7 @@ using Status = keychain.Status;
 
 namespace Keychain.Services;
 
-[PermissionsRequired(DefaultPermissions.ReadOthersChat)]
+[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 public class SupervisorKeysUpdatingService : GrpcSupervisorKeysUpdatingServices.GrpcSupervisorKeysUpdatingServicesBase
 {
 	private readonly IMongoDatabase _database;

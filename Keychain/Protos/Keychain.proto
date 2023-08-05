@@ -68,7 +68,7 @@ message SupervisorKeyCreationRequest {
   optional bytes iv = 3;
 }
 /*
-  Retrieve a key given an id which is specialized by the context
+  Simple message with an id which is specialized by the context
 */
 message KeyFromIdRequest {
   string id = 1;
@@ -107,35 +107,54 @@ message UpdateSupervisorKeysRequest {
   repeated UpdateKeyRequest group_keys = 2;
   optional MasterKey master_key = 3;
 }
-
+/*
+  Indicates if the operation has success  
+*/
 enum Status {
   OK = 0;
   ERROR = 1;
 }
-
+/*
+  Represent the result of the required operation, if an error occurred then the exception message is returned
+*/
 message Result {
   Status status = 1;
   optional string error = 2;
 }
-
+/*
+  Message representing a key retrieved from the keychain, the parameters are populated based on the key type
+*/
 message KeyResponse {
   optional string id = 1;
   optional bytes data = 2;
   optional bytes iv = 3;
   optional string chat_collection_name = 4;
 }
-
+/*
+  Message representing multiple keys of the same type (parameters should be populated equally)
+*/
 message KeysResponse {
   repeated KeyResponse keys = 1;
 }
-
+/*
+  Message representing a key which is encrypted by the public key of the user or the supervisor
+*/
 message KeyEncryptedWithPublicKey {
   bytes encrypted_key_data = 1;
   string key_id = 2;
 }
-
+/*
+  Message representing multiple keys encrypted with public key of the user or the supervisor
+*/
 message KeysEncryptedWithPublicKey {
   repeated KeyEncryptedWithPublicKey keys = 1;
+}
+/*
+  Message representing the request of deletion of a key from the owner id, if the user wants to delete is own key, the 
+  parameter is optional
+*/
+message DeleteKeyFromUserIdRequest {
+  optional string user_id = 1;
 }
 
 service GrpcUserKeysCreationServices {
@@ -195,10 +214,16 @@ service GrpcSupervisorKeysUpdatingServices {
   rpc UpdateMultipleSupervisorKeys (UpdateSupervisorKeysRequest) returns (Result);
 }
 
-service GrpcKeysDeletionServices {
-  rpc DeleteUserMasterKey (KeyFromIdRequest) returns (Result);
-  rpc DeleteUserKeyPair (KeyFromIdRequest) returns (Result);
+service GrpcUserKeysDeletionServices {
+  rpc DeleteUserMasterKey (DeleteKeyFromUserIdRequest) returns (Result);
+  rpc DeleteUserKeyPair (DeleteKeyFromUserIdRequest) returns (Result);
   rpc DeleteUserChatKey (KeyFromIdRequest) returns (Result);
   rpc DeleteUserGroupKey (KeyFromIdRequest) returns (Result);
-  rpc UserSupervisorKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteAllUserKeys (DeleteKeyFromUserIdRequest) returns (Result);
+}
+
+service GrpcSupervisorKeysDeletionServices {
+  rpc DeleteUserSupervisorMasterKey (DeleteKeyFromUserIdRequest) returns (Result);
+  rpc DeleteSupervisorChatKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteSupervisorGroupKey (KeyFromIdRequest) returns (Result);
 }
