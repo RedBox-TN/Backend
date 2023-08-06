@@ -1,4 +1,5 @@
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
@@ -26,7 +27,7 @@ public class
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeyResponse> GetUserSupervisorMasterKey(Nil request, ServerCallContext context)
+	public override async Task<KeyResponse> GetUserSupervisorMasterKey(Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var key = await _database.GetCollection<Key>(_settings.SupervisorsMasterKeysCollection)
@@ -40,7 +41,7 @@ public class
 		};
 	}
 
-	public override async Task<KeyResponse> GetSupervisorPublicKey(Nil request, ServerCallContext context)
+	public override async Task<KeyResponse> GetSupervisorPublicKey(Empty request, ServerCallContext context)
 	{
 		var key = await _database.GetCollection<Key>(_settings.SupervisorPublicKeyCollection).Find(_ => true)
 			.FirstOrDefaultAsync();
@@ -53,7 +54,7 @@ public class
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeyResponse> GetSupervisorPrivateKey(Nil request, ServerCallContext context)
+	public override async Task<KeyResponse> GetSupervisorPrivateKey(Empty request, ServerCallContext context)
 	{
 		var key = await _database.GetCollection<Key>(_settings.SupervisorPrivateKeyCollection).Find(_ => true)
 			.FirstOrDefaultAsync();
@@ -99,7 +100,7 @@ public class
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeysResponse> GetSupervisedChatsKeys(Nil request, ServerCallContext context)
+	public override async Task<KeysResponse> GetSupervisedChatsKeys(Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection)
@@ -121,7 +122,7 @@ public class
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeysResponse> GetSupervisedGroupsKeys(Nil request, ServerCallContext context)
+	public override async Task<KeysResponse> GetSupervisedGroupsKeys(Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection)
@@ -143,7 +144,8 @@ public class
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeyEncryptedWithPublicKey> GetUserSupervisorMasterKeyEncryptedWithPublicKey(Nil request,
+	public override async Task<KeyEncryptedWithPublicKey> GetUserSupervisorMasterKeyEncryptedWithPublicKey(
+		Empty request,
 		ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
@@ -158,7 +160,7 @@ public class
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeysEncryptedWithPublicKey> GetSupervisedChatsKeysEncryptedWithPublicKey(Nil request,
+	public override async Task<KeysEncryptedWithPublicKey> GetSupervisedChatsKeysEncryptedWithPublicKey(Empty request,
 		ServerCallContext context)
 	{
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection)
@@ -179,7 +181,7 @@ public class
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeysEncryptedWithPublicKey> GetSupervisedGroupsKeysEncryptedWithPublicKey(Nil request,
+	public override async Task<KeysEncryptedWithPublicKey> GetSupervisedGroupsKeysEncryptedWithPublicKey(Empty request,
 		ServerCallContext context)
 	{
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection)

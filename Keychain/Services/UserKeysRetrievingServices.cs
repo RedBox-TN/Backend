@@ -1,4 +1,5 @@
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
@@ -23,7 +24,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 		_database = mongodbClient.GetDatabase(options.Value.DatabaseName);
 	}
 
-	public override async Task<KeyResponse> GetUserMasterKey(Nil request, ServerCallContext context)
+	public override async Task<KeyResponse> GetUserMasterKey(Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var keysCollection = _database.GetCollection<Key>(_settings.UsersMasterKeysCollection);
@@ -47,7 +48,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 		};
 	}
 
-	public override async Task<KeyResponse> GetUserPrivateKey(Nil request, ServerCallContext context)
+	public override async Task<KeyResponse> GetUserPrivateKey(Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var keysCollection = _database.GetCollection<Key>(_settings.UsersPrivateKeysCollection);
@@ -92,7 +93,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 		};
 	}
 
-	public override async Task<KeysResponse> GetChatsKeys(Nil request, ServerCallContext context)
+	public override async Task<KeysResponse> GetChatsKeys(Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection)
@@ -116,7 +117,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 		};
 	}
 
-	public override async Task<KeysResponse> GetGroupsKey(Nil request, ServerCallContext context)
+	public override async Task<KeysResponse> GetGroupsKey(Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var foundKeys = await _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection)
@@ -141,7 +142,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 	}
 
 	public override async Task<KeysEncryptedWithPublicKey> GetUserChatKeysEncryptedWithPublicKey(
-		Nil request, ServerCallContext context)
+		Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var collection = _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection);
@@ -168,7 +169,7 @@ public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.
 	}
 
 	public override async Task<KeysEncryptedWithPublicKey> GetUserGroupKeysEncryptedWithPublicKey(
-		Nil request, ServerCallContext context)
+		Empty request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var collection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);

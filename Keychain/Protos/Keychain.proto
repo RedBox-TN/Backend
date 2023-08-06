@@ -4,7 +4,8 @@ package keychain;
 
 option csharp_namespace = "keychain";
 
-message Nil {}
+import "google/protobuf/empty.proto";
+
 /*
   Message describing the main aes key which is used to encrypt all other keys
 */
@@ -158,10 +159,15 @@ message DeleteKeyFromUserIdRequest {
 }
 
 service GrpcUserKeysCreationServices {
+  // create user's master key, the user id is obtained by the authentication
   rpc CreateUserMasterKey(MasterKey) returns (Result);
-  rpc CreateUserKeys (UserKeyPairCreationRequest) returns (Result);
+  // create user's public and private key, the user id is obtained by the authentication
+  rpc CreateUserKeyPair (UserKeyPairCreationRequest) returns (Result);
+  // create chat key, the request must contain the counter part key encrypted with is pub key
   rpc CreateChatKeys (ChatKeyCreationRequest) returns (Result);
+  // create group key, the request contain also the keys of others members
   rpc CreateGroupKeys (GroupKeysCreationRequest) returns (Result);
+  // when a user is added later to a group, add the group key to the user keychain
   rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (Result);
 }
 
@@ -171,32 +177,32 @@ service GrpcSupervisorKeysCreationServices {
 }
 
 service GrpcUserKeysRetrievingServices {
-  rpc GetUserMasterKey(Nil) returns (KeyResponse);
+  rpc GetUserMasterKey(google.protobuf.Empty) returns (KeyResponse);
   rpc GetUserPublicKey (KeyFromIdRequest) returns (KeyResponse);
-  rpc GetUserPrivateKey (Nil) returns (KeyResponse);
+  rpc GetUserPrivateKey (google.protobuf.Empty) returns (KeyResponse);
   
   rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
   rpc GetGroupKey(KeyFromIdRequest) returns (KeyResponse);
-  rpc GetChatsKeys (Nil) returns (KeysResponse);
-  rpc GetGroupsKey(Nil) returns (KeysResponse);
+  rpc GetChatsKeys (google.protobuf.Empty) returns (KeysResponse);
+  rpc GetGroupsKey(google.protobuf.Empty) returns (KeysResponse);
 
-  rpc GetUserChatKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
-  rpc GetUserGroupKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
+  rpc GetUserChatKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
+  rpc GetUserGroupKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
 }
 
 service GrpcSupervisorKeysRetrievingServices {
-  rpc GetUserSupervisorMasterKey(Nil) returns (KeyResponse);
-  rpc GetSupervisorPublicKey(Nil) returns (KeyResponse);
-  rpc GetSupervisorPrivateKey(Nil) returns (KeyResponse);
+  rpc GetUserSupervisorMasterKey(google.protobuf.Empty) returns (KeyResponse);
+  rpc GetSupervisorPublicKey(google.protobuf.Empty) returns (KeyResponse);
+  rpc GetSupervisorPrivateKey(google.protobuf.Empty) returns (KeyResponse);
 
   rpc GetSupervisedChatKey(KeyFromIdRequest) returns (KeyResponse);
   rpc GetSupervisedGroupKey(KeyFromIdRequest) returns (KeyResponse);
-  rpc GetSupervisedChatsKeys(Nil) returns (KeysResponse);
-  rpc GetSupervisedGroupsKeys(Nil) returns (KeysResponse);
+  rpc GetSupervisedChatsKeys(google.protobuf.Empty) returns (KeysResponse);
+  rpc GetSupervisedGroupsKeys(google.protobuf.Empty) returns (KeysResponse);
 
-  rpc GetUserSupervisorMasterKeyEncryptedWithPublicKey(Nil) returns (KeyEncryptedWithPublicKey);
-  rpc GetSupervisedChatsKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
-  rpc GetSupervisedGroupsKeysEncryptedWithPublicKey(Nil) returns (KeysEncryptedWithPublicKey);
+  rpc GetUserSupervisorMasterKeyEncryptedWithPublicKey(google.protobuf.Empty) returns (KeyEncryptedWithPublicKey);
+  rpc GetSupervisedChatsKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
+  rpc GetSupervisedGroupsKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
 }
 
 service GrpcUserKeysUpdatingServices {

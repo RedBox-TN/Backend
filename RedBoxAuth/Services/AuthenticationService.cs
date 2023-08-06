@@ -1,3 +1,4 @@
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -122,13 +123,13 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 	/// <inheritdoc />
 	[AuthenticationRequired]
-	public override Task<Nil> Logout(Nil request, ServerCallContext context)
+	public override Task<Empty> Logout(Empty request, ServerCallContext context)
 	{
 		var key = context.GetHttpContext().Request.Headers[HeaderName];
 
 		_authCache.DeleteAsync(key);
 
-		return Task.FromResult(new Nil());
+		return Task.FromResult(new Empty());
 	}
 
 	/// <inheritdoc />
@@ -171,7 +172,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 	/// <inheritdoc />
 	[AuthenticationRequired]
-	public override Task<TokenRefreshResponse> RefreshToken(Nil request, ServerCallContext context)
+	public override Task<TokenRefreshResponse> RefreshToken(Empty request, ServerCallContext context)
 	{
 		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[HeaderName]!,
 			out var expiresAt);

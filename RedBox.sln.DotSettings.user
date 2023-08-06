@@ -10,9 +10,10 @@
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/DotNetCliExePath/@EntryValue">/usr/share/dotnet/dotnet</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b7323935_002Db50b_002D46fa_002Da422_002D62a38b0ce213/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Keychain" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
-    &lt;TestId&gt;xUnit::030C9CBB-2CF5-456F-A42E-A8C1DD9E349A::net7.0::RedBoxTests.Keychain.Keychain&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::030C9CBB-2CF5-456F-A42E-A8C1DD9E349A::net7.0::RedBoxTests.Keychain.UserKeyCreationServiceTest&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
+	
 	
 	
 	

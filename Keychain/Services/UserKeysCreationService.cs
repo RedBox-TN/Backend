@@ -56,7 +56,7 @@ public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeys
 		};
 	}
 
-	public override async Task<Result> CreateUserKeys(UserKeyPairCreationRequest request, ServerCallContext context)
+	public override async Task<Result> CreateUserKeyPair(UserKeyPairCreationRequest request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var privateKeys = _database.GetCollection<Key>(_settings.UsersPrivateKeysCollection);
