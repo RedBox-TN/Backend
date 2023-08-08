@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGrpcReflection();
 
 builder.Services.Configure<DatabaseSettings>(
-	builder.Configuration.GetSection("MongoDB"));
+    builder.Configuration.GetSection("MongoDB"));
 
 builder.AddRedBoxBasicAuthorization();
 

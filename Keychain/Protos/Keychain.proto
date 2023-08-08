@@ -6,6 +6,8 @@ option csharp_namespace = "keychain";
 
 import "google/protobuf/empty.proto";
 
+import "Shared.proto";
+
 /*
   Message describing the main aes key which is used to encrypt all other keys
 */
@@ -109,20 +111,6 @@ message UpdateSupervisorKeysRequest {
   optional MasterKey master_key = 3;
 }
 /*
-  Indicates if the operation has success  
-*/
-enum Status {
-  OK = 0;
-  ERROR = 1;
-}
-/*
-  Represent the result of the required operation, if an error occurred then the exception message is returned
-*/
-message Result {
-  Status status = 1;
-  optional string error = 2;
-}
-/*
   Message representing a key retrieved with the corresponding keychain, the parameters are populated based on the key type
 */
 message KeyResponse {
@@ -160,20 +148,20 @@ message DeleteKeyFromUserIdRequest {
 
 service GrpcUserKeysCreationServices {
   // create user's master key, the user id is obtained by the authentication
-  rpc CreateUserMasterKey(MasterKey) returns (Result);
+  rpc CreateUserMasterKey(MasterKey) returns (shared.Result);
   // create user's public and private key, the user id is obtained by the authentication
-  rpc CreateUserKeyPair (UserKeyPairCreationRequest) returns (Result);
+  rpc CreateUserKeyPair (UserKeyPairCreationRequest) returns (shared.Result);
   // create chat key, the request must contain the counter part key encrypted with is pub key
-  rpc CreateChatKeys (ChatKeyCreationRequest) returns (Result);
+  rpc CreateChatKeys (ChatKeyCreationRequest) returns (shared.Result);
   // create group key, the request contain also the keys of others members
-  rpc CreateGroupKeys (GroupKeysCreationRequest) returns (Result);
+  rpc CreateGroupKeys (GroupKeysCreationRequest) returns (shared.Result);
   // when a user is added later to a group, add the group key to the user keychain
-  rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (Result);
+  rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (shared.Result);
 }
 
 service GrpcSupervisorKeysCreationServices {
-  rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (Result);
-  rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (Result);
+  rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (shared.Result);
+  rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (shared.Result);
 }
 
 service GrpcUserKeysRetrievingServices {
@@ -208,46 +196,46 @@ service GrpcSupervisorKeysRetrievingServices {
 
 service GrpcUserKeysUpdatingServices {
   // update the user's master key with the corresponding user owner id
-  rpc UpdateUserMasterKey(MasterKey) returns (Result);
+  rpc UpdateUserMasterKey(MasterKey) returns (shared.Result);
   // update the user's key pair with the corresponding user owner id
-  rpc UpdateUserKeyPair (UpdateUserKeyPairRequest) returns (Result);
+  rpc UpdateUserKeyPair (UpdateUserKeyPairRequest) returns (shared.Result);
   // update a chat key with the corresponding owner id and key id
-  rpc UpdateUserChatKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateUserChatKey (UpdateKeyRequest) returns (shared.Result);
   // update a group key with the corresponding owner id and key id
-  rpc UpdateUserGroupKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateUserGroupKey (UpdateKeyRequest) returns (shared.Result);
   // update multiples keys with the corresponding owner id and keys ids
-  rpc UpdateMultipleUserKeys (UpdateKeysRequest) returns (Result);
+  rpc UpdateMultipleUserKeys (UpdateKeysRequest) returns (shared.Result);
 }
 
 service GrpcSupervisorKeysUpdatingServices {
   // update the user supervisor's master key from is user id
-  rpc UpdateUserSupervisorMasterKey (MasterKey) returns (Result);
+  rpc UpdateUserSupervisorMasterKey (MasterKey) returns (shared.Result);
   // update the supervised chat key with the corresponding key id
-  rpc UpdateSupervisedChatKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateSupervisedChatKey (UpdateKeyRequest) returns (shared.Result);
   // update the supervised group key with the corresponding key id
-  rpc UpdateSupervisedGroupKey (UpdateKeyRequest) returns (Result);
+  rpc UpdateSupervisedGroupKey (UpdateKeyRequest) returns (shared.Result);
   // update multiple keys with the corresponding ids
-  rpc UpdateMultipleSupervisorKeys (UpdateSupervisorKeysRequest) returns (Result);
+  rpc UpdateMultipleSupervisorKeys (UpdateSupervisorKeysRequest) returns (shared.Result);
 }
 
 service GrpcUserKeysDeletionServices {
   // delete user master key from user id, if the request id is empty or required permission is missing
-  rpc DeleteUserMasterKey (DeleteKeyFromUserIdRequest) returns (Result);
+  rpc DeleteUserMasterKey (DeleteKeyFromUserIdRequest) returns (shared.Result);
   // delete user's private and public keys from user id, if the request id is empty or required permission is missing
-  rpc DeleteUserKeyPair (DeleteKeyFromUserIdRequest) returns (Result);
+  rpc DeleteUserKeyPair (DeleteKeyFromUserIdRequest) returns (shared.Result);
   // delete chat key from user id and chat collection name
-  rpc DeleteUserChatKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteUserChatKey (KeyFromIdRequest) returns (shared.Result);
   // delete group key from user id and chat collection name
-  rpc DeleteUserGroupKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteUserGroupKey (KeyFromIdRequest) returns (shared.Result);
   // delete all the user keys from user id, if the request id is empty or required permission is missing
-  rpc DeleteAllUserKeys (DeleteKeyFromUserIdRequest) returns (Result);
+  rpc DeleteAllUserKeys (DeleteKeyFromUserIdRequest) returns (shared.Result);
 }
 
 service GrpcSupervisorKeysDeletionServices {
   // delete the user's master key for supervisor from user id, if the request id is empty or required permission is missing
-  rpc DeleteUserSupervisorMasterKey (DeleteKeyFromUserIdRequest) returns (Result);
+  rpc DeleteUserSupervisorMasterKey (DeleteKeyFromUserIdRequest) returns (shared.Result);
   // delete the key of a supervised chat
-  rpc DeleteSupervisorChatKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteSupervisorChatKey (KeyFromIdRequest) returns (shared.Result);
   // delete the key of a supervised group
-  rpc DeleteSupervisorGroupKey (KeyFromIdRequest) returns (Result);
+  rpc DeleteSupervisorGroupKey (KeyFromIdRequest) returns (shared.Result);
 }

@@ -15,6 +15,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.55.0"/>
         <PackageReference Include="Grpc.Tools" Version="2.56.2">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -22,6 +23,5 @@
         <PackageReference Include="MemoryPack" Version="1.9.16"/>
         <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
     </ItemGroup>
-
 
 </Project>

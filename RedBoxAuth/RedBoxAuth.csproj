@@ -32,11 +32,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\authentication.proto" GrpcServices="Server" />
+        <Protobuf Include="Protos\authentication.proto" GrpcServices="Server"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Shared\Shared.csproj" />
+        <ProjectReference Include="..\Shared\Shared.csproj"/>
     </ItemGroup>
 
 </Project>

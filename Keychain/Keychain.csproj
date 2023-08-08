@@ -17,8 +17,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\Keychain.proto" GrpcServices="Server"
+        <Protobuf Include="Protos\Keychain.proto" GrpcServices="Server" AdditionalImportDirs="..\Shared\Protos\"
                   AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
+        <Protobuf Include="..\Shared\Protos\Shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -34,6 +35,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
+        <ProjectReference Include="..\RedBoxTests\RedBoxTests.csproj"/>
     </ItemGroup>
 
 </Project>

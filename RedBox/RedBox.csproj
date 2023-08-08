@@ -16,7 +16,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-      <DebugSymbols>false</DebugSymbols>
+        <DebugSymbols>false</DebugSymbols>
     </PropertyGroup>
 
     <ItemGroup>
@@ -31,11 +31,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj" />
+        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\dummy.proto" GrpcServices="Server" />
+        <Protobuf Include="Protos\user.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
+        <Protobuf Include="..\Shared\Protos\Shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
+
 
 </Project>

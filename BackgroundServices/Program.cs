@@ -15,13 +15,13 @@ ConnectionMultiplexer? redis = null;
 
 try
 {
-	redis = ConnectionMultiplexer.Connect(redisHost);
+    redis = ConnectionMultiplexer.Connect(redisHost);
 }
 catch (Exception e)
 {
-	Console.Error.WriteLine($"Unable to connect to redis server {redisHost}");
-	Console.Error.WriteLine(e.Message);
-	Environment.Exit(-1);
+    Console.Error.WriteLine($"Unable to connect to redis server {redisHost}");
+    Console.Error.WriteLine(e.Message);
+    Environment.Exit(-1);
 }
 
 

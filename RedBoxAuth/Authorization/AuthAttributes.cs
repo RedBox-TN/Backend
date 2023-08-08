@@ -4,21 +4,21 @@ namespace RedBoxAuth.Authorization;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class PermissionsRequiredAttribute : Attribute
 {
-	/// <summary>
-	///     Requires the user to have the necessary permissions to use the method,
-	///     to specify multiple permissions: Perm | Perm | ...Perm,
-	///     Permissions can be found in the static struct Shared.Models.DefaultPermissions
-	/// </summary>
-	/// <param name="permissions">The required permissions</param>
-	public PermissionsRequiredAttribute(uint permissions)
-	{
-		Permissions = permissions;
-	}
+    /// <summary>
+    ///     Requires the user to have the necessary permissions to use the method,
+    ///     to specify multiple permissions: Perm | Perm | ...Perm,
+    ///     Permissions can be found in the static struct Shared.Models.DefaultPermissions
+    /// </summary>
+    /// <param name="permissions">The required permissions</param>
+    public PermissionsRequiredAttribute(uint permissions)
+    {
+        Permissions = permissions;
+    }
 
-	/// <summary>
-	///     Get the required permissions
-	/// </summary>
-	public uint Permissions { get; }
+    /// <summary>
+    ///     Get the required permissions
+    /// </summary>
+    public uint Permissions { get; }
 }
 
 /// <summary>
