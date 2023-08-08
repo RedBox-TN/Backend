@@ -37,11 +37,10 @@ public class AuthorizationMiddleware
 
 		User? user;
 
-		var permAttribute = metadata.GetMetadata<RequiredPermissionsAttribute>();
+		var permAttribute = metadata.GetMetadata<PermissionsRequiredAttribute>();
 
 		if (permAttribute is not null)
-			if (IsUserAuthenticated(context, out user) &&
-			    (user!.Role.Permissions & permAttribute.Permissions) == permAttribute.Permissions)
+			if (IsUserAuthenticated(context, out user) && HasPermission(user!, permAttribute.Permissions))
 			{
 				context.Items[Constants.UserContextKey] = user;
 				await _next(context);
@@ -74,7 +73,17 @@ public class AuthorizationMiddleware
 	{
 		user = null;
 		return context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) &&
-		        _authCache.TryToGet(key, out user) && _securityHash.IsValid(user!.SecurityHash,
-			        context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress);
+		       _authCache.TryToGet(key, out user) && _securityHash.IsValid(user!.SecurityHash,
+			       context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress);
+	}
+
+	/// <summary>
+	///     Check if user has the required permission
+	/// </summary>
+	/// <param name="user">The user</param>
+	/// <param name="requiredPerm">The required permissions (1 or more using | to separate)</param>
+	public static bool HasPermission(User user, uint requiredPerm)
+	{
+		return (user.Role.Permissions & requiredPerm) == requiredPerm;
 	}
 }
