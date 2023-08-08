@@ -178,6 +178,7 @@ service GrpcSupervisorKeysCreationServices {
 
 service GrpcUserKeysRetrievingServices {
   rpc GetUserMasterKey(google.protobuf.Empty) returns (KeyResponse);
+  // retrieve a user's public key from is id
   rpc GetUserPublicKey (KeyFromIdRequest) returns (KeyResponse);
   rpc GetUserPrivateKey (google.protobuf.Empty) returns (KeyResponse);
   

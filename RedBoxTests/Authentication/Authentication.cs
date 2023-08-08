@@ -1,3 +1,4 @@
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Net.Client;
 using RedBoxAuthentication;
@@ -22,7 +23,7 @@ public class Authentication
 	{
 		var response = await _client.LoginAsync(new LoginRequest
 		{
-			Username = Common.User,
+			Username = Common.AdminUser,
 			Password = Common.Password
 		});
 		return response.Token;
@@ -44,7 +45,7 @@ public class Authentication
 		{
 			{ "Authorization", token }
 		};
-		var response = await _client.RefreshTokenAsync(new Nil(), met);
+		var response = await _client.RefreshTokenAsync(new Empty(), met);
 
 		Assert.True(token != response.Token);
 		Logout(token);
@@ -59,10 +60,10 @@ public class Authentication
 
 	private async void Logout(string token)
 	{
-		var response = await _client.LogoutAsync(new Nil(), new Metadata
+		var response = await _client.LogoutAsync(new Empty(), new Metadata
 		{
 			{ "Authorization", token }
 		});
-		Assert.IsType<Nil>(response);
+		Assert.IsType<Empty>(response);
 	}
 }
