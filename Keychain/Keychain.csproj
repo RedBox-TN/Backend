@@ -9,26 +9,31 @@
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-      <DebugSymbols>false</DebugSymbols>
+        <DebugSymbols>false</DebugSymbols>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
-      <DebugSymbols>false</DebugSymbols>
+        <DebugSymbols>false</DebugSymbols>
     </PropertyGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\keychain.proto" GrpcServices="Server" />
+        <Protobuf Include="Protos\Keychain.proto" GrpcServices="Server"
+                  AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.52.0" />
-        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.52.0" />
-        <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
-        <PackageReference Include="StackExchange.Redis" Version="2.6.104" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.55.0"/>
+        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.55.0"/>
+        <PackageReference Include="Grpc.Tools" Version="2.56.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.6.122"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj" />
+        <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -11,10 +11,13 @@ public class Key
 
 	public byte[]? Data { get; set; }
 
-	[BsonIgnoreIfNull]
+	[BsonIgnoreIfNull] public byte[]? Iv { get; set; }
+
 	[BsonRepresentation(BsonType.ObjectId)]
+	[BsonIgnoreIfNull]
 	public string? UserOwnerId { get; set; }
 
 	[BsonIgnoreIfNull]
-	public bool? IsEncryptedWithUserKey { get; set; }
+	[BsonIgnoreIfDefault]
+	public bool? IsEncryptedWithUserPublicKey { get; set; }
 }

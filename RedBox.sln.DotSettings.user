@@ -1,13 +1,23 @@
-<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;
   &lt;Assembly Path="/usr/lib/dotnet/packs/Microsoft.AspNetCore.App.Ref/7.0.2/ref/net7.0/Microsoft.AspNetCore.dll" /&gt;
   &lt;Assembly Path="/usr/lib/dotnet/shared/Microsoft.AspNetCore.App/7.0.2/Microsoft.AspNetCore.Metadata.dll" /&gt;
   &lt;Assembly Path="/usr/lib/dotnet/packs/Microsoft.AspNetCore.App.Ref/7.0.2/ref/net7.0/Microsoft.AspNetCore.Authorization.dll" /&gt;
   &lt;Assembly Path="/usr/lib/dotnet/shared/Microsoft.AspNetCore.App/7.0.2/Microsoft.AspNetCore.Authorization.dll" /&gt;
 &lt;/AssemblyExplorer&gt;</s:String>
-	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">/usr/share/dotnet/sdk/7.0.105/MSBuild.dll</s:String>
+	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">/usr/share/dotnet/sdk/7.0.306/MSBuild.dll</s:String>
 	<s:Boolean x:Key="/Default/Environment/Hierarchy/Build/BuildTool/RecentDotNetCliExePaths/=_002Fusr_002Fbin_002Fdotnet/@EntryIndexedValue">True</s:Boolean>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/DotNetCliExePath/@EntryValue">/usr/share/dotnet/dotnet</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=c406d996_002Df66d_002D482f_002Db521_002D9f9a8a7359b3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="CreateUserKeyPair" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::030C9CBB-2CF5-456F-A42E-A8C1DD9E349A::net7.0::RedBoxTests.Keychain.UserKeyCreationServiceTest&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
+&lt;/SessionState&gt;</s:String>
+	
+	
+	
+	
+	
 	
 	
 	

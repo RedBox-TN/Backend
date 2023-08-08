@@ -12,5 +12,6 @@ public partial class Role
 	public string Id { get; set; } = null!;
 
 	public string Name { get; set; } = null!;
-	public ushort Permissions { get; set; }
+	public string Description { get; set; } = null!;
+	public uint Permissions { get; set; }
 }

@@ -4,6 +4,8 @@ package redbox_authentication;
 
 option csharp_namespace = "RedBoxAuthentication";
 
+import "google/protobuf/empty.proto";
+
 enum LoginStatus {
   INVALID_CREDENTIALS = 0;
   ALREADY_LOGGED = 1;
@@ -20,8 +22,6 @@ enum TwoFactorResponseCode {
   TFA_NOT_ENABLED = 3;
   ALREADY_VERIFIED = 4;
 }
-
-message Nil {}
 
 message LoginRequest {
   string password = 1;
@@ -53,7 +53,7 @@ message TokenRefreshResponse {
 
 service AuthenticationGrpcService {
   rpc Login (LoginRequest) returns (LoginResponse);
-  rpc Logout (Nil) returns (Nil);
+  rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty);
   rpc Verify2FA(TwoFactorRequest) returns (TwoFactorResponse);
-  rpc RefreshToken(Nil) returns (TokenRefreshResponse);
+  rpc RefreshToken(google.protobuf.Empty) returns (TokenRefreshResponse);
 }

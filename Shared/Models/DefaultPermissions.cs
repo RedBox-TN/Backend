@@ -2,17 +2,15 @@ namespace Shared.Models;
 
 public struct DefaultPermissions
 {
-	public const ushort CreateChats = 0b_1;
-	public const ushort CreateGroups = 0b_10;
-	public const ushort ModifyAccounts = 0b_100;
-	public const ushort EnableLocal2Fa = 0b_1000;
-	public const ushort CreateUsers = 0b_1000_0;
-	public const ushort DeleteUsers = 0b_1000_00;
-	public const ushort ResetUsersPassword = 0b_1000_000;
-	public const ushort BlockUsers = 0b_1000_0000;
-	public const ushort EnforceGlobal2Fa = 0b_1000_0000_0;
-	public const ushort ForcePasswordChange = 0b_1_0000_0000_0;
-	public const ushort ForceGlobalPasswordChange = 0b_10_0000_0000_0;
-	public const ushort ReadOthersChat = 0b_100_0000_0000_0;
-	public const ushort Administrator = 0b_1000_0000_0000_0;
+	public const uint CreateChats = 1;
+	public const uint CreateGroups = 2;
+	public const uint ManageUsersAccounts = 4;
+	public const uint EnableLocal2Fa = 8;
+	public const uint ResetUsersPassword = 16;
+	public const uint BlockUsers = 32;
+	public const uint EnforceGlobal2Fa = 64;
+	public const uint ForcePasswordChange = 128;
+	public const uint ForceGlobalPasswordChange = 256;
+	public const uint ReadOtherUsersChats = 512;
+	public const uint DeleteSupervisedChat = 1024;
 }
