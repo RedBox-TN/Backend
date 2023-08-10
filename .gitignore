@@ -6,3 +6,4 @@ riderModule.iml
 .idea
 Docker/data/
 /Release/
+*.user
