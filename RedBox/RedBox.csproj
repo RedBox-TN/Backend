@@ -26,6 +26,9 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="Handlebars.Net" Version="2.1.4"/>
+        <PackageReference Include="MailKit" Version="4.1.0"/>
+        <PackageReference Include="MimeKit" Version="4.1.0"/>
         <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
         <PackageReference Include="StackExchange.Redis" Version="2.6.122"/>
     </ItemGroup>
@@ -35,7 +38,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\dummy.proto" GrpcServices="Server" />
+        <Folder Include="Protos\"/>
+        <Folder Include="Services\"/>
     </ItemGroup>
 
 </Project>
