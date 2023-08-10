@@ -4,6 +4,7 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBox.Email_utility;
+using RedBoxAuth.Authorization;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Settings;
 using RedBoxAuth.TOTP_utility;
@@ -36,6 +37,14 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         _emailUtility = emailUtility;
     }
 
+
+    /// <summary>
+    ///     API for user creation
+    /// </summary>
+    /// <param name="request">data from the client</param>
+    /// <param name="context">current context</param>
+    /// <returns>Status code and message of the operation</returns>
+    // TODO must add pre-existing chats to user during creation
     //[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
     public override async Task<Result> CreateUser(GrpcUser request, ServerCallContext context)
     {
@@ -45,6 +54,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         
         var collection = _database.GetCollection<User>(_settings.UsersCollection);
 
+        // check if data is empty and if email is an email
         if (
                 string.IsNullOrEmpty(request.Name) ||
                 string.IsNullOrEmpty(request.Surname) ||
@@ -60,6 +70,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             };
         }
         
+        // creates the new user in the database
         try
         {
             await collection.InsertOneAsync(new User
@@ -84,6 +95,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             };
         }
 
+        // sends an email to the new user with the first-time password
         try
         {
             await _emailUtility.SendAccountCreationAsync(
@@ -102,6 +114,46 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             };
         }
 
+        return new Result
+        {
+            Status = Status.Ok
+        };
+    }
+    
+    /// <summary>
+    ///     API for the removal of an account
+    /// </summary>
+    /// <param name="request">data from the client</param>
+    /// <param name="context">current context</param>
+    /// <returns>Status code and message of the operation</returns>
+    //[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
+    public override async Task<Result> DeleteUser(GrpcUser request, ServerCallContext context)
+    {
+        
+        var collection = _database.GetCollection<User>(_settings.UsersCollection);
+
+        if (!request.HasId)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "No ID provided"
+            };
+        }
+
+        try
+        {
+            await collection.DeleteOneAsync(user => user.Id == request.Id);
+        }
+        catch (Exception e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+        
         return new Result
         {
             Status = Status.Ok

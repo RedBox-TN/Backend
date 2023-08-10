@@ -31,8 +31,10 @@ message GrpcUser {
   optional bool isblocked = 8; // optional | Not sent on user creation
   bool isfaenabled = 9;
   string username = 10;
+  //TODO during creation a user can have multiple pre-assigned chats with other users
 }
 
 service GrpcUserServices {
   rpc CreateUser (GrpcUser) returns (shared.Result);
+  rpc DeleteUser (GrpcUser) returns (shared.Result);
 }
