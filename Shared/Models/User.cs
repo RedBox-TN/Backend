@@ -37,4 +37,6 @@ public partial class User
     [BsonIgnore] public Role Role { get; set; } = null!;
     public string Name { get; set; } = null!;
     [BsonIgnore] public bool IsAuthenticated { get; set; }
+    public string Biography { get; set; } = null!;
+    public string PathToPic { get; set; } = null!;
 }
