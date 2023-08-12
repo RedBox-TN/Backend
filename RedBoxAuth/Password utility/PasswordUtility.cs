@@ -46,12 +46,11 @@ public class PasswordUtility : IPasswordUtility
 
     public string GeneratePassword()
     {
-
         const string pool = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         int index;
-        StringBuilder sb = new StringBuilder();
-        
-        for (int i = 0; i < 15; i++)
+        var sb = new StringBuilder();
+
+        for (var i = 0; i < 15; i++)
         {
             index = RandomNumberGenerator.GetInt32(pool.Length);
             sb.Append(pool[index]);

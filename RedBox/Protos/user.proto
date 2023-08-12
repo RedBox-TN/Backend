@@ -37,11 +37,18 @@ message GrpcUser {
 message GrpcPasswordMod {
   string password = 1;
   optional string newpassword = 2;
+  string token = 3;
+}
+
+message GrpcToken {
+  string token = 1;
 }
 
 service GrpcUserServices {
   rpc CreateUser (GrpcUser) returns (shared.Result);
   rpc DeleteUser (GrpcUser) returns (shared.Result);
   rpc ModifyUser (GrpcUser) returns (shared.Result);
-  rpc ModifyPassword (GrpcPasswordMod) returns (shared.Result); // TODO method creation
+  rpc TokenCheck (GrpcToken) returns (shared.Result);
+  rpc ModifyPassword (GrpcPasswordMod) returns (shared.Result);
+  rpc FinalizeEmailChange (GrpcToken) returns (shared.Result);
 }

@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
 using MemoryPack;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -13,7 +11,7 @@ public partial class User
     [BsonRepresentation(BsonType.ObjectId)]
     public string Id { get; set; } = null!;
 
-    public string Surname{ get; set; } = null!;
+    public string Surname { get; set; } = null!;
 
     public string Email { get; set; } = null!;
     public string Username { get; set; } = null!;
