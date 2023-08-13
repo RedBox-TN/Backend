@@ -79,7 +79,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Error = "Wrong format for one of the values or missing value"
             };
 
-        // creates the new user in the database
+        // creates the new user in the database TODO add FASeed
         try
         {
             await collection.InsertOneAsync(new User
@@ -538,7 +538,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         //TODO number 3 could become setting
         // Rebuild password history with only last 3 passwords (including the one added in this function)
         passwordHistory.Insert(0, newPasswordHash);
-        passwordHistory = passwordHistory.GetRange(0, 3);
+        if(passwordHistory.Count > 3) passwordHistory = passwordHistory.GetRange(0, 3);
         var update = Builders<User>.Update.Set(user => user.PasswordHash, newPasswordHash).Set(user => user.PasswordHistory, passwordHistory);
 
         // Update db with new password hash and history
@@ -567,17 +567,14 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="request">user containing email and ID</param>
     /// <param name="context">current Context</param>
     /// <returns>Status code and message of the operation</returns>    
-    [PermissionsRequired(DefaultPermissions.ResetUsersPassword)]
+    //[PermissionsRequired(DefaultPermissions.ResetUsersPassword)]
     public override async Task<Result> PasswordReset(GrpcUser request, ServerCallContext context)
     {
         string password;
         var collection = _database.GetCollection<User>(_settings.UsersCollection);
 
-        // check if data is empty and if email is an email
-        if (
-            !request.HasId ||
-            !MyRegex().IsMatch(request.Email)
-        )
+        // check if data is empty
+        if (!request.HasId)
             return new Result
             {
                 Status = Status.Error,
@@ -613,7 +610,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         //TODO number 3 could become setting
         // Rebuild password history with only last 3 passwords (including the one added in this function)
         passwordHistory.Insert(0, passwordHash);
-        passwordHistory = passwordHistory.GetRange(0, 3);
+        if(passwordHistory.Count > 3) passwordHistory = passwordHistory.GetRange(0, 3);
         var update = Builders<User>.Update.Set(user => user.PasswordHash, passwordHash).Set(user => user.PasswordHistory, passwordHistory);
 
         // Update password hash and history
@@ -634,7 +631,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         try
         {
             await _emailUtility.SendNewPasswordAsync(
-                request.Email,
+                result.Email,
                 password
             );
         }
@@ -659,6 +656,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="request">user with ID and new 2FA value</param>
     /// <param name="context">current context</param>
     /// <returns>Status code and message of operation</returns>
+    //TODO IMPORTANT! FASeed generation
     [PermissionsRequired(DefaultPermissions.EnableLocal2Fa)]
     public override async Task<Result> FAStateChange(GrpcUser request, ServerCallContext context)
     {
