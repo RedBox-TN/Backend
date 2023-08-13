@@ -48,8 +48,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 
     [GeneratedRegex(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$")]
     private static partial Regex MyRegex();
-
-
+    
     /// <summary>
     ///     API for user creation
     /// </summary>
@@ -460,6 +459,84 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     //TODO WIP Method!
     public override async Task<Result> ModifyPassword(GrpcPasswordMod request, ServerCallContext context)
     {
+        // Retrieve token and convert to bytes
+        var byteToken = HttpUtility.UrlDecodeToBytes(request.Token);
+        var collection = _database.GetCollection<User>(_settings.UsersCollection);
+
+        // Token too short (IV minimum 16 bytes)
+        if (byteToken.Length < 17)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "Wrong token (token length)"
+            };
+        }
+        
+        // Retrieve IV and Ciphertext, derive AES key
+        var iv = byteToken.Take(16).ToArray();
+        var ciphertext = byteToken.Skip(16).ToArray();
+        var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
+        
+        byte[] plainText;
+        try
+        {
+            plainText = await _encryptionUtility.DecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
+        }
+        catch (Exception)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "Wrong token"
+            };
+        }
+
+        // Split data by separator '#'
+        var splitData = Encoding.UTF8.GetString(plainText).Split("#");
+
+        User result;
+        var id = splitData[0];
+        var filter = Builders<User>.Filter.Eq(user => user.Id, id);
+
+        try
+        {
+            result = await collection.Find(filter).FirstOrDefaultAsync();
+        }
+        catch (MongoQueryException e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+
+        if (result.PasswordHash != _passwordUtility.HashPassword(request.Password, result.Salt))
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "Old password is wrong"
+            };
+        }
+
+        var newPasswordHash = _passwordUtility.HashPassword(request.Newpassword, result.Salt);
+        var update = Builders<User>.Update.Set(user => user.PasswordHash, newPasswordHash);
+
+        try
+        {
+            await collection.UpdateOneAsync(filter, update);
+        }
+        catch (MongoWriteException e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+        
         return new Result
         {
             Status = Status.Ok
