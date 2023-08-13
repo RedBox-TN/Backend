@@ -50,5 +50,9 @@ service GrpcUserServices {
   rpc ModifyUser (GrpcUser) returns (shared.Result);
   rpc TokenCheck (GrpcToken) returns (shared.Result);
   rpc ModifyPassword (GrpcPasswordMod) returns (shared.Result);
+  rpc PasswordReset (GrpcUser) returns (shared.Result);
   rpc FinalizeEmailChange (GrpcToken) returns (shared.Result);
+  //TODO bulk operations
+  rpc FAStateChange (GrpcUser) returns (shared.Result);
+  rpc BlockStateChange (GrpcUser) returns (shared.Result);
 }

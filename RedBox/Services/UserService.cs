@@ -456,7 +456,6 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="request">Request containing AES token, old and new passowrd</param>
     /// <param name="context">current Context</param>
     /// <returns>Status code and message of the operation</returns>
-    //TODO WIP Method!
     public override async Task<Result> ModifyPassword(GrpcPasswordMod request, ServerCallContext context)
     {
         // Retrieve token and convert to bytes
@@ -499,6 +498,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         var id = splitData[0];
         var filter = Builders<User>.Filter.Eq(user => user.Id, id);
 
+        // Fetch user by ID
         try
         {
             result = await collection.Find(filter).FirstOrDefaultAsync();
@@ -512,6 +512,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             };
         }
 
+        // Check if old password coincides with saved password
         if (result.PasswordHash != _passwordUtility.HashPassword(request.Password, result.Salt))
         {
             return new Result
@@ -521,8 +522,201 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             };
         }
 
+        var passwordHistory = result.PasswordHistory;
         var newPasswordHash = _passwordUtility.HashPassword(request.Newpassword, result.Salt);
-        var update = Builders<User>.Update.Set(user => user.PasswordHash, newPasswordHash);
+        
+        // Check if new password is new enough (check if is in pw history)
+        if (passwordHistory.Any(pw => pw == newPasswordHash))
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "New password has already been used"
+            };
+        }
+
+        //TODO number 3 could become setting
+        // Rebuild password history with only last 3 passwords (including the one added in this function)
+        passwordHistory.Insert(0, newPasswordHash);
+        passwordHistory = passwordHistory.GetRange(0, 3);
+        var update = Builders<User>.Update.Set(user => user.PasswordHash, newPasswordHash).Set(user => user.PasswordHistory, passwordHistory);
+
+        // Update db with new password hash and history
+        try
+        {
+            await collection.UpdateOneAsync(filter, update);
+        }
+        catch (MongoWriteException e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+        
+        return new Result
+        {
+            Status = Status.Ok
+        };
+    }
+
+    /// <summary>
+    ///     API to generate new password and send it via email
+    /// </summary>
+    /// <param name="request">user containing email and ID</param>
+    /// <param name="context">current Context</param>
+    /// <returns>Status code and message of the operation</returns>    
+    [PermissionsRequired(DefaultPermissions.ResetUsersPassword)]
+    public override async Task<Result> PasswordReset(GrpcUser request, ServerCallContext context)
+    {
+        string password;
+        var collection = _database.GetCollection<User>(_settings.UsersCollection);
+
+        // check if data is empty and if email is an email
+        if (
+            !request.HasId ||
+            !MyRegex().IsMatch(request.Email)
+        )
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "Wrong format for one of the values or missing value"
+            };
+        
+        User result;
+        var filter = Builders<User>.Filter.Eq(user => user.Id, request.Id);
+
+        // Fetch user from db by ID
+        try
+        {
+            result = await collection.Find(filter).FirstOrDefaultAsync();
+        }
+        catch (MongoQueryException e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+
+        var passwordHistory = result.PasswordHistory;
+        byte[] passwordHash;
+    
+        // Keep generating new passwords until they are not in the history
+        do{
+            password = _passwordUtility.GeneratePassword();
+            passwordHash = _passwordUtility.HashPassword(password, result.Salt);
+        } while (passwordHistory.Any(pw => pw == passwordHash));
+
+        //TODO number 3 could become setting
+        // Rebuild password history with only last 3 passwords (including the one added in this function)
+        passwordHistory.Insert(0, passwordHash);
+        passwordHistory = passwordHistory.GetRange(0, 3);
+        var update = Builders<User>.Update.Set(user => user.PasswordHash, passwordHash).Set(user => user.PasswordHistory, passwordHistory);
+
+        // Update password hash and history
+        try
+        {
+            await collection.UpdateOneAsync(filter, update);
+        }
+        catch (MongoWriteException e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+        
+        // sends an email to the new user with the first-time password
+        try
+        {
+            await _emailUtility.SendNewPasswordAsync(
+                request.Email,
+                password
+            );
+        }
+        catch (Exception e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+
+        return new Result
+        {
+            Status = Status.Ok
+        };
+    }
+
+    /// <summary>
+    ///     API to enable/disable 2 factor authentication
+    /// </summary>
+    /// <param name="request">user with ID and new 2FA value</param>
+    /// <param name="context">current context</param>
+    /// <returns>Status code and message of operation</returns>
+    [PermissionsRequired(DefaultPermissions.EnableLocal2Fa)]
+    public override async Task<Result> FAStateChange(GrpcUser request, ServerCallContext context)
+    {
+        var collection = _database.GetCollection<User>(_settings.UsersCollection);
+
+        if (!request.HasIsfaenabled || !request.HasId)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "Needed information not provided"
+            };
+        }
+
+        var filter = Builders<User>.Filter.Eq(user => user.Id, request.Id);
+        var update = Builders<User>.Update.Set(user => user.IsFaEnable, request.Isfaenabled);
+
+        try
+        {
+            await collection.UpdateOneAsync(filter, update);
+        }
+        catch (MongoWriteException e)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = e.Message
+            };
+        }
+        
+        return new Result
+        {
+            Status = Status.Ok
+        };
+    }
+
+    /// <summary>
+    ///     API to block/unblock users
+    /// </summary>
+    /// <param name="request">user with ID and new block value</param>
+    /// <param name="context">current context</param>
+    /// <returns>Status code and message of operation</returns>
+    [PermissionsRequired(DefaultPermissions.BlockUsers)]
+    public override async Task<Result> BlockStateChange(GrpcUser request, ServerCallContext context)
+    {
+        var collection = _database.GetCollection<User>(_settings.UsersCollection);
+
+        if (!request.HasIsblocked || !request.HasId)
+        {
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "Needed information not provided"
+            };
+        }
+
+        var filter = Builders<User>.Filter.Eq(user => user.Id, request.Id);
+        var update = Builders<User>.Update.Set(user => user.IsBlocked, request.Isblocked);
 
         try
         {

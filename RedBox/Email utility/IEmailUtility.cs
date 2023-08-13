@@ -6,4 +6,5 @@ public interface IEmailUtility
     public Task SendPasswordResetAsync(string address, string id);
     public Task SendAccountLockNotification(string address, string username);
     public Task SendEmailChangedAsync(string address, string id);
+    public Task SendNewPasswordAsync(string address, string password);
 }
