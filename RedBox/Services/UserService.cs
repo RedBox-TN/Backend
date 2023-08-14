@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using Google.Protobuf.Collections;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -567,7 +569,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="request">user containing email and ID</param>
     /// <param name="context">current Context</param>
     /// <returns>Status code and message of the operation</returns>    
-    //[PermissionsRequired(DefaultPermissions.ResetUsersPassword)]
+    [PermissionsRequired(DefaultPermissions.ResetUsersPassword)]
     public override async Task<Result> PasswordReset(GrpcUser request, ServerCallContext context)
     {
         string password;
@@ -732,6 +734,112 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         return new Result
         {
             Status = Status.Ok
+        };
+    }
+
+    public override async Task<GrpcUserResult> FetchUser(GrpcUser request, ServerCallContext context)
+    {
+        var collection = _database.GetCollection<User>(_settings.UsersCollection);
+        User result;
+
+        if (!request.HasId)
+        {
+            return new GrpcUserResult
+            {
+                Status = new Result
+                {
+                    Status = Status.Error,
+                    Error = "ID not sent"
+                }
+            };
+        }
+
+        try
+        {
+            result = await collection.FindSync(user1 => user1.Id == request.Id).FirstOrDefaultAsync();
+        }
+        catch (Exception e)
+        {
+            return new GrpcUserResult
+            {
+                Status = new Result
+                {
+                    Status = Status.Error,
+                    Error = e.Message
+                }
+            };
+        }
+
+        if (result == null)
+        {
+            return new GrpcUserResult
+            {
+                Status = new Result
+                {
+                    Status = Status.Error,
+                    Error = "No matches"
+                }
+            };
+        }
+        
+        var user = new GrpcUser[]
+        {
+            new()
+            {
+                Id = (string.IsNullOrEmpty(result.Id))? "" : result.Id,
+                Name = (string.IsNullOrEmpty(result.Name))? "" : result.Name,
+                Surname = (string.IsNullOrEmpty(result.Surname))? "" : result.Surname,
+                Email = (string.IsNullOrEmpty(result.Email))? "" : result.Email,
+                Roleid = (string.IsNullOrEmpty(result.RoleId))? "" : result.RoleId,
+                Isblocked = result.IsBlocked,
+                Isfaenabled = result.IsFaEnable,
+                Username = (string.IsNullOrEmpty(result.Username))? "" : result.Username,
+                Biography = (string.IsNullOrEmpty(result.Biography))? "" : result.Biography,
+                Pathtopic = (string.IsNullOrEmpty(result.PathToPic))? "" : result.PathToPic //wrong
+            }
+        };
+        
+        return new GrpcUserResult
+        {
+            User = { user },
+            Status = new Result
+            {
+                Status = Status.Ok
+            }
+        };
+    }
+
+    public override async Task<GrpcUserResult> FetchAllUsers(Empty request, ServerCallContext context)
+    {
+        var collection = _database.GetCollection<User>(_settings.UsersCollection);
+
+        var result = await collection.FindSync(_ => true).ToListAsync();
+        var users = new GrpcUser[result.Count];
+
+        for (var i = 0; i < result.Count; i++)
+        {
+            users[i] = new GrpcUser
+            {
+                Id = (string.IsNullOrEmpty(result[i].Id))? "" : result[i].Id,
+                Name = (string.IsNullOrEmpty(result[i].Name))? "" : result[i].Name,
+                Surname = (string.IsNullOrEmpty(result[i].Surname))? "" : result[i].Surname,
+                Email = (string.IsNullOrEmpty(result[i].Email))? "" : result[i].Email,
+                Roleid = (string.IsNullOrEmpty(result[i].RoleId))? "" : result[i].RoleId,
+                Isblocked = result[i].IsBlocked,
+                Isfaenabled = result[i].IsFaEnable,
+                Username = (string.IsNullOrEmpty(result[i].Username))? "" : result[i].Username,
+                Biography = (string.IsNullOrEmpty(result[i].Biography))? "" : result[i].Biography,
+                Pathtopic = (string.IsNullOrEmpty(result[i].PathToPic))? "" : result[i].PathToPic //wrong
+            };
+        }
+        
+        return new GrpcUserResult
+        {
+            User = { users },
+            Status = new Result
+            {
+                Status = Status.Ok
+            }
         };
     }
 }

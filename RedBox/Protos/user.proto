@@ -44,6 +44,11 @@ message GrpcToken {
   string token = 1;
 }
 
+message GrpcUserResult {
+  repeated GrpcUser user = 1;
+  shared.Result status = 2;
+}
+
 service GrpcUserServices {
   rpc CreateUser (GrpcUser) returns (shared.Result);
   rpc DeleteUser (GrpcUser) returns (shared.Result);
@@ -55,4 +60,6 @@ service GrpcUserServices {
   //TODO bulk operations
   rpc FAStateChange (GrpcUser) returns (shared.Result);
   rpc BlockStateChange (GrpcUser) returns (shared.Result);
+  rpc FetchUser (GrpcUser) returns (GrpcUserResult); 
+  rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
 }
