@@ -16,65 +16,69 @@ namespace RedBoxAuth;
 /// </summary>
 public static class RequiredAuthServices
 {
-    /// <summary>
-    ///     Add required dependencies for authentication and authorization
-    /// </summary>
-    /// <param name="builder">WebApplicationBuilder of the current application</param>
-    public static void AddRedBoxAuthenticationAndAuthorization(this WebApplicationBuilder builder)
-    {
-        builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
+	/// <summary>
+	///     Add required dependencies for authentication and authorization
+	/// </summary>
+	/// <param name="builder">WebApplicationBuilder of the current application</param>
+	public static void AddRedBoxAuthenticationAndAuthorization(this WebApplicationBuilder builder)
+	{
+		builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
 
-        builder.Services.Configure<SecurityOptions>(builder.Configuration.GetSection("SecurityOptions"));
+		builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
 
-        var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
-        if (redisHost == null)
-            Environment.Exit(-1);
+		builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
 
-        var redis = ConnectionMultiplexer.Connect(redisHost);
+		var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
+		if (redisHost == null)
+			Environment.Exit(-1);
 
-        builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
+		var redis = ConnectionMultiplexer.Connect(redisHost);
 
-        builder.Services.AddSingleton<ITotpUtility, TotpUtility>();
-        builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
-        builder.Services.AddSingleton<IPasswordUtility, PasswordUtility>();
-        builder.Services.AddSingleton<IAuthCache, AuthCache>();
-        builder.Services.AddSingleton<IBasicAuthCache, AuthCache>();
-        builder.Services.AddHttpContextAccessor();
-    }
+		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
-    /// <summary>
-    ///     Add required dependencies for basic authorization of users and ability to access authenticated users
-    /// </summary>
-    /// <param name="builder">WebApplicationBuilder of the current application</param>
-    public static void AddRedBoxBasicAuthorization(this WebApplicationBuilder builder)
-    {
-        var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
-        if (redisHost == null)
-            Environment.Exit(-1);
+		builder.Services.AddSingleton<ITotpUtility, TotpUtility>();
+		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
+		builder.Services.AddSingleton<IPasswordUtility, PasswordUtility>();
+		builder.Services.AddSingleton<IAuthCache, AuthCache>();
+		builder.Services.AddSingleton<IBasicAuthCache, AuthCache>();
+		builder.Services.AddHttpContextAccessor();
+	}
 
-        var redis = ConnectionMultiplexer.Connect(redisHost);
+	/// <summary>
+	///     Add required dependencies for basic authorization of users and ability to access authenticated users
+	/// </summary>
+	/// <param name="builder">WebApplicationBuilder of the current application</param>
+	public static void AddRedBoxBasicAuthorization(this WebApplicationBuilder builder)
+	{
+		builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
 
-        builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
-        builder.Services.AddSingleton<IBasicAuthCache, BasicAuthCache>();
-        builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
-    }
+		var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
+		if (redisHost == null)
+			Environment.Exit(-1);
 
-    /// <summary>
-    ///     Enable basic authorization middleware
-    /// </summary>
-    /// <param name="app">current WebApplication instance</param>
-    public static void UseRedBoxBasicAuthorization(this WebApplication app)
-    {
-        app.UseMiddleware<AuthorizationMiddleware>();
-    }
+		var redis = ConnectionMultiplexer.Connect(redisHost);
 
-    /// <summary>
-    ///     Enable authentication and authorization services
-    /// </summary>
-    /// <param name="app">current WebApplication instance</param>
-    public static void UseRedBoxAuthenticationAndAuthorization(this WebApplication app)
-    {
-        app.UseMiddleware<AuthorizationMiddleware>();
-        app.MapGrpcService<AuthenticationService>();
-    }
+		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
+		builder.Services.AddSingleton<IBasicAuthCache, BasicAuthCache>();
+		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
+	}
+
+	/// <summary>
+	///     Enable basic authorization middleware
+	/// </summary>
+	/// <param name="app">current WebApplication instance</param>
+	public static void UseRedBoxBasicAuthorization(this WebApplication app)
+	{
+		app.UseMiddleware<AuthorizationMiddleware>();
+	}
+
+	/// <summary>
+	///     Enable authentication and authorization services
+	/// </summary>
+	/// <param name="app">current WebApplication instance</param>
+	public static void UseRedBoxAuthenticationAndAuthorization(this WebApplication app)
+	{
+		app.UseMiddleware<AuthorizationMiddleware>();
+		app.MapGrpcService<AuthenticationService>();
+	}
 }

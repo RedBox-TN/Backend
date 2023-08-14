@@ -15,180 +15,189 @@ namespace RedBoxAuth.Cache;
 public class AuthCache : MemoryCache, IAuthCache
 
 {
-    private static uint _scanMinutes;
-    private readonly SecurityOptions _options;
-    private readonly IDatabase _redis;
+	private static uint _scanMinutes;
+	private readonly AuthSettings _authSettings;
+	private readonly IDatabase _sessionDb;
+	private readonly IDatabase _tokenDb;
 
-    /// <inheritdoc />
-    public AuthCache(IConnectionMultiplexer redis, IOptions<SecurityOptions> options) : base(
-        new MemoryCacheOptions
-            { ExpirationScanFrequency = TimeSpan.FromMinutes(_scanMinutes) })
-    {
-        _options = options.Value;
-        _redis = redis.GetDatabase();
-        _scanMinutes = options.Value.LocalCacheExpirationScanMinutes;
-    }
+	/// <inheritdoc />
+	public AuthCache(IConnectionMultiplexer redis, IOptions<AuthSettings> options,
+		IOptions<RedisSettings> redisSettings) : base(
+		new MemoryCacheOptions
+			{ ExpirationScanFrequency = TimeSpan.FromMinutes(_scanMinutes) })
+	{
+		_authSettings = options.Value;
+		_sessionDb = redis.GetDatabase(redisSettings.Value.SessionDatabaseIndex);
+		_tokenDb = redis.GetDatabase(redisSettings.Value.UsernameTokenDatabaseIndex);
+		_scanMinutes = options.Value.LocalCacheExpirationScanMinutes;
+	}
 
-    /// <inheritdoc />
-    public string Store(User user, out long expireAt)
-    {
-        var key = GenerateToken();
-        if (!_redis.HashSet(_options.UsersHashKey, user.Username, key, When.NotExists))
-        {
-            key = _redis.HashGet(_options.UsersHashKey, user.Username);
-            expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-            if (!TryGetValue(key!, out _)) return key!;
+	/// <inheritdoc />
+	public string Store(User user, out long expireAt)
+	{
+		var key = GenerateToken();
+		if (IsUserAlreadyLogged(user.Username))
+		{
+			key = _tokenDb.StringGet(user.Username);
+			expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
+			return key!;
+		}
 
-            StoreLocal(user, key!, _options.SessionExpireMinutes);
-            return key!;
-        }
+		user.IsAuthenticated = true;
+		StoreRedis(user, key, _authSettings.SessionExpireMinutes);
+		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
+		StoreLocal(user, key, _authSettings.SessionExpireMinutes);
+		return key;
+	}
 
-        user.IsAuthenticated = true;
-        StoreRedis(user, key, _options.SessionExpireMinutes);
-        expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-        StoreLocal(user, key, _options.SessionExpireMinutes);
-        return key;
-    }
+	/// <inheritdoc />
+	public string StorePending(User user, out long expireAt)
+	{
+		var key = GenerateToken();
+		if (IsUserAlreadyLogged(user.Username))
+		{
+			key = _tokenDb.StringGet(user.Username);
+			expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
+			return key!;
+		}
 
-    /// <inheritdoc />
-    public string StorePending(User user, out long expireAt)
-    {
-        var key = GenerateToken();
-        if (!_redis.HashSet(_options.UsersHashKey, user.Username, key, When.NotExists))
-        {
-            key = _redis.HashGet(_options.UsersHashKey, user.Username);
-            expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-            return key!;
-        }
+		StoreRedis(user, key, _authSettings.PendingAuthMinutes);
+		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
+		return key;
+	}
 
-        StoreRedis(user, key, _options.PendingAuthMinutes);
-        expireAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-        return key;
-    }
+	/// <inheritdoc />
+	public bool TokenExists(string? key)
+	{
+		return _sessionDb.KeyExists(key);
+	}
 
-    /// <inheritdoc />
-    public bool KeyExists(string? key)
-    {
-        return _redis.KeyExists(key);
-    }
+	public bool IsUserAlreadyLogged(string? username)
+	{
+		return _tokenDb.KeyExists(username);
+	}
 
-    /// <inheritdoc />
-    public void SetCompleted(string key, out long expiresAt)
-    {
-        var user = RedisGet(key, out _);
-        _redis.KeyDeleteAsync(key, CommandFlags.FireAndForget);
+	/// <inheritdoc />
+	public void SetCompleted(string key, out long expiresAt)
+	{
+		var user = RedisGet(key, out _);
+		_sessionDb.KeyDeleteAsync(key, CommandFlags.FireAndForget);
 
-        user!.IsAuthenticated = true;
+		user!.IsAuthenticated = true;
 
-        StoreRedis(user, key, _options.SessionExpireMinutes);
-        expiresAt = ((DateTimeOffset)_redis.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-        StoreLocal(user, key, _options.SessionExpireMinutes);
-    }
+		StoreRedis(user, key, _authSettings.SessionExpireMinutes);
+		expiresAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
+		StoreLocal(user, key, _authSettings.SessionExpireMinutes);
+	}
 
-    /// <inheritdoc />
-    public async void DeleteAsync(string? key)
-    {
-        if (!TryToGet(key, out var user)) return;
+	/// <inheritdoc />
+	public async void DeleteAsync(string? key)
+	{
+		if (!TryToGet(key, out var user)) return;
 
-        var username = user!.Username;
-        await _redis.KeyDeleteAsync(key, CommandFlags.FireAndForget);
-        await _redis.HashDeleteAsync(_options.UsersHashKey, username, CommandFlags.FireAndForget);
-        if (key != null) Remove(key);
-    }
+		var username = user!.Username;
+		await _sessionDb.KeyDeleteAsync(key, CommandFlags.FireAndForget);
+		await _tokenDb.KeyDeleteAsync(username, CommandFlags.FireAndForget);
+		if (key != null) Remove(key);
+	}
 
-    /// <inheritdoc />
-    public bool TryToGet(string? key, out User? user)
-    {
-        if (!KeyExists(key))
-        {
-            user = null;
-            return false;
-        }
+	/// <inheritdoc />
+	public bool TryToGet(string? key, out User? user)
+	{
+		if (!TokenExists(key))
+		{
+			user = null;
+			return false;
+		}
 
-        if (!this.TryGetValue(key!, out user))
-        {
-            user = RedisGet(key!, out var ttl);
-            StoreLocal(user!, key!, ttl);
-            return true;
-        }
+		if (!this.TryGetValue(key!, out user))
+		{
+			user = RedisGet(key!, out var ttl);
+			StoreLocal(user!, key!, ttl);
+			return true;
+		}
 
-        user = this.Get<User>(key!);
-        return true;
-    }
+		user = this.Get<User>(key!);
+		return true;
+	}
 
-    /// <inheritdoc />
-    public string RefreshToken(string oldToken, out long expiresAt)
-    {
-        var token = GenerateToken();
+	/// <inheritdoc />
+	public string RefreshToken(string oldToken, out long expiresAt)
+	{
+		var token = GenerateToken();
 
-        TryToGet(oldToken, out var user);
+		TryToGet(oldToken, out var user);
 
-        _redis.KeyRenameAsync(oldToken, token);
-        _redis.HashSetAsync(_options.UsersHashKey, user!.Username, token);
-        _redis.KeyExpireAsync(token, TimeSpan.FromMinutes(_options.SessionExpireMinutes));
-        expiresAt = ((DateTimeOffset)_redis.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds();
+		_sessionDb.KeyRenameAsync(oldToken, token);
+		_tokenDb.StringSetAsync(user!.Username, token, TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes - 1),
+			When.Always, CommandFlags.FireAndForget);
+		_sessionDb.KeyExpireAsync(token, TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes));
+		expiresAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds();
 
-        RenameLocal(oldToken, token);
+		RenameLocal(oldToken, token);
 
-        return token;
-    }
+		return token;
+	}
 
-    private string GenerateToken()
-    {
-        var rndBuff = new byte[_options.TokenSizeBytes];
-        RandomNumberGenerator.Fill(rndBuff);
-        var token = Convert.ToBase64String(rndBuff);
+	private string GenerateToken()
+	{
+		var rndBuff = new byte[_authSettings.TokenSizeBytes];
+		RandomNumberGenerator.Fill(rndBuff);
+		var token = Convert.ToBase64String(rndBuff);
 
-        while (_redis.KeyExists(token))
-        {
-            RandomNumberGenerator.Fill(rndBuff);
-            token = Convert.ToBase64String(rndBuff);
-        }
+		while (_sessionDb.KeyExists(token))
+		{
+			RandomNumberGenerator.Fill(rndBuff);
+			token = Convert.ToBase64String(rndBuff);
+		}
 
-        return token;
-    }
+		return token;
+	}
 
-    private async void StoreRedis(User user, string key, uint minutes)
-    {
-        var serialized = MemoryPackSerializer.Serialize(user);
+	private async void StoreRedis(User user, string key, uint minutes)
+	{
+		var serialized = MemoryPackSerializer.Serialize(user);
 
-        using var compressor = new Compressor(Compressor.MaxCompressionLevel);
+		using var compressor = new Compressor(Compressor.MaxCompressionLevel);
 
-        await _redis.StringSetAsync(key, compressor.Wrap(serialized).ToArray(),
-            TimeSpan.FromMinutes(minutes), When.NotExists, CommandFlags.FireAndForget);
-    }
+		await _tokenDb.StringSetAsync(user.Username, key, TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes - 1),
+			When.NotExists, CommandFlags.FireAndForget);
 
-    private void StoreLocal(User user, string key, uint minutes)
-    {
-        this.Set(key, user, TimeSpan.FromMinutes(minutes));
-    }
+		await _sessionDb.StringSetAsync(key, compressor.Wrap(serialized).ToArray(),
+			TimeSpan.FromMinutes(minutes), When.NotExists, CommandFlags.FireAndForget);
+	}
 
-    private void StoreLocal(User user, string key, TimeSpan minutes)
-    {
-        this.Set(key, user, minutes);
-    }
+	private void StoreLocal(User user, string key, uint minutes)
+	{
+		this.Set(key, user, TimeSpan.FromMinutes(minutes));
+	}
 
-    private void RenameLocal(string old, string newToken)
-    {
-        var user = this.Get<User>(old);
-        if (user is null) return;
+	private void StoreLocal(User user, string key, TimeSpan minutes)
+	{
+		this.Set(key, user, minutes);
+	}
 
-        Remove(old);
-        StoreLocal(user, newToken, _options.SessionExpireMinutes);
-    }
+	private void RenameLocal(string old, string newToken)
+	{
+		var user = this.Get<User>(old);
+		if (user is null) return;
 
-    private User? RedisGet(string key, out TimeSpan remainingTime)
-    {
-        if (!KeyExists(key))
-        {
-            remainingTime = TimeSpan.Zero;
-            return null;
-        }
+		Remove(old);
+		StoreLocal(user, newToken, _authSettings.SessionExpireMinutes);
+	}
 
-        var stream = (byte[]?)_redis.StringGet(key);
-        remainingTime = _redis.KeyTimeToLive(key)!.Value;
+	private User? RedisGet(string key, out TimeSpan remainingTime)
+	{
+		if (!TokenExists(key))
+		{
+			remainingTime = TimeSpan.Zero;
+			return null;
+		}
 
-        using var decompressor = new Decompressor();
-        return MemoryPackSerializer.Deserialize<User>(decompressor.Unwrap(stream));
-    }
+		var stream = (byte[]?)_sessionDb.StringGet(key);
+		remainingTime = _sessionDb.KeyTimeToLive(key)!.Value;
+
+		using var decompressor = new Decompressor();
+		return MemoryPackSerializer.Deserialize<User>(decompressor.Unwrap(stream));
+	}
 }
