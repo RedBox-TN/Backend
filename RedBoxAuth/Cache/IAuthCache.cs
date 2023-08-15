@@ -8,11 +8,18 @@ namespace RedBoxAuth.Cache;
 public interface IAuthCache : IBasicAuthCache
 {
 	/// <summary>
-	///     Check if the token correspond to a user authenticated
+	///     Check if the token exists and correspond to a authenticated user
 	/// </summary>
 	/// <param name="key">The token</param>
-	/// <returns>Bool, the result of the check</returns>
-	public bool KeyExists(string? key);
+	/// <returns>If toke exists true</returns>
+	public bool TokenExists(string? key);
+
+	/// <summary>
+	///     Check if the user is already logged
+	/// </summary>
+	/// <param name="username">The username of the user</param>
+	/// <returns>If the user is already logged true</returns>
+	public bool IsUserAlreadyLogged(string? username);
 
 	/// <summary>
 	///     Store the user in the cache

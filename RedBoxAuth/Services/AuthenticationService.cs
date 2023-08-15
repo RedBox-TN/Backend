@@ -16,10 +16,8 @@ namespace RedBoxAuth.Services;
 /// <inheritdoc />
 public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrpcServiceBase
 {
-	private const string HeaderName = Constants.TokenHeaderName;
-
 	private readonly IAuthCache _authCache;
-	private readonly SecurityOptions _authOptions;
+	private readonly AuthSettings _authOptions;
 	private readonly ISecurityHashUtility _hashUtility;
 	private readonly IPasswordUtility _passwordUtility;
 	private readonly IMongoCollection<Role> _roleCollection;
@@ -29,7 +27,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 	/// <inheritdoc />
 	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
-		IPasswordUtility passwordUtility, IOptions<SecurityOptions> authOptions, ISecurityHashUtility hashUtility)
+		IPasswordUtility passwordUtility, IOptions<AuthSettings> authOptions, ISecurityHashUtility hashUtility)
 	{
 		_totp = totp;
 		_hashUtility = hashUtility;
@@ -46,8 +44,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	/// <inheritdoc />
 	public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
 	{
-		if (context.GetHttpContext().Request.Headers.ContainsKey(HeaderName) &&
-		    _authCache.KeyExists(context.GetHttpContext().Request.Headers[HeaderName]))
+		if (context.GetHttpContext().Request.Headers.ContainsKey(Constants.TokenHeaderName) &&
+		    _authCache.TokenExists(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]))
 			return new LoginResponse
 			{
 				Status = LoginStatus.AlreadyLogged
@@ -125,7 +123,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	[AuthenticationRequired]
 	public override Task<Empty> Logout(Empty request, ServerCallContext context)
 	{
-		var key = context.GetHttpContext().Request.Headers[HeaderName];
+		var key = context.GetHttpContext().Request.Headers[Constants.TokenHeaderName];
 
 		_authCache.DeleteAsync(key);
 
@@ -174,8 +172,9 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	[AuthenticationRequired]
 	public override Task<TokenRefreshResponse> RefreshToken(Empty request, ServerCallContext context)
 	{
-		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[HeaderName]!,
+		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]!,
 			out var expiresAt);
+
 		return Task.FromResult(new TokenRefreshResponse
 		{
 			Token = token,

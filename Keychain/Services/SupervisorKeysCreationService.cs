@@ -1,31 +1,26 @@
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using Keychain.Settings;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth.Authorization;
+using Shared;
 using Shared.Models;
-using Status = keychain.Status;
+using Status = Shared.Status;
 
 namespace Keychain.Services;
 
-[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-public class SupervisorKeysCreationService : GrpcSupervisorKeysCreationServices.GrpcSupervisorKeysCreationServicesBase
+public partial class KeychainServices
 {
-	private readonly IMongoDatabase _database;
-	private readonly DatabaseSettings _settings;
-
-	public SupervisorKeysCreationService(IOptions<DatabaseSettings> options)
-	{
-		_settings = options.Value;
-		var mongodbClient = new MongoClient(options.Value.ConnectionString);
-		_database = mongodbClient.GetDatabase(options.Value.DatabaseName);
-	}
-
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<Result> CreateSupervisorUserMasterKey(SupervisorKeyCreationRequest request,
 		ServerCallContext context)
 	{
+		if (request.EncryptedKey.IsEmpty || string.IsNullOrEmpty(request.UserId))
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var keysCollection = _database.GetCollection<Key>(_settings.SupervisorsMasterKeysCollection);
 
 		try
@@ -52,9 +47,16 @@ public class SupervisorKeysCreationService : GrpcSupervisorKeysCreationServices.
 		};
 	}
 
+	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<Result> CreateSupervisorKeyPair(UserKeyPairCreationRequest request,
 		ServerCallContext context)
 	{
+		if (request.EncryptedPrivateKey.IsEmpty || request.Iv.IsEmpty || request.PublicKey.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var privateKeys = _database.GetCollection<Key>(_settings.SupervisorPrivateKeyCollection);
 		var publicKeys = _database.GetCollection<Key>(_settings.SupervisorPublicKeyCollection);
 

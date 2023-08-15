@@ -3,8 +3,6 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using Keychain.Settings;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth;
 using RedBoxAuth.Authorization;
@@ -12,20 +10,8 @@ using Shared.Models;
 
 namespace Keychain.Services;
 
-[AuthenticationRequired]
-public class
-	SupervisorKeysRetrievingService : GrpcSupervisorKeysRetrievingServices.GrpcSupervisorKeysRetrievingServicesBase
+public partial class KeychainServices
 {
-	private readonly IMongoDatabase _database;
-	private readonly DatabaseSettings _settings;
-
-	public SupervisorKeysRetrievingService(IOptions<DatabaseSettings> options)
-	{
-		_settings = options.Value;
-		var mongodbClient = new MongoClient(options.Value.ConnectionString);
-		_database = mongodbClient.GetDatabase(options.Value.DatabaseName);
-	}
-
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<KeyResponse> GetUserSupervisorMasterKey(Empty request, ServerCallContext context)
 	{
