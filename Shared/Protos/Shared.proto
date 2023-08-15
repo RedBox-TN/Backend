@@ -10,6 +10,7 @@ option csharp_namespace = "Shared";
 enum Status {
   OK = 0;
   ERROR = 1;
+  MISSING_PARAMETERS = 2;
 }
 /*
   Represent the result of the required operation, if an error occurred then the exception message is returned
