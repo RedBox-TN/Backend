@@ -1,5 +1,6 @@
 using RedBox.Email_utility;
 using RedBox.Encryption_utility;
+using RedBox.Services;
 using RedBox.Settings;
 using RedBoxAuth;
 
@@ -20,6 +21,7 @@ builder.Services.AddGrpc();
 
 var app = builder.Build();
 
+app.MapGrpcService<UserService>();
 app.UseRedBoxAuthenticationAndAuthorization();
 
 if (app.Environment.IsDevelopment()) app.MapGrpcReflectionService();

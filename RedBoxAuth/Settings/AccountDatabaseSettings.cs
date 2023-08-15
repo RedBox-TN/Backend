@@ -7,13 +7,13 @@ namespace RedBoxAuth.Settings;
 /// </summary>
 public class AccountDatabaseSettings : CommonDatabaseSettings
 {
-	/// <summary>
-	///     Name of the collection containing users
-	/// </summary>
-	public string UsersCollection { get; set; } = null!;
+    /// <summary>
+    ///     Name of the collection containing users
+    /// </summary>
+    public string UsersCollection { get; set; } = null!;
 
-	/// <summary>
-	///     Name of the collection containing roles
-	/// </summary>
-	public string RolesCollection { get; set; } = null!;
+    /// <summary>
+    ///     Name of the collection containing roles
+    /// </summary>
+    public string RolesCollection { get; set; } = null!;
 }
