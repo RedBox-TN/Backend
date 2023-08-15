@@ -49,6 +49,19 @@ message GrpcUserResult {
   shared.Result status = 2;
 }
 
+message Grpc2faResult {
+  string qrcode = 1;
+  string manualcode = 2;
+  shared.Result status = 3;
+}
+
+message GrpcProvisionResult {
+  bool faprovisioning = 1;
+  bool passwordprovisioning = 2;
+  bool keyprovisioning = 3;
+  shared.Result status = 4;
+}
+
 service GrpcUserServices {
   rpc CreateUser (GrpcUser) returns (shared.Result);
   rpc DeleteUser (GrpcUser) returns (shared.Result);
@@ -58,8 +71,9 @@ service GrpcUserServices {
   rpc PasswordReset (GrpcUser) returns (shared.Result);
   rpc FinalizeEmailChange (GrpcToken) returns (shared.Result);
   //TODO bulk operations
-  rpc FAStateChange (GrpcUser) returns (shared.Result);
+  rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
   rpc BlockStateChange (GrpcUser) returns (shared.Result);
   rpc FetchUser (GrpcUser) returns (GrpcUserResult); 
   rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
+  rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
 }

@@ -21,12 +21,14 @@ public partial class User
     [MemoryPackIgnore] public byte InvalidLoginAttempts { get; set; }
     [MemoryPackIgnore] public bool IsBlocked { get; set; } = false;
     public bool IsFaEnable { get; set; } = false;
-    public byte[] FaSeed { get; set; } = null!;
+    public byte[]? FaSeed { get; set; } = null!;
     [BsonIgnore] public ulong SecurityHash { get; set; }
 
     [MemoryPackIgnore] public DateTime LastAccess { get; set; }
-    public string[] ChatsCollectionNames { get; set; } = null!;
-    public string[] GroupsCollectionNames { get; set; } = null!;
+
+    [BsonIgnoreIfNull] public string[]? ChatsCollectionNames { get; set; } = null!;
+
+    [BsonIgnoreIfNull] public string[]? GroupsCollectionNames { get; set; } = null!;
 
     [BsonRepresentation(BsonType.ObjectId)]
     [MemoryPackIgnore]
@@ -36,5 +38,8 @@ public partial class User
     public string Name { get; set; } = null!;
     [BsonIgnore] public bool IsAuthenticated { get; set; }
     public string Biography { get; set; } = null!;
+
     public string PathToPic { get; set; } = null!;
+
+    [BsonIgnoreIfDefault] public bool NeedsProvisioning { get; set; } = false;
 }
