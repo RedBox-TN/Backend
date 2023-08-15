@@ -14,6 +14,12 @@ public partial class KeychainServices
 {
 	public override async Task<Result> CreateUserMasterKey(MasterKey request, ServerCallContext context)
 	{
+		if (request.EncryptedData.IsEmpty || request.Iv.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var id = context.GetUser().Id;
 		var keysCollection = _database.GetCollection<Key>(_settings.UsersMasterKeysCollection);
 
@@ -46,6 +52,12 @@ public partial class KeychainServices
 
 	public override async Task<Result> CreateUserKeyPair(UserKeyPairCreationRequest request, ServerCallContext context)
 	{
+		if (request.EncryptedPrivateKey.IsEmpty || request.Iv.IsEmpty || request.PublicKey.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var id = context.GetUser().Id;
 		var privateKeys = _database.GetCollection<Key>(_settings.UsersPrivateKeysCollection);
 		var publicKeys = _database.GetCollection<Key>(_settings.UsersPublicKeysCollection);
@@ -82,6 +94,13 @@ public partial class KeychainServices
 	[PermissionsRequired(DefaultPermissions.CreateGroups)]
 	public override async Task<Result> CreateGroupKeys(GroupKeysCreationRequest request, ServerCallContext context)
 	{
+		if (string.IsNullOrEmpty(request.GroupCollectionName) || request.EncryptedKeyForSupervisors.IsEmpty ||
+		    request.EncryptedCreatorKey.IsEmpty || request.Iv.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var id = context.GetUser().Id;
 		var keysCollection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
 		var supervisedGroupsCollection = _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection);
@@ -128,6 +147,13 @@ public partial class KeychainServices
 	public override async Task<Result> CreateUserGroupKey(UserGroupKeyCreationRequest request,
 		ServerCallContext context)
 	{
+		if (string.IsNullOrEmpty(request.UserId) || string.IsNullOrEmpty(request.ChatCollectionName) ||
+		    request.EncryptedKey.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var keysCollection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
 
 		try
@@ -158,6 +184,14 @@ public partial class KeychainServices
 	[PermissionsRequired(DefaultPermissions.CreateChats)]
 	public override async Task<Result> CreateChatKeys(ChatKeyCreationRequest request, ServerCallContext context)
 	{
+		if (string.IsNullOrEmpty(request.ChatCollectionName) || string.IsNullOrEmpty(request.OtherUserId) ||
+		    request.EncryptedKey.IsEmpty || request.Iv.IsEmpty || request.EncryptedKeyForOtherUser.IsEmpty ||
+		    request.EncryptedKeyForSupervisors.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var id = context.GetUser().Id;
 		var keysCollection = _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection);
 		var keySupervisorsCollection = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);

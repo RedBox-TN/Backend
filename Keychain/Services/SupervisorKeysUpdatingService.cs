@@ -16,6 +16,12 @@ public partial class KeychainServices
 	public override async Task<Result> UpdateUserSupervisorMasterKey(MasterKey request,
 		ServerCallContext context)
 	{
+		if (request.EncryptedData.IsEmpty || request.Iv.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		try
 		{
 			var id = context.GetUser().Id;
@@ -46,6 +52,12 @@ public partial class KeychainServices
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<Result> UpdateSupervisedChatKey(UpdateKeyRequest request, ServerCallContext context)
 	{
+		if (request.KeyData.IsEmpty || request.Iv.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		try
 		{
 			var chatKeys = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);
@@ -78,6 +90,12 @@ public partial class KeychainServices
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
 	public override async Task<Result> UpdateSupervisedGroupKey(UpdateKeyRequest request, ServerCallContext context)
 	{
+		if (request.KeyData.IsEmpty || request.Iv.IsEmpty)
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		try
 		{
 			var groupKeys = _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection);
@@ -113,7 +131,7 @@ public partial class KeychainServices
 	{
 		try
 		{
-			if (request.MasterKey is not null)
+			if (!request.MasterKey.EncryptedData.IsEmpty && !request.MasterKey.Iv.IsEmpty)
 			{
 				var id = context.GetUser().Id;
 				var collection = _database.GetCollection<Key>(_settings.SupervisorsMasterKeysCollection);
@@ -126,12 +144,14 @@ public partial class KeychainServices
 				await collection.UpdateOneAsync(k => k.UserOwnerId == id, update);
 			}
 
-			if (request.ChatKeys is not null)
+			if (request.ChatKeys.Count > 0)
 			{
 				var chatKeysCollection = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);
 
 				foreach (var key in request.ChatKeys)
 				{
+					if (string.IsNullOrEmpty(key.KeyId) || key.KeyData.IsEmpty || key.Iv.IsEmpty) continue;
+
 					var update = Builders<ChatKey>.Update
 						.Set(k => k.Data, key.KeyData.ToByteArray())
 						.Set(k => k.Iv, key.Iv.ToByteArray());

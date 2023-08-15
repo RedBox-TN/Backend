@@ -80,6 +80,12 @@ public partial class KeychainServices
 
 	public override async Task<Result> DeleteUserChatKey(KeyFromIdRequest request, ServerCallContext context)
 	{
+		if (string.IsNullOrEmpty(request.Id))
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var id = context.GetUser().Id;
 		var collection = _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection);
 
@@ -103,6 +109,12 @@ public partial class KeychainServices
 
 	public override async Task<Result> DeleteUserGroupKey(KeyFromIdRequest request, ServerCallContext context)
 	{
+		if (string.IsNullOrEmpty(request.Id))
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var id = context.GetUser().Id;
 		var collection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
 

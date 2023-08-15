@@ -44,6 +44,12 @@ public partial class KeychainServices
 	[PermissionsRequired(DefaultPermissions.DeleteSupervisedChat)]
 	public override async Task<Result> DeleteSupervisorChatKey(KeyFromIdRequest request, ServerCallContext context)
 	{
+		if (string.IsNullOrEmpty(request.Id))
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var collection = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);
 
 		try
@@ -68,6 +74,12 @@ public partial class KeychainServices
 	[PermissionsRequired(DefaultPermissions.DeleteSupervisedChat)]
 	public override async Task<Result> DeleteSupervisorGroupKey(KeyFromIdRequest request, ServerCallContext context)
 	{
+		if (string.IsNullOrEmpty(request.Id))
+			return new Result
+			{
+				Status = Status.MissingParameters
+			};
+
 		var collection = _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection);
 
 		try
