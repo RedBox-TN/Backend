@@ -29,9 +29,11 @@ message GrpcUser {
   optional bool isblocked = 8; // optional | Not sent on user creation
   optional bool isfaenabled = 9; // optional | For check in modifications
   string username = 10;
-  repeated string chats = 11;
-  string biography = 12;
-  string pathtopic = 13;
+  repeated string removedchats = 11;
+  repeated string addedchats = 12;
+  string biography = 13;
+  string pathtopic = 14;
+  repeated string chats = 15;
 }
 
 message GrpcPasswordMod {

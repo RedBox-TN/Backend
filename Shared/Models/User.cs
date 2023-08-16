@@ -26,9 +26,12 @@ public partial class User
 
     [MemoryPackIgnore] public DateTime LastAccess { get; set; }
 
-    [BsonIgnoreIfNull] public string[]? ChatsCollectionNames { get; set; } = null!;
+    [BsonRepresentation(BsonType.String)]
+    [BsonIgnoreIfNull]
+    public string[]? ChatIds { get; set; } = null!;
 
-    [BsonIgnoreIfNull] public string[]? GroupsCollectionNames { get; set; } = null!;
+    //[BsonRepresentation(BsonType.ObjectId)]
+    [BsonIgnoreIfNull] public string[]? GroupIds { get; set; } = null!;
 
     [BsonRepresentation(BsonType.ObjectId)]
     [MemoryPackIgnore]

@@ -21,7 +21,7 @@ using Status = Shared.Status;
 
 namespace RedBox.Services;
 
-//[AuthenticationRequired]
+[AuthenticationRequired]
 public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 {
     private readonly IMongoDatabase _database;
@@ -55,8 +55,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="request">data from the client</param>
     /// <param name="context">current context</param>
     /// <returns>Status code and message of the operation</returns>
-    // TODO must add pre-existing chats to user during creation through chat creation API
-    //[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
+    [PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
     public override async Task<Result> CreateUser(GrpcUser request, ServerCallContext context)
     {
         var password = _passwordUtility.GeneratePassword();
@@ -75,11 +74,11 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         )
             return new Result
             {
-                Status = Status.Error,
+                Status = Status.MissingParameters,
                 Error = "Wrong format for one of the values or missing value"
             };
 
-        // creates the new user in the database TODO add FASeed
+        // creates the new user in the database
         try
         {
             await collection.InsertOneAsync(new User
@@ -89,6 +88,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Username = request.Username,
                 Email = request.Email,
                 RoleId = request.Roleid,
+                ChatIds = request.Chats.ToArray(),
                 IsFaEnable = request.Isfaenabled,
                 PasswordHash = passwordHash,
                 Salt = salt,
@@ -137,7 +137,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="request">data from the client</param>
     /// <param name="context">current context</param>
     /// <returns>Status code and message of the operation</returns>
-    //[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
+    [PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
     public override async Task<Result> DeleteUser(GrpcUser request, ServerCallContext context)
     {
         var collection = _database.GetCollection<User>(_settings.UsersCollection);
@@ -145,8 +145,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         if (!request.HasId)
             return new Result
             {
-                Status = Status.Error,
-                Error = ""
+                Status = Status.MissingParameters
             };
 
         try
@@ -198,7 +197,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 updates.Add(update.Set(user1 => user1.Username, request.Username));
 
             // Email modification, passing through email mod API
-            if (MyRegex().IsMatch(request.Email)) await InitEmailChange(request);
+            if (MyRegex().IsMatch(request.Email)) await _emailUtility.SendEmailChangedAsync(request.Email, request.Id);
 
             // RoleID modification, assume roleID is correct
             if (!string.IsNullOrEmpty(request.Roleid)) updates.Add(update.Set(user1 => user1.RoleId, request.Roleid));
@@ -217,16 +216,29 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             if (!string.IsNullOrEmpty(request.Biography) /*&& user.Id == request.Id*/
                ) updates.Add(update.Set(user1 => user1.Biography, request.Biography));
 
-            // Chats modification, expects new full set of chats every time
+            // if chats has elements set new chats directly
             if (request.Chats.Any())
-                updates.Add(update.Set<string[]>(user1 => user1.ChatsCollectionNames, request.Chats.ToArray()));
+            {
+                updates.Add(update.Set<string[]?>(user1 => user1.ChatIds, request.Chats.ToArray()));
+            }
+            else
+            {
+                // remove elements from chats
+                if (request.Removedchats.Any())
+                    updates.Add(update.PullAll(user1 => user1.ChatIds,
+                        request.Removedchats));
+
+                // add new elements to chats
+                if (request.Addedchats.Any())
+                    updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.Addedchats));
+            }
 
             // Combination of all modifications, only if list is not empty
             try
             {
                 if (updates.Any()) await collection.UpdateOneAsync(filter, update.Combine(updates));
             }
-            catch (Exception e)
+            catch (MongoException e)
             {
                 return new Result
                 {
@@ -242,7 +254,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             var filter = Builders<User>.Filter.Eq(user1 => user1.Id, user.Id);
 
             // Email modification, passing through email mod API
-            if (MyRegex().IsMatch(request.Email)) await InitEmailChange(request);
+            if (MyRegex().IsMatch(request.Email)) await _emailUtility.SendEmailChangedAsync(request.Email, request.Id);
 
             // Path to profile pic modification
             if (!string.IsNullOrEmpty(request.Pathtopic))
@@ -252,16 +264,29 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             if (!string.IsNullOrEmpty(request.Biography))
                 updates.Add(update.Set(user1 => user1.Biography, request.Biography));
 
-            // Chats modification, expects new full set of chats every time
+            // if chats has elements set new chats directly
             if (request.Chats.Any())
-                updates.Add(update.Set<string[]>(user1 => user1.ChatsCollectionNames, request.Chats.ToArray()));
+            {
+                updates.Add(update.Set<string[]?>(user1 => user1.ChatIds, request.Chats.ToArray()));
+            }
+            else
+            {
+                // remove elements from chats
+                if (request.Removedchats.Any())
+                    updates.Add(update.PullAll(user1 => user1.ChatIds,
+                        request.Removedchats));
+
+                // add new elements to chats
+                if (request.Addedchats.Any())
+                    updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.Addedchats));
+            }
 
             // Combination of all modifications, only if list is not empty
             try
             {
                 if (updates.Any()) await collection.UpdateOneAsync(filter, update.Combine(updates));
             }
-            catch (Exception e)
+            catch (MongoException e)
             {
                 return new Result
                 {
@@ -283,15 +308,6 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         {
             Status = Status.Ok
         };
-    }
-
-    /// <summary>
-    ///     Function to Init email change, sends a message to the new email to confirm it
-    /// </summary>
-    /// <param name="request">User info from the calling function</param>
-    private async Task InitEmailChange(GrpcUser request)
-    {
-        await _emailUtility.SendEmailChangedAsync(request.Email, request.Id);
     }
 
     /// <summary>
@@ -343,7 +359,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             };
 
         // Extract expiration time from string
-        if (!DateTime.TryParseExact(splitData[1], "ddMMyyyyHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None,
+        if (!DateTime.TryParseExact(splitData[^1], "ddMMyyyyHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None,
                 out var expiration))
             return new Result
             {
@@ -516,10 +532,10 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Error = "New password has already been used"
             };
 
-        //TODO number 3 could become setting
         // Rebuild password history with only last 3 passwords (including the one added in this function)
         passwordHistory.Insert(0, newPasswordHash);
-        if (passwordHistory.Count > 3) passwordHistory = passwordHistory.GetRange(0, 3);
+        if (passwordHistory.Count > _redBoxSettings.PasswordHistoryMax)
+            passwordHistory = passwordHistory.GetRange(0, _redBoxSettings.PasswordHistoryMax);
         var update = Builders<User>.Update.Set(user => user.PasswordHash, newPasswordHash)
             .Set(user => user.PasswordHistory, passwordHistory);
 
@@ -559,8 +575,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         if (!request.HasId)
             return new Result
             {
-                Status = Status.Error,
-                Error = "Wrong format for one of the values or missing value"
+                Status = Status.MissingParameters
             };
 
         User result;
@@ -590,10 +605,10 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             passwordHash = _passwordUtility.HashPassword(password, result.Salt);
         } while (passwordHistory.Any(pw => pw == passwordHash));
 
-        //TODO number 3 could become setting
         // Rebuild password history with only last 3 passwords (including the one added in this function)
         passwordHistory.Insert(0, passwordHash);
-        if (passwordHistory.Count > 3) passwordHistory = passwordHistory.GetRange(0, 3);
+        if (passwordHistory.Count > _redBoxSettings.PasswordHistoryMax)
+            passwordHistory = passwordHistory.GetRange(0, _redBoxSettings.PasswordHistoryMax);
         var update = Builders<User>.Update.Set(user => user.PasswordHash, passwordHash)
             .Set(user => user.PasswordHistory, passwordHistory);
 
@@ -651,8 +666,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             {
                 Status = new Result
                 {
-                    Status = Status.Error,
-                    Error = "Needed information not provided"
+                    Status = Status.MissingParameters
                 }
             };
 
@@ -735,8 +749,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             {
                 Status = new Result
                 {
-                    Status = Status.Error,
-                    Error = "ID not specified"
+                    Status = Status.MissingParameters
                 }
             };
 
@@ -797,8 +810,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         if (!request.HasIsblocked || !request.HasId)
             return new Result
             {
-                Status = Status.Error,
-                Error = "Needed information not provided"
+                Status = Status.MissingParameters
             };
 
         var filter = Builders<User>.Filter.Eq(user => user.Id, request.Id);
@@ -839,8 +851,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             {
                 Status = new Result
                 {
-                    Status = Status.Error,
-                    Error = "ID not sent"
+                    Status = Status.MissingParameters
                 }
             };
 
@@ -884,7 +895,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
                 Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
                 Pathtopic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
-                Chats = { result.ChatsCollectionNames ?? new[] { "" } }
+                Chats = { result.ChatIds ?? new[] { "" } }
             }
         };
 
@@ -924,7 +935,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Username = string.IsNullOrEmpty(result[i].Username) ? "" : result[i].Username,
                 Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography,
                 Pathtopic = string.IsNullOrEmpty(result[i].PathToPic) ? "" : result[i].PathToPic,
-                Chats = { result[i].ChatsCollectionNames ?? new[] { "" } }
+                Chats = { result[i].ChatIds ?? new[] { "" } }
             };
 
         return new GrpcUserResult
