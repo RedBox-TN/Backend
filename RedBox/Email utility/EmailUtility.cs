@@ -29,7 +29,8 @@ public class EmailUtility : IEmailUtility
 
         var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
         var encrypted =
-            await _encryptionUtility.EncryptAsync(id, key, currentTime.AddMinutes(_emailSettings.TokenExpireMinutes),
+            await _encryptionUtility.EncryptAsync(id, key,
+                currentTime.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes),
                 _redBoxSettings.AesKeySize);
         var ciphertext = encrypted.EncData;
         var iv = encrypted.Iv;
@@ -80,7 +81,6 @@ public class EmailUtility : IEmailUtility
         await SenAsync(toAddress, "Il tuo nuovo account RedBox", body);
     }
     
-    //TODO MISSING HTML TEMPLATE
     public async Task SendNewPasswordAsync(string toAddress, string password)
     {
         var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.NewPasswordTemplateFile));
@@ -95,15 +95,15 @@ public class EmailUtility : IEmailUtility
 
         await SenAsync(toAddress, "La tua nuova password temporanea", body);
     }
-
-    //TODO IMPORTANT! MISSING HTML TEMPLATE
+    
     public async Task SendEmailChangedAsync(string toAddress, string id)
     {
         var currentTime = DateTime.Now;
 
         var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
         var encrypted =
-            await _encryptionUtility.EncryptAsync(id+"#"+toAddress, key, null, _redBoxSettings.AesKeySize);
+            await _encryptionUtility.EncryptAsync(id + "#" + toAddress, key,
+                currentTime.AddMinutes(_redBoxSettings.EmailTokenExpireMinutes), _redBoxSettings.AesKeySize);
         var ciphertext = encrypted.EncData;
         var iv = encrypted.Iv;
 

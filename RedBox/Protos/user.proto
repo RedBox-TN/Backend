@@ -29,9 +29,11 @@ message GrpcUser {
   optional bool isblocked = 8; // optional | Not sent on user creation
   optional bool isfaenabled = 9; // optional | For check in modifications
   string username = 10;
-  repeated string chats = 11;
-  string biography = 12;
-  string pathtopic = 13;
+  repeated string removedchats = 11;
+  repeated string addedchats = 12;
+  string biography = 13;
+  string pathtopic = 14;
+  repeated string chats = 15;
 }
 
 message GrpcPasswordMod {
@@ -49,6 +51,19 @@ message GrpcUserResult {
   shared.Result status = 2;
 }
 
+message Grpc2faResult {
+  string qrcode = 1;
+  string manualcode = 2;
+  shared.Result status = 3;
+}
+
+message GrpcProvisionResult {
+  bool faprovisioning = 1;
+  bool passwordprovisioning = 2;
+  bool keyprovisioning = 3;
+  shared.Result status = 4;
+}
+
 service GrpcUserServices {
   rpc CreateUser (GrpcUser) returns (shared.Result);
   rpc DeleteUser (GrpcUser) returns (shared.Result);
@@ -58,8 +73,9 @@ service GrpcUserServices {
   rpc PasswordReset (GrpcUser) returns (shared.Result);
   rpc FinalizeEmailChange (GrpcToken) returns (shared.Result);
   //TODO bulk operations
-  rpc FAStateChange (GrpcUser) returns (shared.Result);
+  rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
   rpc BlockStateChange (GrpcUser) returns (shared.Result);
   rpc FetchUser (GrpcUser) returns (GrpcUserResult); 
   rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
+  rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
 }
