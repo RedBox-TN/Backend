@@ -1,8 +1,6 @@
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using Keychain.Settings;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth;
 using RedBoxAuth.Authorization;
@@ -12,21 +10,16 @@ using Status = Shared.Status;
 
 namespace Keychain.Services;
 
-[AuthenticationRequired]
-public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeysCreationServicesBase
+public partial class KeychainServices
 {
-    private readonly IMongoDatabase _database;
-    private readonly DatabaseSettings _settings;
-
-    public UserKeysCreationService(IOptions<DatabaseSettings> options)
-    {
-        _settings = options.Value;
-        var mongodbClient = new MongoClient(options.Value.ConnectionString);
-        _database = mongodbClient.GetDatabase(options.Value.DatabaseName);
-    }
-
     public override async Task<Result> CreateUserMasterKey(MasterKey request, ServerCallContext context)
     {
+        if (request.EncryptedData.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         var id = context.GetUser().Id;
         var keysCollection = _database.GetCollection<Key>(_settings.UsersMasterKeysCollection);
 
@@ -59,6 +52,12 @@ public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeys
 
     public override async Task<Result> CreateUserKeyPair(UserKeyPairCreationRequest request, ServerCallContext context)
     {
+        if (request.EncryptedPrivateKey.IsEmpty || request.Iv.IsEmpty || request.PublicKey.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         var id = context.GetUser().Id;
         var privateKeys = _database.GetCollection<Key>(_settings.UsersPrivateKeysCollection);
         var publicKeys = _database.GetCollection<Key>(_settings.UsersPublicKeysCollection);
@@ -95,6 +94,13 @@ public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeys
     [PermissionsRequired(DefaultPermissions.CreateGroups)]
     public override async Task<Result> CreateGroupKeys(GroupKeysCreationRequest request, ServerCallContext context)
     {
+        if (string.IsNullOrEmpty(request.GroupCollectionName) || request.EncryptedKeyForSupervisors.IsEmpty ||
+            request.EncryptedCreatorKey.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         var id = context.GetUser().Id;
         var keysCollection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
         var supervisedGroupsCollection = _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection);
@@ -116,6 +122,7 @@ public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeys
                 ChatCollectionName = request.GroupCollectionName
             });
 
+            var a = request.MembersKeys;
             await keysCollection.InsertManyAsync(request.MembersKeys.Select(memberKey => new ChatKey
             {
                 UserOwnerId = memberKey.UserId, Data = memberKey.Data.ToByteArray(),
@@ -140,6 +147,13 @@ public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeys
     public override async Task<Result> CreateUserGroupKey(UserGroupKeyCreationRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrEmpty(request.UserId) || string.IsNullOrEmpty(request.ChatCollectionName) ||
+            request.EncryptedKey.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         var keysCollection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
 
         try
@@ -170,6 +184,14 @@ public class UserKeysCreationService : GrpcUserKeysCreationServices.GrpcUserKeys
     [PermissionsRequired(DefaultPermissions.CreateChats)]
     public override async Task<Result> CreateChatKeys(ChatKeyCreationRequest request, ServerCallContext context)
     {
+        if (string.IsNullOrEmpty(request.ChatCollectionName) || string.IsNullOrEmpty(request.OtherUserId) ||
+            request.EncryptedKey.IsEmpty || request.Iv.IsEmpty || request.EncryptedKeyForOtherUser.IsEmpty ||
+            request.EncryptedKeyForSupervisors.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         var id = context.GetUser().Id;
         var keysCollection = _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection);
         var keySupervisorsCollection = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);

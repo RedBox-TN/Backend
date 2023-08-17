@@ -1,31 +1,23 @@
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using Keychain.Settings;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth;
-using RedBoxAuth.Authorization;
 using Shared;
 using Status = Shared.Status;
 
 namespace Keychain.Services;
 
-[AuthenticationRequired]
-public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeysUpdatingServicesBase
+public partial class KeychainServices
 {
-    private readonly IMongoDatabase _database;
-    private readonly DatabaseSettings _settings;
-
-    public UserKeysUpdatingService(IOptions<DatabaseSettings> options)
-    {
-        _settings = options.Value;
-        var mongodbClient = new MongoClient(options.Value.ConnectionString);
-        _database = mongodbClient.GetDatabase(options.Value.DatabaseName);
-    }
-
     public override async Task<Result> UpdateUserMasterKey(MasterKey request, ServerCallContext context)
     {
+        if (request.EncryptedData.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         try
         {
             var id = context.GetUser().Id;
@@ -54,6 +46,12 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
 
     public override async Task<Result> UpdateUserKeyPair(UpdateUserKeyPairRequest request, ServerCallContext context)
     {
+        if (request.PrivateKeyData.IsEmpty || request.PrivateKeyIv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         try
         {
             var id = context.GetUser().Id;
@@ -93,6 +91,12 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
 
     public override async Task<Result> UpdateUserChatKey(UpdateKeyRequest request, ServerCallContext context)
     {
+        if (request.KeyData.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         try
         {
             var chatKeys = _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection);
@@ -124,6 +128,12 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
 
     public override async Task<Result> UpdateUserGroupKey(UpdateKeyRequest request, ServerCallContext context)
     {
+        if (string.IsNullOrEmpty(request.KeyId) || request.KeyData.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         try
         {
             var groupKeys = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
@@ -170,7 +180,7 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
                 await collection.UpdateOneAsync(k => k.UserOwnerId == id, update);
             }
 
-            if (request.KeyPair is not null)
+            if (!request.KeyPair.PrivateKeyData.IsEmpty && !request.KeyPair.PrivateKeyIv.IsEmpty)
             {
                 var privateKeysCollection = _database.GetCollection<ChatKey>(_settings.UsersPrivateKeysCollection);
 
@@ -191,12 +201,14 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
                 }
             }
 
-            if (request.ChatKeys is not null)
+            if (request.ChatKeys.Count > 0)
             {
                 var chatKeysCollection = _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection);
 
                 foreach (var key in request.ChatKeys)
                 {
+                    if (key.KeyData.IsEmpty || key.Iv.IsEmpty) continue;
+
                     var update = Builders<ChatKey>.Update
                         .Set(k => k.Data, key.KeyData.ToByteArray())
                         .Set(k => k.Iv, key.Iv.ToByteArray());
@@ -209,12 +221,14 @@ public class UserKeysUpdatingService : GrpcUserKeysUpdatingServices.GrpcUserKeys
                 }
             }
 
-            if (request.GroupKeys is not null)
+            if (request.GroupKeys.Count > 0)
             {
                 var groupKeysCollection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
 
                 foreach (var key in request.GroupKeys)
                 {
+                    if (key.KeyData.IsEmpty || key.Iv.IsEmpty) continue;
+
                     var update = Builders<ChatKey>.Update
                         .Set(k => k.Data, key.KeyData.ToByteArray())
                         .Set(k => k.Iv, key.Iv.ToByteArray());

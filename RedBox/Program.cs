@@ -9,8 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGrpcReflection();
 
 builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection("RedBoxDB"));
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
-builder.Services.Configure<RedBoxSettings>(builder.Configuration.GetSection("RedBox"));
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.Configure<RedBoxSettings>(builder.Configuration.GetSection("RedBoxSettings"));
 
 builder.Services.AddSingleton<IEncryptionUtility, EncryptionUtility>();
 builder.Services.AddSingleton<IEmailUtility, EmailUtility>();

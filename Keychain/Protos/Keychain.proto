@@ -146,7 +146,7 @@ message DeleteKeyFromUserIdRequest {
   optional string user_id = 1;
 }
 
-service GrpcUserKeysCreationServices {
+service GrpcKeychainServices {
   // create user's master key, the user id is obtained by the authentication
   rpc CreateUserMasterKey(MasterKey) returns (shared.Result);
   // create user's public and private key, the user id is obtained by the authentication
@@ -157,19 +157,15 @@ service GrpcUserKeysCreationServices {
   rpc CreateGroupKeys (GroupKeysCreationRequest) returns (shared.Result);
   // when a user is added later to a group, add the group key to the user keychain
   rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (shared.Result);
-}
 
-service GrpcSupervisorKeysCreationServices {
   rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (shared.Result);
   rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (shared.Result);
-}
 
-service GrpcUserKeysRetrievingServices {
   rpc GetUserMasterKey(google.protobuf.Empty) returns (KeyResponse);
   // retrieve a user's public key from is id
   rpc GetUserPublicKey (KeyFromIdRequest) returns (KeyResponse);
   rpc GetUserPrivateKey (google.protobuf.Empty) returns (KeyResponse);
-  
+
   rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
   rpc GetGroupKey(KeyFromIdRequest) returns (KeyResponse);
   rpc GetChatsKeys (google.protobuf.Empty) returns (KeysResponse);
@@ -177,9 +173,7 @@ service GrpcUserKeysRetrievingServices {
 
   rpc GetUserChatKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
   rpc GetUserGroupKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
-}
 
-service GrpcSupervisorKeysRetrievingServices {
   rpc GetUserSupervisorMasterKey(google.protobuf.Empty) returns (KeyResponse);
   rpc GetSupervisorPublicKey(google.protobuf.Empty) returns (KeyResponse);
   rpc GetSupervisorPrivateKey(google.protobuf.Empty) returns (KeyResponse);
@@ -192,9 +186,7 @@ service GrpcSupervisorKeysRetrievingServices {
   rpc GetUserSupervisorMasterKeyEncryptedWithPublicKey(google.protobuf.Empty) returns (KeyEncryptedWithPublicKey);
   rpc GetSupervisedChatsKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
   rpc GetSupervisedGroupsKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
-}
 
-service GrpcUserKeysUpdatingServices {
   // update the user's master key with the corresponding user owner id
   rpc UpdateUserMasterKey(MasterKey) returns (shared.Result);
   // update the user's key pair with the corresponding user owner id
@@ -205,9 +197,7 @@ service GrpcUserKeysUpdatingServices {
   rpc UpdateUserGroupKey (UpdateKeyRequest) returns (shared.Result);
   // update multiples keys with the corresponding owner id and keys ids
   rpc UpdateMultipleUserKeys (UpdateKeysRequest) returns (shared.Result);
-}
 
-service GrpcSupervisorKeysUpdatingServices {
   // update the user supervisor's master key from is user id
   rpc UpdateUserSupervisorMasterKey (MasterKey) returns (shared.Result);
   // update the supervised chat key with the corresponding key id
@@ -216,9 +206,7 @@ service GrpcSupervisorKeysUpdatingServices {
   rpc UpdateSupervisedGroupKey (UpdateKeyRequest) returns (shared.Result);
   // update multiple keys with the corresponding ids
   rpc UpdateMultipleSupervisorKeys (UpdateSupervisorKeysRequest) returns (shared.Result);
-}
 
-service GrpcUserKeysDeletionServices {
   // delete user master key from user id, if the request id is empty or required permission is missing
   rpc DeleteUserMasterKey (DeleteKeyFromUserIdRequest) returns (shared.Result);
   // delete user's private and public keys from user id, if the request id is empty or required permission is missing
@@ -229,9 +217,7 @@ service GrpcUserKeysDeletionServices {
   rpc DeleteUserGroupKey (KeyFromIdRequest) returns (shared.Result);
   // delete all the user keys from user id, if the request id is empty or required permission is missing
   rpc DeleteAllUserKeys (DeleteKeyFromUserIdRequest) returns (shared.Result);
-}
 
-service GrpcSupervisorKeysDeletionServices {
   // delete the user's master key for supervisor from user id, if the request id is empty or required permission is missing
   rpc DeleteUserSupervisorMasterKey (DeleteKeyFromUserIdRequest) returns (shared.Result);
   // delete the key of a supervised chat

@@ -1,15 +1,10 @@
 namespace RedBoxAuth.Settings;
 
 /// <summary>
-///     Configurable parameters for authentication mirroring the settings.json
+///     Configurable parameters for authentication and authorization mirroring the settings.json
 /// </summary>
-public class SecurityOptions
+public class AuthSettings
 {
-    /// <summary>
-    ///     Redis key of hash set combining username and token of current authenticated users
-    /// </summary>
-    public string UsersHashKey { get; set; } = "users";
-
     /// <summary>
     ///     Number of maximum consecutive failed login attempts
     /// </summary>

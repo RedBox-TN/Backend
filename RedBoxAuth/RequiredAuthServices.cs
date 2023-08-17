@@ -24,7 +24,9 @@ public static class RequiredAuthServices
     {
         builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
 
-        builder.Services.Configure<SecurityOptions>(builder.Configuration.GetSection("SecurityOptions"));
+        builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
+
+        builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
 
         var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
         if (redisHost == null)
@@ -48,6 +50,8 @@ public static class RequiredAuthServices
     /// <param name="builder">WebApplicationBuilder of the current application</param>
     public static void AddRedBoxBasicAuthorization(this WebApplicationBuilder builder)
     {
+        builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
+
         var redisHost = builder.Configuration.GetSection("Redis").GetSection("ConnectionString").Value;
         if (redisHost == null)
             Environment.Exit(-1);

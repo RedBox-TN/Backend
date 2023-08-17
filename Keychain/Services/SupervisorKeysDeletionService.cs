@@ -1,8 +1,6 @@
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using Keychain.Settings;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth;
 using RedBoxAuth.Authorization;
@@ -12,19 +10,8 @@ using Status = Shared.Status;
 
 namespace Keychain.Services;
 
-[AuthenticationRequired]
-public class SupervisorKeysDeletionService : GrpcSupervisorKeysDeletionServices.GrpcSupervisorKeysDeletionServicesBase
+public partial class KeychainServices
 {
-    private readonly IMongoDatabase _database;
-    private readonly DatabaseSettings _settings;
-
-    public SupervisorKeysDeletionService(IOptions<DatabaseSettings> options)
-    {
-        _settings = options.Value;
-        var mongodbClient = new MongoClient(options.Value.ConnectionString);
-        _database = mongodbClient.GetDatabase(options.Value.DatabaseName);
-    }
-
     public override async Task<Result> DeleteUserSupervisorMasterKey(DeleteKeyFromUserIdRequest request,
         ServerCallContext context)
     {
@@ -57,6 +44,12 @@ public class SupervisorKeysDeletionService : GrpcSupervisorKeysDeletionServices.
     [PermissionsRequired(DefaultPermissions.DeleteSupervisedChat)]
     public override async Task<Result> DeleteSupervisorChatKey(KeyFromIdRequest request, ServerCallContext context)
     {
+        if (string.IsNullOrEmpty(request.Id))
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         var collection = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);
 
         try
@@ -81,6 +74,12 @@ public class SupervisorKeysDeletionService : GrpcSupervisorKeysDeletionServices.
     [PermissionsRequired(DefaultPermissions.DeleteSupervisedChat)]
     public override async Task<Result> DeleteSupervisorGroupKey(KeyFromIdRequest request, ServerCallContext context)
     {
+        if (string.IsNullOrEmpty(request.Id))
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         var collection = _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection);
 
         try

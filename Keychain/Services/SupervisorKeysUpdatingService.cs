@@ -1,8 +1,6 @@
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using Keychain.Settings;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth;
 using RedBoxAuth.Authorization;
@@ -12,22 +10,18 @@ using Status = Shared.Status;
 
 namespace Keychain.Services;
 
-[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-public class SupervisorKeysUpdatingService : GrpcSupervisorKeysUpdatingServices.GrpcSupervisorKeysUpdatingServicesBase
+public partial class KeychainServices
 {
-    private readonly IMongoDatabase _database;
-    private readonly DatabaseSettings _settings;
-
-    public SupervisorKeysUpdatingService(IOptions<DatabaseSettings> options)
-    {
-        _settings = options.Value;
-        var mongodbClient = new MongoClient(options.Value.ConnectionString);
-        _database = mongodbClient.GetDatabase(options.Value.DatabaseName);
-    }
-
+    [PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
     public override async Task<Result> UpdateUserSupervisorMasterKey(MasterKey request,
         ServerCallContext context)
     {
+        if (request.EncryptedData.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         try
         {
             var id = context.GetUser().Id;
@@ -55,8 +49,15 @@ public class SupervisorKeysUpdatingService : GrpcSupervisorKeysUpdatingServices.
         }
     }
 
+    [PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
     public override async Task<Result> UpdateSupervisedChatKey(UpdateKeyRequest request, ServerCallContext context)
     {
+        if (request.KeyData.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         try
         {
             var chatKeys = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);
@@ -86,8 +87,15 @@ public class SupervisorKeysUpdatingService : GrpcSupervisorKeysUpdatingServices.
         }
     }
 
+    [PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
     public override async Task<Result> UpdateSupervisedGroupKey(UpdateKeyRequest request, ServerCallContext context)
     {
+        if (request.KeyData.IsEmpty || request.Iv.IsEmpty)
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+
         try
         {
             var groupKeys = _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection);
@@ -117,12 +125,13 @@ public class SupervisorKeysUpdatingService : GrpcSupervisorKeysUpdatingServices.
         }
     }
 
+    [PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
     public override async Task<Result> UpdateMultipleSupervisorKeys(UpdateSupervisorKeysRequest request,
         ServerCallContext context)
     {
         try
         {
-            if (request.MasterKey is not null)
+            if (!request.MasterKey.EncryptedData.IsEmpty && !request.MasterKey.Iv.IsEmpty)
             {
                 var id = context.GetUser().Id;
                 var collection = _database.GetCollection<Key>(_settings.SupervisorsMasterKeysCollection);
@@ -135,12 +144,14 @@ public class SupervisorKeysUpdatingService : GrpcSupervisorKeysUpdatingServices.
                 await collection.UpdateOneAsync(k => k.UserOwnerId == id, update);
             }
 
-            if (request.ChatKeys is not null)
+            if (request.ChatKeys.Count > 0)
             {
                 var chatKeysCollection = _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection);
 
                 foreach (var key in request.ChatKeys)
                 {
+                    if (string.IsNullOrEmpty(key.KeyId) || key.KeyData.IsEmpty || key.Iv.IsEmpty) continue;
+
                     var update = Builders<ChatKey>.Update
                         .Set(k => k.Data, key.KeyData.ToByteArray())
                         .Set(k => k.Iv, key.Iv.ToByteArray());

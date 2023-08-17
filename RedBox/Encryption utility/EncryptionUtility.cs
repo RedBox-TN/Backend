@@ -15,7 +15,9 @@ public class EncryptionUtility : IEncryptionUtility
         aes.Key = key;
 
         var clearTextFinal =
-            Encoding.UTF8.GetBytes(expiration.HasValue ? $"{clearText}#{expiration.Value.ToString("ddMMyyyyHHmmss")}" : clearText);
+            Encoding.UTF8.GetBytes(expiration.HasValue
+                ? $"{clearText}#{expiration.Value.ToString("ddMMyyyyHHmmss")}"
+                : clearText);
 
         using MemoryStream output = new();
         await using CryptoStream cryptoStream = new(output, aes.CreateEncryptor(), CryptoStreamMode.Write);

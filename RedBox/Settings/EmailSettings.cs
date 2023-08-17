@@ -14,6 +14,5 @@ public class EmailSettings
     public string AccountLockedTemplateFile { get; set; } = null!;
     public string EmailConfirmUrl { get; set; } = null!;
     public string EmailConfirmTemplate { get; set; } = null!;
-    public int TokenExpireMinutes { get; set; } = 5;
     public string NewPasswordTemplateFile { get; set; } = null!;
 }

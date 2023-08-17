@@ -3,27 +3,13 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using Keychain.Settings;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth;
-using RedBoxAuth.Authorization;
 
 namespace Keychain.Services;
 
-[AuthenticationRequired]
-public sealed class UserKeysRetrievingServices : GrpcUserKeysRetrievingServices.GrpcUserKeysRetrievingServicesBase
+public partial class KeychainServices
 {
-    private readonly IMongoDatabase _database;
-    private readonly DatabaseSettings _settings;
-
-    public UserKeysRetrievingServices(IOptions<DatabaseSettings> options)
-    {
-        _settings = options.Value;
-        var mongodbClient = new MongoClient(options.Value.ConnectionString);
-        _database = mongodbClient.GetDatabase(options.Value.DatabaseName);
-    }
-
     public override async Task<KeyResponse> GetUserMasterKey(Empty request, ServerCallContext context)
     {
         var id = context.GetUser().Id;
