@@ -11,138 +11,136 @@ namespace RedBox.Email_utility;
 
 public class EmailUtility : IEmailUtility
 {
-    private readonly EmailSettings _emailSettings;
-    private readonly IEncryptionUtility _encryptionUtility;
-    private readonly RedBoxSettings _redBoxSettings;
+	private readonly EmailSettings _emailSettings;
+	private readonly IEncryptionUtility _encryptionUtility;
+	private readonly RedBoxSettings _redBoxSettings;
 
-    public EmailUtility(IOptions<EmailSettings> emailSettings, IOptions<RedBoxSettings> redBoxSettings,
-        IEncryptionUtility encryptionUtility)
-    {
-        _encryptionUtility = encryptionUtility;
-        _emailSettings = emailSettings.Value;
-        _redBoxSettings = redBoxSettings.Value;
-    }
+	public EmailUtility(IOptions<EmailSettings> emailSettings, IOptions<RedBoxSettings> redBoxSettings,
+		IEncryptionUtility encryptionUtility)
+	{
+		_encryptionUtility = encryptionUtility;
+		_emailSettings = emailSettings.Value;
+		_redBoxSettings = redBoxSettings.Value;
+	}
 
-    public async Task SendPasswordResetAsync(string toAddress, string id)
-    {
-        var currentTime = DateTime.Now;
+	public async Task SendPasswordResetAsync(string toAddress, string id)
+	{
+		var currentTime = DateTime.Now;
 
-        var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
-        var encrypted =
-            await _encryptionUtility.EncryptAsync(id, key,
-                currentTime.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes),
-                _redBoxSettings.AesKeySize);
-        var ciphertext = encrypted.EncData;
-        var iv = encrypted.Iv;
+		var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
+		var encrypted =
+			await _encryptionUtility.EncryptAsync(id, key,
+				currentTime.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes),
+				_redBoxSettings.AesKeySize);
+		var ciphertext = encrypted.EncData;
+		var iv = encrypted.Iv;
 
-        var token = HttpUtility.UrlEncode(iv.Concat(ciphertext).ToArray());
+		var token = HttpUtility.UrlEncode(iv.Concat(ciphertext).ToArray());
 
-        var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.PasswordResetTemplateFile));
-        var data = new
-        {
-            id,
-            url = $"{_emailSettings.PasswordResetUrl}{token}"
-        };
+		var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.PasswordResetTemplateFile));
+		var data = new
+		{
+			id,
+			url = $"{_emailSettings.PasswordResetUrl}{token}"
+		};
 
-        var body = template(data);
-        if (body is null) throw new Exception("Unable to compile html template");
+		var body = template(data);
+		if (body is null) throw new Exception("Unable to compile html template");
 
-        await SenAsync(toAddress, "RedBox: reimposta la password", body);
-    }
+		await SendAsync(toAddress, "RedBox: reimposta la password", body);
+	}
 
-    public async Task SendAccountLockNotification(string toAddress, string username)
-    {
-        var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.AccountLockedTemplateFile));
-        var data = new
-        {
-            username
-        };
+	public async Task SendAccountLockNotificationAsync(string toAddress, string username)
+	{
+		var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.AccountLockedTemplateFile));
+		var data = new
+		{
+			username
+		};
 
-        var body = template(data);
-        if (body is null) throw new Exception("Unable to compile html template");
+		var body = template(data);
+		if (body is null) throw new Exception("Unable to compile html template");
 
-        await SenAsync(toAddress, "RedBox: account bloccato", body);
-    }
+		await SendAsync(toAddress, "RedBox: il tuo account è stato bloccato", body);
+	}
 
-    public async Task SendAccountCreationAsync(string toAddress, string username, string name, string password)
-    {
-        var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.AccountCreationTemplateFile));
-        var data = new
-        {
-            name,
-            username,
-            password,
-            url = _emailSettings.ApplicationUrl
-        };
+	public async Task SendAccountCreationAsync(string toAddress, string username, string name, string password)
+	{
+		var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.AccountCreationTemplateFile));
+		var data = new
+		{
+			name,
+			username,
+			password,
+			url = _emailSettings.ApplicationUrl
+		};
 
-        var body = template(data);
-        if (body is null) throw new Exception("Unable to compile html template");
+		var body = template(data);
+		if (body is null) throw new Exception("Unable to compile html template");
 
-        await SenAsync(toAddress, "Il tuo nuovo account RedBox", body);
-    }
-    
-    public async Task SendNewPasswordAsync(string toAddress, string password)
-    {
-        var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.NewPasswordTemplateFile));
-        var data = new
-        {
-            password,
-            url = _emailSettings.ApplicationUrl
-        };
+		await SendAsync(toAddress, "Il tuo nuovo account RedBox", body);
+	}
 
-        var body = template(data);
-        if (body is null) throw new Exception("Unable to compile html template");
+	public async Task SendPasswordChangedAsync(string toAddress, string password, string username)
+	{
+		var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.NewPasswordTemplateFile));
+		var data = new
+		{
+			password,
+			username
+		};
 
-        await SenAsync(toAddress, "La tua nuova password temporanea", body);
-    }
-    
-    public async Task SendEmailChangedAsync(string toAddress, string id)
-    {
-        var currentTime = DateTime.Now;
+		var body = template(data);
+		if (body is null) throw new Exception("Unable to compile html template");
 
-        var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
-        var encrypted =
-            await _encryptionUtility.EncryptAsync(id + "#" + toAddress, key,
-                currentTime.AddMinutes(_redBoxSettings.EmailTokenExpireMinutes), _redBoxSettings.AesKeySize);
-        var ciphertext = encrypted.EncData;
-        var iv = encrypted.Iv;
+		await SendAsync(toAddress, "RedBox: la tua nuova password temporanea", body);
+	}
 
-        var token = HttpUtility.UrlEncode(iv.Concat(ciphertext).ToArray());
+	public async Task SendEmailChangedAsync(string toAddress, string id, string username)
+	{
+		var currentTime = DateTime.Now;
 
-        var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.EmailConfirmTemplate));
-        var data = new
-        {
-            id,
-            url = $"{_emailSettings.EmailConfirmUrl}{token}"
-        };
+		var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
+		var (encData, iv) = await _encryptionUtility.EncryptAsync(id + "#" + toAddress, key,
+			currentTime.AddMinutes(_redBoxSettings.EmailTokenExpireMinutes), _redBoxSettings.AesKeySize);
 
-        var body = template(data);
-        if (body is null) throw new Exception("Unable to compile html template");
+		var token = HttpUtility.UrlEncode(iv.Concat(encData).ToArray());
 
-        await SenAsync(toAddress, "RedBox: conferma modifica email", body);
-    }
+		var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.EmailConfirmTemplate));
+		var data = new
+		{
+			id,
+			username,
+			url = $"{_emailSettings.EmailConfirmUrl}{token}"
+		};
 
-    private async Task SenAsync(string toAddress, string subject, string body)
-    {
-        var email = new MimeMessage();
-        email.Sender = MailboxAddress.Parse(_emailSettings.FromAddress);
-        email.To.Add(MailboxAddress.Parse(toAddress));
-        email.Subject = subject;
+		var body = template(data);
+		if (body is null) throw new Exception("Unable to compile html template");
 
-        var builder = new BodyBuilder
-        {
-            HtmlBody = body
-        };
-        email.Body = builder.ToMessageBody();
+		await SendAsync(toAddress, "RedBox: conferma il tuo nuovo indirizzo email", body);
+	}
 
-        using var smtp = new SmtpClient();
+	private async Task SendAsync(string toAddress, string subject, string body)
+	{
+		var email = new MimeMessage();
+		email.Sender = MailboxAddress.Parse(_emailSettings.FromAddress);
+		email.To.Add(MailboxAddress.Parse(toAddress));
+		email.Subject = subject;
 
-        if (_emailSettings.EnableTls)
-            await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port, SecureSocketOptions.StartTls);
-        else
-            await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port);
-        await smtp.AuthenticateAsync(_emailSettings.FromAddress, _emailSettings.Password);
-        await smtp.SendAsync(email);
-        await smtp.DisconnectAsync(true);
-    }
+		var builder = new BodyBuilder
+		{
+			HtmlBody = body
+		};
+		email.Body = builder.ToMessageBody();
+
+		using var smtp = new SmtpClient();
+
+		if (_emailSettings.EnableTls)
+			await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port, SecureSocketOptions.StartTls);
+		else
+			await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port);
+		await smtp.AuthenticateAsync(_emailSettings.FromAddress, _emailSettings.Password);
+		await smtp.SendAsync(email);
+		await smtp.DisconnectAsync(true);
+	}
 }
