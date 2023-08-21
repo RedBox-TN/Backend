@@ -23,19 +23,17 @@ public class EmailUtility : IEmailUtility
 		_redBoxSettings = redBoxSettings.Value;
 	}
 
-	public async Task SendPasswordResetAsync(string toAddress, string id)
+	public async Task SendPasswordResetRequestAsync(string toAddress, string id)
 	{
-		var currentTime = DateTime.Now;
+		var expireAt = DateTimeOffset.Now.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes)
+			.ToUnixTimeMilliseconds();
 
 		var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
-		var encrypted =
-			await _encryptionUtility.EncryptAsync(id, key,
-				currentTime.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes),
-				_redBoxSettings.AesKeySize);
-		var ciphertext = encrypted.EncData;
-		var iv = encrypted.Iv;
 
-		var token = HttpUtility.UrlEncode(iv.Concat(ciphertext).ToArray());
+		var (encData, iv) =
+			await _encryptionUtility.AesEncryptAsync($"{id}#{expireAt}", key, _redBoxSettings.AesKeySize);
+
+		var token = HttpUtility.UrlEncode(iv.Concat(encData).ToArray());
 
 		var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.PasswordResetTemplateFile));
 		var data = new
@@ -98,11 +96,12 @@ public class EmailUtility : IEmailUtility
 
 	public async Task SendEmailChangedAsync(string toAddress, string id, string username)
 	{
-		var currentTime = DateTime.Now;
+		var expireAt = DateTimeOffset.Now.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes)
+			.ToUnixTimeMilliseconds();
 
 		var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
-		var (encData, iv) = await _encryptionUtility.EncryptAsync(id + "#" + toAddress, key,
-			currentTime.AddMinutes(_redBoxSettings.EmailTokenExpireMinutes), _redBoxSettings.AesKeySize);
+		var (encData, iv) =
+			await _encryptionUtility.AesEncryptAsync($"{toAddress}#{id}#{expireAt}", key, _redBoxSettings.AesKeySize);
 
 		var token = HttpUtility.UrlEncode(iv.Concat(encData).ToArray());
 

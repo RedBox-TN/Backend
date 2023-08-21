@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -70,7 +69,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			string.IsNullOrEmpty(request.Surname) ||
 			string.IsNullOrEmpty(request.Username) ||
 			!MyRegex().IsMatch(request.Email) ||
-			string.IsNullOrEmpty(request.Roleid)
+			string.IsNullOrEmpty(request.RoleId)
 		)
 			return new Result
 			{
@@ -87,9 +86,9 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				Surname = request.Surname,
 				Username = request.Username,
 				Email = request.Email,
-				RoleId = request.Roleid,
+				RoleId = request.RoleId,
 				ChatIds = request.Chats.ToArray(),
-				IsFaEnable = request.Isfaenabled,
+				IsFaEnable = request.IsFaEnabled,
 				PasswordHash = passwordHash,
 				Salt = salt,
 				PasswordHistory = new List<byte[]> { passwordHash },
@@ -203,18 +202,18 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				await _emailUtility.SendEmailChangedAsync(request.Email, request.Id, username);
 			}
 
-			// RoleID modification, assume roleID is correct
-			if (!string.IsNullOrEmpty(request.Roleid)) updates.Add(update.Set(user1 => user1.RoleId, request.Roleid));
+			// RoleId modification, assume RoleId is correct
+			if (!string.IsNullOrEmpty(request.RoleId)) updates.Add(update.Set(user1 => user1.RoleId, request.RoleId));
 
 			// Path to profile image modification
-			if (!string.IsNullOrEmpty(request.Pathtopic))
-				updates.Add(update.Set(user1 => user1.PathToPic, request.Pathtopic));
+			if (!string.IsNullOrEmpty(request.PathToPic))
+				updates.Add(update.Set(user1 => user1.PathToPic, request.PathToPic));
 
 			// FA enabling or disabling
-			if (request.HasIsfaenabled) await FAStateChange(request, context);
+			if (request.HasIsFaEnabled) await FAStateChange(request, context);
 
 			// Block / Unblock account
-			if (request.HasIsblocked) updates.Add(update.Set(user1 => user1.IsBlocked, request.Isblocked));
+			if (request.HasIsBlocked) updates.Add(update.Set(user1 => user1.IsBlocked, request.IsBlocked));
 
 			// Biography modification, can only change own bio
 			if (!string.IsNullOrEmpty(request.Biography) /*&& user.Id == request.Id*/
@@ -228,13 +227,12 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			else
 			{
 				// remove elements from chats
-				if (request.Removedchats.Any())
-					updates.Add(update.PullAll(user1 => user1.ChatIds,
-						request.Removedchats));
+				if (request.RemovedChats.Any())
+					updates.Add(update.PullAll(user1 => user1.ChatIds, request.RemovedChats));
 
 				// add new elements to chats
-				if (request.Addedchats.Any())
-					updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.Addedchats));
+				if (request.AddedChats.Any())
+					updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.AddedChats));
 			}
 
 			// Combination of all modifications, only if list is not empty
@@ -262,8 +260,8 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				await _emailUtility.SendEmailChangedAsync(request.Email, request.Id, user.Username);
 
 			// Path to profile pic modification
-			if (!string.IsNullOrEmpty(request.Pathtopic))
-				updates.Add(update.Set(user1 => user1.PathToPic, request.Pathtopic));
+			if (!string.IsNullOrEmpty(request.PathToPic))
+				updates.Add(update.Set(user1 => user1.PathToPic, request.PathToPic));
 
 			// Biography modification
 			if (!string.IsNullOrEmpty(request.Biography))
@@ -277,13 +275,12 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			else
 			{
 				// remove elements from chats
-				if (request.Removedchats.Any())
-					updates.Add(update.PullAll(user1 => user1.ChatIds,
-						request.Removedchats));
+				if (request.RemovedChats.Any())
+					updates.Add(update.PullAll(user1 => user1.ChatIds, request.RemovedChats));
 
 				// add new elements to chats
-				if (request.Addedchats.Any())
-					updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.Addedchats));
+				if (request.AddedChats.Any())
+					updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.AddedChats));
 			}
 
 			// Combination of all modifications, only if list is not empty
@@ -318,7 +315,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <summary>
 	///     API to check if the token hasn't expired yet (Token verification To Be Implemented)
 	/// </summary>
-	/// <param name="request">Request containing only the AES token</param>
+	/// <param name="request">Request containing only the encrypted token</param>
 	/// <param name="context">current Context</param>
 	/// <returns>Status code and message of the operation</returns>
 	public override async Task<Result> TokenCheck(GrpcToken request, ServerCallContext context)
@@ -342,38 +339,37 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		byte[] plainText;
 		try
 		{
-			plainText = await _encryptionUtility.DecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
+			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
 		}
 		catch (Exception)
 		{
 			return new Result
 			{
 				Status = Status.Error,
-				Error = "Wrong token"
+				Error = "Invalid token"
 			};
 		}
 
 		// Split data by separator '#'
 		var splitData = Encoding.UTF8.GetString(plainText).Split("#");
 
-		if (splitData.Length < 2)
+		if (splitData.Length is < 2 or > 3)
 			return new Result
 			{
 				Status = Status.Error,
-				Error = "Wrong token"
+				Error = "Invalid token"
 			};
 
 		// Extract expiration time from string
-		if (!DateTime.TryParseExact(splitData[^1], "ddMMyyyyHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-			    out var expiration))
+		if (!long.TryParse(splitData[^1], out var expiration))
 			return new Result
 			{
 				Status = Status.Error,
-				Error = "Wrong token"
+				Error = "Invalid token"
 			};
 
 		// Check if token is expired
-		if (DateTime.Compare(expiration, DateTime.Now) < 0)
+		if (expiration - DateTimeOffset.Now.ToUnixTimeMilliseconds() <= 0)
 			return new Result
 			{
 				Status = Status.Error,
@@ -414,7 +410,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		byte[] plainText;
 		try
 		{
-			plainText = await _encryptionUtility.DecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
+			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
 		}
 		catch (Exception)
 		{
@@ -428,123 +424,33 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		var splitData = Encoding.UTF8.GetString(plainText).Split("#");
 
 		// Check email validity
-		if (!MyRegex().IsMatch(splitData[1]))
+		if (!MyRegex().IsMatch(splitData[0]))
 			return new Result
 			{
 				Status = Status.Error,
 				Error = "Wrong token"
 			};
 
-		var filter = Builders<User>.Filter.Eq(user => user.Id, splitData[0]);
-		var update = Builders<User>.Update.Set(user => user.Email, splitData[1]);
+		// Extract expiration time from string
+		if (!long.TryParse(splitData[^1], out var expiration))
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Invalid token"
+			};
+
+		// Check if token is expired
+		if (expiration - DateTimeOffset.Now.ToUnixTimeMilliseconds() <= 0)
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Token Expired"
+			};
+
+		var filter = Builders<User>.Filter.Eq(user => user.Id, splitData[1]);
+		var update = Builders<User>.Update.Set(user => user.Email, splitData[0]);
 
 		// Try to access user by ID
-		try
-		{
-			await collection.UpdateOneAsync(filter, update);
-		}
-		catch (MongoWriteException e)
-		{
-			return new Result
-			{
-				Status = Status.Error,
-				Error = e.Message
-			};
-		}
-
-		return new Result
-		{
-			Status = Status.Ok
-		};
-	}
-
-	/// <summary>
-	///     API to modify a user's password
-	/// </summary>
-	/// <param name="request">Request containing AES token, old and new password</param>
-	/// <param name="context">current Context</param>
-	/// <returns>Status code and message of the operation</returns>
-	public override async Task<Result> ModifyPassword(GrpcPasswordMod request, ServerCallContext context)
-	{
-		// Retrieve token and convert to bytes
-		var byteToken = HttpUtility.UrlDecodeToBytes(request.Token);
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
-
-		// Token too short (IV minimum 16 bytes)
-		if (byteToken.Length < 17)
-			return new Result
-			{
-				Status = Status.Error,
-				Error = "Wrong token (token length)"
-			};
-
-		// Retrieve IV and Ciphertext, derive AES key
-		var iv = byteToken.Take(16).ToArray();
-		var ciphertext = byteToken.Skip(16).ToArray();
-		var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
-
-		byte[] plainText;
-		try
-		{
-			plainText = await _encryptionUtility.DecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
-		}
-		catch (Exception)
-		{
-			return new Result
-			{
-				Status = Status.Error,
-				Error = "Wrong token"
-			};
-		}
-
-		// Split data by separator '#'
-		var splitData = Encoding.UTF8.GetString(plainText).Split("#");
-
-		User result;
-		var id = splitData[0];
-		var filter = Builders<User>.Filter.Eq(user => user.Id, id);
-
-		// Fetch user by ID
-		try
-		{
-			result = await collection.Find(filter).FirstOrDefaultAsync();
-		}
-		catch (MongoQueryException e)
-		{
-			return new Result
-			{
-				Status = Status.Error,
-				Error = e.Message
-			};
-		}
-
-		// Check if old password coincides with saved password
-		if (result.PasswordHash != _passwordUtility.HashPassword(request.Password, result.Salt))
-			return new Result
-			{
-				Status = Status.Error,
-				Error = "Old password is wrong"
-			};
-
-		var passwordHistory = result.PasswordHistory;
-		var newPasswordHash = _passwordUtility.HashPassword(request.Newpassword, result.Salt);
-
-		// Check if new password is new enough (check if is in pw history)
-		if (passwordHistory.Any(pw => pw == newPasswordHash))
-			return new Result
-			{
-				Status = Status.Error,
-				Error = "New password has already been used"
-			};
-
-		// Rebuild password history with only last 3 passwords (including the one added in this function)
-		passwordHistory.Insert(0, newPasswordHash);
-		if (passwordHistory.Count > _redBoxSettings.PasswordHistoryMax)
-			passwordHistory = passwordHistory.GetRange(0, _redBoxSettings.PasswordHistoryMax);
-		var update = Builders<User>.Update.Set(user => user.PasswordHash, newPasswordHash)
-			.Set(user => user.PasswordHistory, passwordHistory);
-
-		// Update db with new password hash and history
 		try
 		{
 			await collection.UpdateOneAsync(filter, update);
@@ -571,7 +477,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <param name="context">current Context</param>
 	/// <returns>Status code and message of the operation</returns>
 	[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
-	public override async Task<Result> UserPasswordReset(GrpcUser request, ServerCallContext context)
+	public override async Task<Result> ForcePasswordReset(GrpcUser request, ServerCallContext context)
 	{
 		string password;
 		var collection = _database.GetCollection<User>(_settings.UsersCollection);
@@ -663,7 +569,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		var user = context.GetUser();
 
 		// missing parameters
-		if (!request.HasIsfaenabled || !request.HasId || !MyRegex().IsMatch(request.Email))
+		if (!request.HasIsFaEnabled || !request.HasId || !MyRegex().IsMatch(request.Email))
 			return new Grpc2faResult
 			{
 				Status = new Result
@@ -673,14 +579,14 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			};
 
 		var filter = Builders<User>.Filter.Eq(user1 => user1.Id, request.Id);
-		var update = Builders<User>.Update.Set(user1 => user1.IsFaEnable, request.Isfaenabled);
+		var update = Builders<User>.Update.Set(user1 => user1.IsFaEnable, request.IsFaEnabled);
 		string? qrcode = null, manualCode = null;
 
 		switch (request.HasId)
 		{
 			case false when AuthorizationMiddleware.HasPermission(user, DefaultPermissions.EnableLocal2Fa):
 			{
-				if (request.Isfaenabled)
+				if (request.IsFaEnabled)
 				{
 					var faSeed = _totpUtility.CreateSharedSecret(request.Email, out qrcode, out manualCode);
 					update.Set(user1 => user1.FaSeed, faSeed);
@@ -694,7 +600,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			}
 			case true when AuthorizationMiddleware.HasPermission(user, DefaultPermissions.ManageUsersAccounts):
 			{
-				if (!request.Isfaenabled) update.Set(user1 => user1.FaSeed, null);
+				if (!request.IsFaEnabled) update.Set(user1 => user1.FaSeed, null);
 
 				break;
 			}
@@ -728,7 +634,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		return new Grpc2faResult
 		{
 			Qrcode = qrcode,
-			Manualcode = manualCode,
+			ManualCode = manualCode,
 			Status = new Result
 			{
 				Status = Status.Ok
@@ -788,9 +694,9 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 
 		return new GrpcProvisionResult
 		{
-			Faprovisioning = faProvisioning,
-			Passwordprovisioning = passwordProvisioning,
-			Keyprovisioning = keyProvisioning,
+			FaProvisioning = faProvisioning,
+			PasswordProvisioning = passwordProvisioning,
+			KeyProvisioning = keyProvisioning,
 			Status = new Result
 			{
 				Status = Status.Ok
@@ -809,19 +715,19 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	{
 		var collection = _database.GetCollection<User>(_settings.UsersCollection);
 
-		if (!request.HasIsblocked || !request.HasId)
+		if (!request.HasIsBlocked || !request.HasId)
 			return new Result
 			{
 				Status = Status.MissingParameters
 			};
 
 		var filter = Builders<User>.Filter.Eq(user => user.Id, request.Id);
-		var update = Builders<User>.Update.Set(user => user.IsBlocked, request.Isblocked);
+		var update = Builders<User>.Update.Set(user => user.IsBlocked, request.IsBlocked);
 
 		try
 		{
 			await collection.UpdateOneAsync(filter, update);
-			if (request.Isblocked)
+			if (request.IsBlocked)
 			{
 				var user = collection.Find(filter).First();
 				await _emailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
@@ -896,12 +802,12 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				Name = string.IsNullOrEmpty(result.Name) ? "" : result.Name,
 				Surname = string.IsNullOrEmpty(result.Surname) ? "" : result.Surname,
 				Email = string.IsNullOrEmpty(result.Email) ? "" : result.Email,
-				Roleid = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
-				Isblocked = result.IsBlocked,
-				Isfaenabled = result.IsFaEnable,
+				RoleId = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
+				IsBlocked = result.IsBlocked,
+				IsFaEnabled = result.IsFaEnable,
 				Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
 				Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-				Pathtopic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
+				PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
 				Chats = { result.ChatIds ?? new[] { "" } }
 			}
 		};
@@ -936,12 +842,12 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				Name = string.IsNullOrEmpty(result[i].Name) ? "" : result[i].Name,
 				Surname = string.IsNullOrEmpty(result[i].Surname) ? "" : result[i].Surname,
 				Email = string.IsNullOrEmpty(result[i].Email) ? "" : result[i].Email,
-				Roleid = string.IsNullOrEmpty(result[i].RoleId) ? "" : result[i].RoleId,
-				Isblocked = result[i].IsBlocked,
-				Isfaenabled = result[i].IsFaEnable,
+				RoleId = string.IsNullOrEmpty(result[i].RoleId) ? "" : result[i].RoleId,
+				IsBlocked = result[i].IsBlocked,
+				IsFaEnabled = result[i].IsFaEnable,
 				Username = string.IsNullOrEmpty(result[i].Username) ? "" : result[i].Username,
 				Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography,
-				Pathtopic = string.IsNullOrEmpty(result[i].PathToPic) ? "" : result[i].PathToPic,
+				PathToPic = string.IsNullOrEmpty(result[i].PathToPic) ? "" : result[i].PathToPic,
 				Chats = { result[i].ChatIds ?? new[] { "" } }
 			};
 
