@@ -5,10 +5,10 @@ namespace RedBox.Models;
 
 public sealed class Attachment
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.ObjectId)]
-    public string? Id { get; set; }
+	[BsonId]
+	[BsonRepresentation(BsonType.ObjectId)]
+	public string? Id { get; set; }
 
-    public string Location { get; set; } = null!;
-    public string Name { get; set; } = null!;
+	public string Location { get; set; } = null!;
+	public string Name { get; set; } = null!;
 }
