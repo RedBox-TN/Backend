@@ -6,7 +6,6 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBox.Email_utility;
-using RedBox.Encryption_utility;
 using RedBox.Settings;
 using RedBoxAuth;
 using RedBoxAuth.Authorization;
@@ -16,6 +15,7 @@ using RedBoxAuth.TOTP_utility;
 using RedBoxServices;
 using Shared;
 using Shared.Models;
+using Shared.Utility;
 using Status = Shared.Status;
 
 namespace RedBox.Services;
@@ -24,25 +24,27 @@ namespace RedBox.Services;
 public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 {
 	private readonly IMongoDatabase _database;
-	private readonly IEmailUtility _emailUtility;
+	private readonly RedBoxEmailSettings _emailSettings;
 	private readonly IEncryptionUtility _encryptionUtility;
 	private readonly IPasswordUtility _passwordUtility;
+	private readonly IRedBoxEmailUtility _redBoxEmailUtility;
 	private readonly RedBoxSettings _redBoxSettings;
 	private readonly AccountDatabaseSettings _settings;
 	private readonly ITotpUtility _totpUtility;
 
 	public UserService(IOptions<AccountDatabaseSettings> options, IPasswordUtility passwordUtility,
-		ITotpUtility totpUtility
-		, IEmailUtility emailUtility, IEncryptionUtility encryptionUtility, IOptions<RedBoxSettings> redboxSettings)
+		ITotpUtility totpUtility, IOptions<RedBoxEmailSettings> emailSettings, IRedBoxEmailUtility redBoxEmailUtility,
+		IEncryptionUtility encryptionUtility, IOptions<RedBoxSettings> redboxSettings)
 	{
 		_settings = options.Value;
 		var mongodbClient = new MongoClient(options.Value.ConnectionString);
 		_database = mongodbClient.GetDatabase(options.Value.DatabaseName);
 		_passwordUtility = passwordUtility;
 		_totpUtility = totpUtility;
-		_emailUtility = emailUtility;
+		_redBoxEmailUtility = redBoxEmailUtility;
 		_encryptionUtility = encryptionUtility;
 		_redBoxSettings = redboxSettings.Value;
+		_emailSettings = emailSettings.Value;
 	}
 
 	[GeneratedRegex(@"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$")]
@@ -108,7 +110,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		// sends an email to the new user with the first-time password
 		try
 		{
-			await _emailUtility.SendAccountCreationAsync(
+			await _redBoxEmailUtility.SendAccountCreationAsync(
 				request.Email,
 				request.Username,
 				request.Name,
@@ -199,7 +201,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			if (MyRegex().IsMatch(request.Email))
 			{
 				var username = collection.Find(filter).First().Username;
-				await _emailUtility.SendEmailChangedAsync(request.Email, request.Id, username);
+				await _redBoxEmailUtility.SendEmailChangedAsync(request.Email, request.Id, username);
 			}
 
 			// RoleId modification, assume RoleId is correct
@@ -257,7 +259,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 
 			// Email modification, passing through email mod API
 			if (MyRegex().IsMatch(request.Email))
-				await _emailUtility.SendEmailChangedAsync(request.Email, request.Id, user.Username);
+				await _redBoxEmailUtility.SendEmailChangedAsync(request.Email, request.Id, user.Username);
 
 			// Path to profile pic modification
 			if (!string.IsNullOrEmpty(request.PathToPic))
@@ -334,12 +336,12 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		// Retrieve IV and Ciphertext, derive AES key
 		var iv = byteToken.Take(16).ToArray();
 		var ciphertext = byteToken.Skip(16).ToArray();
-		var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
+		var key = _encryptionUtility.DeriveKey(_emailSettings.TokenEncryptionKey, 256);
 
 		byte[] plainText;
 		try
 		{
-			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
+			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, 256);
 		}
 		catch (Exception)
 		{
@@ -405,12 +407,12 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		// Retrieve IV and Ciphertext, derive AES key
 		var iv = byteToken.Take(16).ToArray();
 		var ciphertext = byteToken.Skip(16).ToArray();
-		var key = _encryptionUtility.DeriveKey(_redBoxSettings.PasswordResetKey, _redBoxSettings.AesKeySize);
+		var key = _encryptionUtility.DeriveKey(_emailSettings.TokenEncryptionKey, 256);
 
 		byte[] plainText;
 		try
 		{
-			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, _redBoxSettings.AesKeySize);
+			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, 256);
 		}
 		catch (Exception)
 		{
@@ -518,8 +520,8 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 
 		// Rebuild password history with only last 3 passwords (including the one added in this function)
 		passwordHistory.Insert(0, passwordHash);
-		if (passwordHistory.Count > _redBoxSettings.PasswordHistoryMax)
-			passwordHistory = passwordHistory.GetRange(0, _redBoxSettings.PasswordHistoryMax);
+		if (passwordHistory.Count > _redBoxSettings.PasswordHistorySize)
+			passwordHistory = passwordHistory.GetRange(0, _redBoxSettings.PasswordHistorySize);
 		var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash)
 			.Set(u => u.PasswordHistory, passwordHistory);
 
@@ -540,7 +542,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		// sends an email to the new user with the first-time password
 		try
 		{
-			await _emailUtility.SendPasswordChangedAsync(user.Email, password, user.Username);
+			await _redBoxEmailUtility.SendPasswordChangedAsync(user.Email, password, user.Username);
 		}
 		catch (Exception e)
 		{
@@ -730,7 +732,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			if (request.IsBlocked)
 			{
 				var user = collection.Find(filter).First();
-				await _emailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
+				await _redBoxEmailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
 			}
 		}
 		catch (MongoWriteException e)

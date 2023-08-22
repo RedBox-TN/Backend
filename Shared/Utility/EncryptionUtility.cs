@@ -2,11 +2,11 @@ using System.Security.Cryptography;
 using System.Text;
 using Konscious.Security.Cryptography;
 
-namespace RedBox.Encryption_utility;
+namespace Shared.Utility;
 
 public class EncryptionUtility : IEncryptionUtility
 {
-	public async Task<(byte[] EncData, byte[] Iv)> AesEncryptAsync(string clearText, byte[] key, int keySize)
+	public async Task<(byte[] EncData, byte[] Iv)> AesEncryptAsync(string clearText, byte[] key, int keySize = 256)
 	{
 		using var aes = Aes.Create();
 		aes.KeySize = keySize;
@@ -36,7 +36,7 @@ public class EncryptionUtility : IEncryptionUtility
 		return output.ToArray();
 	}
 
-	public byte[] DeriveKey(string password, int keySize)
+	public byte[] DeriveKey(string password, int keySize = 256)
 	{
 		using var argon2 = new Argon2id(Encoding.UTF32.GetBytes(password));
 		argon2.Iterations = 20;

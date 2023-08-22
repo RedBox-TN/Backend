@@ -25,11 +25,11 @@
     <ItemGroup>
         <PackageReference Include="Grpc.AspNetCore" Version="2.55.0"/>
         <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.55.0"/>
-        <PackageReference Include="Grpc.Tools" Version="2.56.2">
+        <PackageReference Include="Grpc.Tools" Version="2.57.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
+        <PackageReference Include="MongoDB.Driver" Version="2.21.0"/>
         <PackageReference Include="StackExchange.Redis" Version="2.6.122"/>
     </ItemGroup>
 
