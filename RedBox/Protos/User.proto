@@ -36,10 +36,9 @@ message GrpcUser {
   repeated string chats = 15;
 }
 
-message GrpcPasswordMod {
-  string password = 1;
-  optional string new_password = 2;
-  string token = 3;
+message ForgottenPasswordRequest {
+  string token = 1;
+  string new_password = 2;
 }
 
 message GrpcToken {
@@ -70,6 +69,7 @@ service GrpcUserServices {
   rpc ModifyUser (GrpcUser) returns (shared.Result);
   rpc TokenCheck (GrpcToken) returns (shared.Result);
   rpc ForcePasswordReset (GrpcUser) returns (shared.Result);
+  rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
   rpc FinalizeEmailChange (GrpcToken) returns (shared.Result);
   //TODO bulk operations
   rpc FAStateChange (GrpcUser) returns (Grpc2faResult);

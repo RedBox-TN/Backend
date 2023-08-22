@@ -12,6 +12,7 @@ using RedBoxAuth.TOTP_utility;
 using RedBoxAuthentication;
 using Shared;
 using Shared.Models;
+using Status = Shared.Status;
 
 namespace RedBoxAuth.Services;
 
@@ -192,6 +193,26 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	/// <inheritdoc />
 	public override async Task<Result> ForgottenPassword(PasswordResetRequest request, ServerCallContext context)
 	{
-		return await base.ForgottenPassword(request, context);
+		var user = await _userCollection.Find(u => u.Username == request.EmailAddress).FirstOrDefaultAsync();
+		if (user is null)
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "User not exists"
+			};
+
+		if (user.IsBlocked)
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "User is locked"
+			};
+
+		_emailUtility.SendPasswordResetRequestAsync(user.Email, user.Id);
+
+		return new Result
+		{
+			Status = Status.Ok
+		};
 	}
 }

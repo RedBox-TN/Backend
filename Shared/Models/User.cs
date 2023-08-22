@@ -17,7 +17,7 @@ public partial class User
 	public string Username { get; set; } = null!;
 	[MemoryPackIgnore] public byte[] PasswordHash { get; set; } = null!;
 	[MemoryPackIgnore] public byte[] Salt { get; set; } = null!;
-	[MemoryPackIgnore] public List<byte[]> PasswordHistory { get; set; } = null!;
+	[MemoryPackIgnore] public List<(byte[] Password, byte[] Salt)> PasswordHistory { get; set; } = null!;
 	[MemoryPackIgnore] public byte InvalidLoginAttempts { get; set; }
 	[MemoryPackIgnore] public bool IsBlocked { get; set; } = false;
 	public bool IsFaEnable { get; set; } = false;
@@ -30,8 +30,9 @@ public partial class User
 	[BsonIgnoreIfNull]
 	public string[]? ChatIds { get; set; } = null!;
 
-	//[BsonRepresentation(BsonType.ObjectId)]
-	[BsonIgnoreIfNull] public string[]? GroupIds { get; set; } = null!;
+	[BsonRepresentation(BsonType.ObjectId)]
+	[BsonIgnoreIfNull]
+	public string[]? GroupIds { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.ObjectId)]
 	[MemoryPackIgnore]

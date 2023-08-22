@@ -21,7 +21,7 @@ public class EncryptionUtility : IEncryptionUtility
 		return (output.ToArray(), aes.IV);
 	}
 
-	public async Task<byte[]> AesDecryptAsync(byte[] encrypted, byte[] key, byte[] iv, int keySize)
+	public async Task<byte[]> AesDecryptAsync(byte[] encrypted, byte[] key, byte[] iv, int keySize = 256)
 	{
 		using var aes = Aes.Create();
 		aes.KeySize = keySize;

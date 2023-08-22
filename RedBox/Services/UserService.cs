@@ -26,28 +26,25 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 {
 	private readonly CommonEmailSettings _commonEmailSettings;
 	private readonly IMongoDatabase _database;
-	private readonly RedBoxEmailSettings _emailSettings;
+	private readonly AccountDatabaseSettings _databaseSettings;
 	private readonly IEncryptionUtility _encryptionUtility;
 	private readonly IPasswordUtility _passwordUtility;
 	private readonly IRedBoxEmailUtility _redBoxEmailUtility;
 	private readonly RedBoxSettings _redBoxSettings;
-	private readonly AccountDatabaseSettings _settings;
 	private readonly ITotpUtility _totpUtility;
 
 	public UserService(IOptions<AccountDatabaseSettings> options, IPasswordUtility passwordUtility,
-		ITotpUtility totpUtility, IOptions<RedBoxEmailSettings> emailSettings, IRedBoxEmailUtility redBoxEmailUtility,
-		IEncryptionUtility encryptionUtility, IOptions<RedBoxSettings> redboxSettings,
-		IOptions<CommonEmailSettings> commonEmailSettings)
+		ITotpUtility totpUtility, IRedBoxEmailUtility redBoxEmailUtility, IEncryptionUtility encryptionUtility,
+		IOptions<CommonEmailSettings> commonEmailSettings, IOptions<RedBoxSettings> redBoxSettings)
 	{
-		_settings = options.Value;
+		_databaseSettings = options.Value;
 		var mongodbClient = new MongoClient(options.Value.ConnectionString);
 		_database = mongodbClient.GetDatabase(options.Value.DatabaseName);
 		_passwordUtility = passwordUtility;
 		_totpUtility = totpUtility;
 		_redBoxEmailUtility = redBoxEmailUtility;
 		_encryptionUtility = encryptionUtility;
-		_redBoxSettings = redboxSettings.Value;
-		_emailSettings = emailSettings.Value;
+		_redBoxSettings = redBoxSettings.Value;
 		_commonEmailSettings = commonEmailSettings.Value;
 	}
 
@@ -67,7 +64,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		var salt = _passwordUtility.CreateSalt();
 		var passwordHash = _passwordUtility.HashPassword(password, salt);
 
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		// check if data is empty and if email is an email
 		if (
@@ -97,7 +94,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				IsFaEnable = request.IsFaEnabled,
 				PasswordHash = passwordHash,
 				Salt = salt,
-				PasswordHistory = new List<byte[]> { passwordHash },
+				PasswordHistory = new List<(byte[] Password, byte[] Salt)> { (Password: passwordHash, Salt: salt) },
 				Biography = "Business account",
 				NeedsProvisioning = true
 			});
@@ -145,7 +142,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
 	public override async Task<Result> DeleteUser(GrpcUser request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		if (!request.HasId)
 			return new Result
@@ -181,7 +178,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	public override async Task<Result> ModifyUser(GrpcUser request, ServerCallContext context)
 	{
 		var user = context.GetUser();
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		// if user has permission to modify accounts
 		if (AuthorizationMiddleware.HasPermission(user, DefaultPermissions.ManageUsersAccounts) && request.HasId)
@@ -345,7 +342,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		byte[] plainText;
 		try
 		{
-			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, 256);
+			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv);
 		}
 		catch (Exception)
 		{
@@ -396,7 +393,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <returns>Status code and message of the operation</returns>
 	public override async Task<Result> FinalizeEmailChange(GrpcToken request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		// Retrieve token and convert ot bytes
 		var byteToken = HttpUtility.UrlDecodeToBytes(request.Token);
@@ -416,7 +413,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		byte[] plainText;
 		try
 		{
-			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv, 256);
+			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv);
 		}
 		catch (Exception)
 		{
@@ -485,8 +482,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
 	public override async Task<Result> ForcePasswordReset(GrpcUser request, ServerCallContext context)
 	{
-		string password;
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		// check if data is empty
 		if (!request.HasId)
@@ -512,22 +508,11 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			};
 		}
 
-		var passwordHistory = user.PasswordHistory;
-		byte[] passwordHash;
+		var salt = _passwordUtility.CreateSalt();
+		var password = _passwordUtility.GeneratePassword();
+		var passwordHash = _passwordUtility.HashPassword(password, salt);
 
-		// Keep generating new passwords until they are not in the history
-		do
-		{
-			password = _passwordUtility.GeneratePassword();
-			passwordHash = _passwordUtility.HashPassword(password, user.Salt);
-		} while (passwordHistory.Any(pw => pw == passwordHash));
-
-		// Rebuild password history with only last 3 passwords (including the one added in this function)
-		passwordHistory.Insert(0, passwordHash);
-		if (passwordHistory.Count > _redBoxSettings.PasswordHistorySize)
-			passwordHistory = passwordHistory.GetRange(0, _redBoxSettings.PasswordHistorySize);
-		var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash)
-			.Set(u => u.PasswordHistory, passwordHistory);
+		var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt);
 
 		// Update password hash and history
 		try
@@ -571,7 +556,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <returns>Status code and message of operation, qrcode and manual code for 2FA</returns>
 	public override async Task<Grpc2faResult> FAStateChange(GrpcUser request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 		var user = context.GetUser();
 
 		// missing parameters
@@ -656,7 +641,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <returns>contains 3 boolean values to specify which provisioning to do and a status code</returns>
 	public override async Task<GrpcProvisionResult> AccountProvision(GrpcUser request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		if (!request.HasId)
 			return new GrpcProvisionResult
@@ -719,7 +704,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	[PermissionsRequired(DefaultPermissions.BlockUsers)]
 	public override async Task<Result> BlockStateChange(GrpcUser request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		if (!request.HasIsBlocked || !request.HasId)
 			return new Result
@@ -762,7 +747,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <returns>contains a user with all the necessary data and a status code</returns>
 	public override async Task<GrpcUserResult> FetchUser(GrpcUser request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 		User result;
 
 		if (!request.HasId)
@@ -836,7 +821,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <returns>contains all the users fetched with the necessary info and a status code</returns>
 	public override async Task<GrpcUserResult> FetchAllUsers(Empty request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_settings.UsersCollection);
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		var result = await collection.FindSync(_ => true).ToListAsync();
 		var users = new GrpcUser[result.Count];
@@ -865,5 +850,115 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				Status = Status.Ok
 			}
 		};
+	}
+
+	/// <summary>
+	///     API to reset password when it is forgotten
+	/// </summary>
+	/// <param name="request">token request</param>
+	/// <param name="context">current context</param>
+	/// <returns>result of operation</returns>
+	public override async Task<Result> ForgottenPasswordReset(ForgottenPasswordRequest request,
+		ServerCallContext context)
+	{
+		var token = HttpUtility.UrlDecodeToBytes(request.Token);
+
+		if (token.Length < 17)
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Wrong token (token length)"
+			};
+
+		var iv = token.Take(16).ToArray();
+		var ciphertext = token.Skip(16).ToArray();
+		var key = _encryptionUtility.DeriveKey(_commonEmailSettings.TokenEncryptionKey);
+
+		byte[] plainText;
+		try
+		{
+			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv);
+		}
+		catch (Exception)
+		{
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Invalid token"
+			};
+		}
+
+		var split = Encoding.UTF8.GetString(plainText).Split("#");
+
+		if (split.Length is < 2 or > 3)
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Invalid token"
+			};
+
+		if (!long.TryParse(split[^1], out var expiration))
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Invalid token"
+			};
+
+		if (expiration - DateTimeOffset.Now.ToUnixTimeMilliseconds() <= 0)
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Token Expired"
+			};
+
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
+		var filter = Builders<User>.Filter.Eq(u => u.Id, split[0]);
+		var user = await collection.Find(filter).FirstOrDefaultAsync();
+
+		if (user is null)
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Invalid token"
+			};
+
+		if (IsPasswordAlreadyUsed(user.PasswordHistory, request.NewPassword))
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Password is already used"
+			};
+
+		var salt = _passwordUtility.CreateSalt();
+		var passwordHash = _passwordUtility.HashPassword(request.NewPassword, salt);
+
+		try
+		{
+			var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt)
+				.Set(u => u.NeedsProvisioning, true).Push(u => u.PasswordHistory, (Password: passwordHash, Salt: salt));
+
+			if (user.PasswordHistory.Count >= _redBoxSettings.PasswordHistorySize)
+				update = update.PopFirst(u => u.PasswordHistory);
+
+			await collection.UpdateOneAsync(filter, update);
+		}
+		catch (MongoException e)
+		{
+			return new Result
+			{
+				Status = Status.Error,
+				Error = e.Message
+			};
+		}
+
+		return new Result
+		{
+			Status = Status.Ok
+		};
+	}
+
+	private bool IsPasswordAlreadyUsed(IEnumerable<(byte[] Password, byte[] Salt)> history, string newPassword)
+	{
+		return history.Any(old => old.Password.SequenceEqual(_passwordUtility.HashPassword(newPassword, old.Salt)));
 	}
 }
