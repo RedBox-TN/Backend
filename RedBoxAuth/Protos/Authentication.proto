@@ -6,6 +6,8 @@ option csharp_namespace = "RedBoxAuthentication";
 
 import "google/protobuf/empty.proto";
 
+import "Shared.proto";
+
 enum LoginStatus {
   INVALID_CREDENTIALS = 0;
   ALREADY_LOGGED = 1;
@@ -51,9 +53,14 @@ message TokenRefreshResponse {
   int64 expiresAt = 2;
 }
 
+message PasswordResetRequest {
+  string email_address = 1;
+}
+
 service AuthenticationGrpcService {
   rpc Login (LoginRequest) returns (LoginResponse);
   rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty);
   rpc Verify2FA(TwoFactorRequest) returns (TwoFactorResponse);
   rpc RefreshToken(google.protobuf.Empty) returns (TokenRefreshResponse);
+  rpc ForgottenPassword(PasswordResetRequest) returns (shared.Result);
 }

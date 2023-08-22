@@ -1,5 +1,4 @@
 using RedBox.Email_utility;
-using RedBox.Encryption_utility;
 using RedBox.Services;
 using RedBox.Settings;
 using RedBoxAuth;
@@ -9,11 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGrpcReflection();
 
 builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection("RedBoxDB"));
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.Configure<RedBoxSettings>(builder.Configuration.GetSection("RedBoxSettings"));
+builder.Services.Configure<RedBoxEmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
-builder.Services.AddSingleton<IEncryptionUtility, EncryptionUtility>();
-builder.Services.AddSingleton<IEmailUtility, EmailUtility>();
+builder.Services.AddSingleton<IRedBoxEmailUtility, RedBoxEmailUtility>();
 
 builder.AddRedBoxAuthenticationAndAuthorization();
 
