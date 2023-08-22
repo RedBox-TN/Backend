@@ -25,21 +25,20 @@ message GrpcUser {
   string name = 2;
   string surname = 3;
   string email = 4;
-  string roleid = 5;
-  optional bool isblocked = 8; // optional | Not sent on user creation
-  optional bool isfaenabled = 9; // optional | For check in modifications
+  string role_id = 5;
+  optional bool is_blocked = 8; // optional | Not sent on user creation
+  optional bool is_fa_enabled = 9; // optional | For check in modifications
   string username = 10;
-  repeated string removedchats = 11;
-  repeated string addedchats = 12;
+  repeated string removed_chats = 11;
+  repeated string added_chats = 12;
   string biography = 13;
-  string pathtopic = 14;
+  string path_to_pic = 14;
   repeated string chats = 15;
 }
 
-message GrpcPasswordMod {
-  string password = 1;
-  optional string newpassword = 2;
-  string token = 3;
+message ForgottenPasswordRequest {
+  string token = 1;
+  string new_password = 2;
 }
 
 message GrpcToken {
@@ -53,14 +52,14 @@ message GrpcUserResult {
 
 message Grpc2faResult {
   string qrcode = 1;
-  string manualcode = 2;
+  string manual_code = 2;
   shared.Result status = 3;
 }
 
 message GrpcProvisionResult {
-  bool faprovisioning = 1;
-  bool passwordprovisioning = 2;
-  bool keyprovisioning = 3;
+  bool fa_provisioning = 1;
+  bool password_provisioning = 2;
+  bool key_provisioning = 3;
   shared.Result status = 4;
 }
 
@@ -69,8 +68,8 @@ service GrpcUserServices {
   rpc DeleteUser (GrpcUser) returns (shared.Result);
   rpc ModifyUser (GrpcUser) returns (shared.Result);
   rpc TokenCheck (GrpcToken) returns (shared.Result);
-  rpc ModifyPassword (GrpcPasswordMod) returns (shared.Result);
-  rpc PasswordReset (GrpcUser) returns (shared.Result);
+  rpc ForcePasswordReset (GrpcUser) returns (shared.Result);
+  rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
   rpc FinalizeEmailChange (GrpcToken) returns (shared.Result);
   //TODO bulk operations
   rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
