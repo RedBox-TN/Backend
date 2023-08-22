@@ -9,12 +9,12 @@ namespace RedBoxAuth.Email_utility;
 public class AuthEmailUtility : IAuthEmailUtility
 {
 	private readonly AuthEmailSettings _emailSettings;
-	private readonly ICommonEmailUtility _emailUtility;
+	private readonly CommonEmailUtility _emailUtility;
 	private readonly IEncryptionUtility _encryptionUtility;
 	private readonly AuthEmailSettings _redBoxSettings;
 
 	public AuthEmailUtility(IOptions<AuthEmailSettings> emailSettings, IOptions<AuthEmailSettings> redBoxSettings,
-		IEncryptionUtility encryptionUtility, ICommonEmailUtility emailUtility)
+		IEncryptionUtility encryptionUtility, CommonEmailUtility emailUtility)
 	{
 		_encryptionUtility = encryptionUtility;
 		_emailSettings = emailSettings.Value;
@@ -45,5 +45,10 @@ public class AuthEmailUtility : IAuthEmailUtility
 		if (body is null) throw new Exception("Unable to compile html template");
 
 		await _emailUtility.SendAsync(toAddress, "RedBox: reimposta la password", body);
+	}
+
+	public Task SendAccountLockNotificationAsync(string toAddress, string username)
+	{
+		return _emailUtility.SendAccountLockNotificationAsync(toAddress, username);
 	}
 }

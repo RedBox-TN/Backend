@@ -6,14 +6,14 @@ using Shared.Utility;
 
 namespace RedBox.Email_utility;
 
-public class RedBoxRedBoxEmailUtility : IRedBoxEmailUtility
+public class RedBoxEmailUtility : IRedBoxEmailUtility
 {
-	private readonly ICommonEmailUtility _commonEmailUtility;
+	private readonly CommonEmailUtility _commonEmailUtility;
 	private readonly IEncryptionUtility _encryptionUtility;
 	private readonly RedBoxEmailSettings _redBoxEmailSettings;
 
-	public RedBoxRedBoxEmailUtility(IOptions<RedBoxEmailSettings> emailSettings, IEncryptionUtility encryptionUtility,
-		ICommonEmailUtility commonEmailUtility)
+	public RedBoxEmailUtility(IOptions<RedBoxEmailSettings> emailSettings, IEncryptionUtility encryptionUtility,
+		CommonEmailUtility commonEmailUtility)
 	{
 		_encryptionUtility = encryptionUtility;
 		_redBoxEmailSettings = emailSettings.Value;
@@ -55,10 +55,10 @@ public class RedBoxRedBoxEmailUtility : IRedBoxEmailUtility
 
 	public async Task SendEmailChangedAsync(string toAddress, string id, string username)
 	{
-		var expireAt = DateTimeOffset.Now.AddMinutes(_redBoxEmailSettings.PasswordTokenExpireMinutes)
+		var expireAt = DateTimeOffset.Now.AddMinutes(_commonEmailUtility.EmailSettings.EmailTokenExpireMinutes)
 			.ToUnixTimeMilliseconds();
 
-		var key = _encryptionUtility.DeriveKey(_redBoxEmailSettings.TokenEncryptionKey);
+		var key = _encryptionUtility.DeriveKey(_commonEmailUtility.EmailSettings.TokenEncryptionKey);
 		var (encData, iv) =
 			await _encryptionUtility.AesEncryptAsync($"{toAddress}#{id}#{expireAt}", key);
 

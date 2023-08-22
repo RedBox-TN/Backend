@@ -1,8 +1,6 @@
-using Shared.Settings;
-
 namespace RedBox.Settings;
 
-public abstract class RedBoxEmailSettings : CommonEmailSettings
+public abstract class RedBoxEmailSettings
 {
 	public string ApplicationUrl { get; set; } = null!;
 	public string AccountCreationTemplateFile { get; set; } = null!;

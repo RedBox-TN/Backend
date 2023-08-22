@@ -8,6 +8,7 @@ using RedBoxAuth.Security_hash_utility;
 using RedBoxAuth.Services;
 using RedBoxAuth.Settings;
 using RedBoxAuth.TOTP_utility;
+using Shared.Settings;
 using Shared.Utility;
 using StackExchange.Redis;
 
@@ -24,6 +25,7 @@ public static class RequiredAuthServices
 	/// <param name="builder">WebApplicationBuilder of the current application</param>
 	public static void AddRedBoxAuthenticationAndAuthorization(this WebApplicationBuilder builder)
 	{
+		builder.Services.Configure<CommonEmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 		builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
 		builder.Services.Configure<AuthEmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 		builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
@@ -36,6 +38,7 @@ public static class RequiredAuthServices
 		var redis = ConnectionMultiplexer.Connect(redisHost);
 
 		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
+		builder.Services.AddSingleton<CommonEmailUtility>();
 
 		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
 		builder.Services.AddSingleton<IEncryptionUtility, EncryptionUtility>();

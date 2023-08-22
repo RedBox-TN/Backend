@@ -15,6 +15,7 @@ using RedBoxAuth.TOTP_utility;
 using RedBoxServices;
 using Shared;
 using Shared.Models;
+using Shared.Settings;
 using Shared.Utility;
 using Status = Shared.Status;
 
@@ -23,6 +24,7 @@ namespace RedBox.Services;
 [AuthenticationRequired]
 public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 {
+	private readonly CommonEmailSettings _commonEmailSettings;
 	private readonly IMongoDatabase _database;
 	private readonly RedBoxEmailSettings _emailSettings;
 	private readonly IEncryptionUtility _encryptionUtility;
@@ -34,7 +36,8 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 
 	public UserService(IOptions<AccountDatabaseSettings> options, IPasswordUtility passwordUtility,
 		ITotpUtility totpUtility, IOptions<RedBoxEmailSettings> emailSettings, IRedBoxEmailUtility redBoxEmailUtility,
-		IEncryptionUtility encryptionUtility, IOptions<RedBoxSettings> redboxSettings)
+		IEncryptionUtility encryptionUtility, IOptions<RedBoxSettings> redboxSettings,
+		IOptions<CommonEmailSettings> commonEmailSettings)
 	{
 		_settings = options.Value;
 		var mongodbClient = new MongoClient(options.Value.ConnectionString);
@@ -45,6 +48,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		_encryptionUtility = encryptionUtility;
 		_redBoxSettings = redboxSettings.Value;
 		_emailSettings = emailSettings.Value;
+		_commonEmailSettings = commonEmailSettings.Value;
 	}
 
 	[GeneratedRegex(@"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$")]
@@ -336,7 +340,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		// Retrieve IV and Ciphertext, derive AES key
 		var iv = byteToken.Take(16).ToArray();
 		var ciphertext = byteToken.Skip(16).ToArray();
-		var key = _encryptionUtility.DeriveKey(_emailSettings.TokenEncryptionKey, 256);
+		var key = _encryptionUtility.DeriveKey(_commonEmailSettings.TokenEncryptionKey);
 
 		byte[] plainText;
 		try
@@ -407,7 +411,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		// Retrieve IV and Ciphertext, derive AES key
 		var iv = byteToken.Take(16).ToArray();
 		var ciphertext = byteToken.Skip(16).ToArray();
-		var key = _encryptionUtility.DeriveKey(_emailSettings.TokenEncryptionKey, 256);
+		var key = _encryptionUtility.DeriveKey(_commonEmailSettings.TokenEncryptionKey);
 
 		byte[] plainText;
 		try

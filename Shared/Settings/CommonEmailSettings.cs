@@ -1,6 +1,6 @@
 namespace Shared.Settings;
 
-public abstract class CommonEmailSettings
+public class CommonEmailSettings
 {
 	public int PasswordTokenExpireMinutes { get; set; } = 5;
 	public int EmailTokenExpireMinutes { get; set; } = 60;

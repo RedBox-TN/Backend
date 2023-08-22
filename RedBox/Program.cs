@@ -11,7 +11,7 @@ builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection("R
 builder.Services.Configure<RedBoxSettings>(builder.Configuration.GetSection("RedBoxSettings"));
 builder.Services.Configure<RedBoxEmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
-builder.Services.AddSingleton<IRedBoxEmailUtility, RedBoxRedBoxEmailUtility>();
+builder.Services.AddSingleton<IRedBoxEmailUtility, RedBoxEmailUtility>();
 
 builder.AddRedBoxAuthenticationAndAuthorization();
 

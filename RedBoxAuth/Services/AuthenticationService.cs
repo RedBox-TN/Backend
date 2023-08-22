@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth.Authorization;
 using RedBoxAuth.Cache;
+using RedBoxAuth.Email_utility;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Security_hash_utility;
 using RedBoxAuth.Settings;
@@ -19,22 +20,26 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 {
 	private readonly IAuthCache _authCache;
 	private readonly AuthSettings _authOptions;
+	private readonly AuthEmailSettings _emailSettings;
+	private readonly IAuthEmailUtility _emailUtility;
 	private readonly ISecurityHashUtility _hashUtility;
 	private readonly IPasswordUtility _passwordUtility;
 	private readonly IMongoCollection<Role> _roleCollection;
 	private readonly ITotpUtility _totp;
 	private readonly IMongoCollection<User> _userCollection;
 
-
 	/// <inheritdoc />
 	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
-		IPasswordUtility passwordUtility, IOptions<AuthSettings> authOptions, ISecurityHashUtility hashUtility)
+		IPasswordUtility passwordUtility, IOptions<AuthSettings> authOptions, ISecurityHashUtility hashUtility,
+		IAuthEmailUtility emailUtility, IOptions<AuthEmailSettings> emailOptions)
 	{
 		_totp = totp;
 		_hashUtility = hashUtility;
+		_emailUtility = emailUtility;
 		_passwordUtility = passwordUtility;
 		_authOptions = authOptions.Value;
 		_authCache = authCache;
+		_emailSettings = emailOptions.Value;
 
 		var mongoClient = new MongoClient(dbOptions.Value.ConnectionString);
 		var db = mongoClient.GetDatabase(dbOptions.Value.DatabaseName);
@@ -86,6 +91,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 			updates = Builders<User>.Update.Set(u => u.IsBlocked, true);
 			await _userCollection.FindOneAndUpdateAsync(filter, updates);
+			_emailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
+
 			return new LoginResponse
 			{
 				Status = LoginStatus.IsBlocked
