@@ -10,11 +10,12 @@ import "Shared.proto";
 
 enum LoginStatus {
   INVALID_CREDENTIALS = 0;
-  ALREADY_LOGGED = 1;
-  USER_NOT_EXIST = 2;
-  LOGIN_SUCCESS = 3;
-  REQUIRE_2FA = 4;
-  IS_BLOCKED = 5;
+  MISSING_PARAMETER = 1;
+  ALREADY_LOGGED = 2;
+  USER_NOT_EXIST = 3;
+  LOGIN_SUCCESS = 4;
+  REQUIRE_2FA = 5;
+  IS_BLOCKED = 6;
 }
 
 enum TwoFactorResponseCode {
@@ -27,8 +28,10 @@ enum TwoFactorResponseCode {
 
 message LoginRequest {
   string password = 1;
-  optional string username = 2;
-  optional string email = 3;
+  oneof identifier {
+    string username = 2;
+    string email = 3;
+  }
 }
 
 message LoginResponse {
@@ -54,7 +57,10 @@ message TokenRefreshResponse {
 }
 
 message PasswordResetRequest {
-  string email_address = 1;
+  oneof identifier {
+    string email_address = 1;
+    string username = 2;
+  }
 }
 
 service AuthenticationGrpcService {

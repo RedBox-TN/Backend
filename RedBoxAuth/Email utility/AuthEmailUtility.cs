@@ -22,22 +22,21 @@ public class AuthEmailUtility : IAuthEmailUtility
 		_emailUtility = emailUtility;
 	}
 
-	public async Task SendPasswordResetRequestAsync(string toAddress, string id)
+	public async Task SendPasswordResetRequestAsync(string toAddress, string username, string id)
 	{
 		var expireAt = DateTimeOffset.Now.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes)
 			.ToUnixTimeMilliseconds();
 
 		var key = _encryptionUtility.DeriveKey(_redBoxSettings.TokenEncryptionKey);
 
-		var (encData, iv) =
-			await _encryptionUtility.AesEncryptAsync($"{id}#{expireAt}", key);
+		var (encData, iv) = await _encryptionUtility.AesEncryptAsync($"{id}#{expireAt}", key);
 
 		var token = HttpUtility.UrlEncode(iv.Concat(encData).ToArray());
 
 		var template = Handlebars.Compile(await File.ReadAllTextAsync(_emailSettings.PasswordResetTemplateFile));
 		var data = new
 		{
-			id,
+			username,
 			url = $"{_emailSettings.PasswordResetUrl}{token}"
 		};
 
