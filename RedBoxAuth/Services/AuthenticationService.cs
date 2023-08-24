@@ -21,7 +21,6 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 {
 	private readonly IAuthCache _authCache;
 	private readonly AuthSettings _authOptions;
-	private readonly AuthEmailSettings _emailSettings;
 	private readonly IAuthEmailUtility _emailUtility;
 	private readonly ISecurityHashUtility _hashUtility;
 	private readonly IPasswordUtility _passwordUtility;
@@ -32,7 +31,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	/// <inheritdoc />
 	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
 		IPasswordUtility passwordUtility, IOptions<AuthSettings> authOptions, ISecurityHashUtility hashUtility,
-		IAuthEmailUtility emailUtility, IOptions<AuthEmailSettings> emailOptions)
+		IAuthEmailUtility emailUtility)
 	{
 		_totp = totp;
 		_hashUtility = hashUtility;
@@ -40,7 +39,6 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		_passwordUtility = passwordUtility;
 		_authOptions = authOptions.Value;
 		_authCache = authCache;
-		_emailSettings = emailOptions.Value;
 
 		var mongoClient = new MongoClient(dbOptions.Value.ConnectionString);
 		var db = mongoClient.GetDatabase(dbOptions.Value.DatabaseName);
@@ -59,10 +57,23 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 			};
 
 		User? user;
-		if (request.HasUsername)
-			user = await _userCollection.Find(u => u.Username == request.Username.Normalize()).FirstOrDefaultAsync();
-		else
-			user = await _userCollection.Find(u => u.Email == request.Email.Normalize()).FirstOrDefaultAsync();
+
+		switch (request.IdentifierCase)
+		{
+			default:
+			case LoginRequest.IdentifierOneofCase.None:
+				return new LoginResponse
+				{
+					Status = LoginStatus.MissingParameter
+				};
+			case LoginRequest.IdentifierOneofCase.Username:
+				user = await _userCollection.Find(u => u.Username == request.Username.Normalize())
+					.FirstOrDefaultAsync();
+				break;
+			case LoginRequest.IdentifierOneofCase.Email:
+				user = await _userCollection.Find(u => u.Email == request.Email.Normalize()).FirstOrDefaultAsync();
+				break;
+		}
 
 		if (user is null)
 			return new LoginResponse
@@ -193,7 +204,29 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	/// <inheritdoc />
 	public override async Task<Result> ForgottenPassword(PasswordResetRequest request, ServerCallContext context)
 	{
-		var user = await _userCollection.Find(u => u.Username == request.EmailAddress).FirstOrDefaultAsync();
+		User? user;
+
+		switch (request.IdentifierCase)
+		{
+			default:
+			case PasswordResetRequest.IdentifierOneofCase.None:
+				return new Result
+				{
+					Status = Status.MissingParameters
+				};
+
+			case PasswordResetRequest.IdentifierOneofCase.EmailAddress:
+				user = await _userCollection.Find(u => u.Email == request.EmailAddress.Normalize())
+					.FirstOrDefaultAsync();
+				break;
+
+			case PasswordResetRequest.IdentifierOneofCase.Username:
+				user = await _userCollection.Find(u => u.Username == request.Username.Normalize())
+					.FirstOrDefaultAsync();
+				break;
+		}
+
+
 		if (user is null)
 			return new Result
 			{
@@ -205,10 +238,10 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 			return new Result
 			{
 				Status = Status.Error,
-				Error = "User is locked"
+				Error = "User is blocked"
 			};
 
-		_emailUtility.SendPasswordResetRequestAsync(user.Email, user.Id);
+		_emailUtility.SendPasswordResetRequestAsync(user.Email, user.Username, user.Id);
 
 		return new Result
 		{
