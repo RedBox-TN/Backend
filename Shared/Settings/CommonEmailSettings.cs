@@ -4,7 +4,6 @@ public class CommonEmailSettings
 {
 	public int PasswordTokenExpireMinutes { get; set; } = 5;
 	public int EmailTokenExpireMinutes { get; set; } = 60;
-	public int SaltSize { get; set; } = 16;
 	public string TokenEncryptionKey { get; set; } = null!;
 	public string FromAddress { get; set; } = null!;
 	public string Password { get; set; } = null!;

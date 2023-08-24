@@ -1,6 +1,6 @@
 namespace RedBox.Settings;
 
-public abstract class RedBoxEmailSettings
+public class RedBoxEmailSettings
 {
 	public string ApplicationUrl { get; set; } = null!;
 	public string AccountCreationTemplateFile { get; set; } = null!;
