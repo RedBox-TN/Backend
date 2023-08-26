@@ -36,9 +36,22 @@ message GrpcUser {
   repeated string chats = 15;
 }
 
+message GrpcUserFetch {
+  oneof identifier{
+    string id = 1;
+    string username = 2;
+    string email = 3;
+  }
+}
+
 message ForgottenPasswordRequest {
   string token = 1;
   string new_password = 2;
+}
+
+message PasswordChange {
+  string old_password = 2;
+  string new_password = 3;
 }
 
 message StringRequest{
@@ -74,7 +87,8 @@ service GrpcUserServices {
   //TODO bulk operations
   rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
   rpc BlockStateChange (GrpcUser) returns (shared.Result);
-  rpc FetchUser (GrpcUser) returns (GrpcUserResult); 
+  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult); 
   rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
   rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
+  rpc UserPasswordChange (PasswordChange) returns (shared.Result);
 }
