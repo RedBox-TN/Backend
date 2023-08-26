@@ -194,7 +194,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			if (!string.IsNullOrEmpty(request.Surname))
 				updates.Add(update.Set(user1 => user1.Surname, request.Surname.Normalize()));
 
-			//todo si puo' modificare??
+			//todo si puo' modificare?? R: Se si mancano dei controlli
 			// Username modification
 			if (!string.IsNullOrEmpty(request.Username))
 				updates.Add(update.Set(user1 => user1.Username, request.Username));
@@ -531,7 +531,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			};
 		}
 
-		_redBoxEmailUtility.SendPasswordChangedAsync(user.Email, password, user.Username);
+		await _redBoxEmailUtility.SendAdminPasswordChangedAsync(user.Email, password, user.Username);
 
 		return new Result
 		{
@@ -738,34 +738,42 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <param name="context">current context</param>
 	/// <returns>contains a user with all the necessary data and a status code</returns>
 	[AuthenticationRequired]
-	public override async Task<GrpcUserResult> FetchUser(GrpcUser request, ServerCallContext context)
+	public override async Task<GrpcUserResult> FetchUser(GrpcUserFetch request, ServerCallContext context)
 	{
 		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 		User result;
-
-		if (!request.HasId)
-			return new GrpcUserResult
-			{
-				Status = new Result
-				{
-					Status = Status.MissingParameters
-				}
-			};
-
-		try
+        
+		switch (request.IdentifierCase)
 		{
-			result = await collection.FindSync(user1 => user1.Id == request.Id).FirstOrDefaultAsync();
-		}
-		catch (Exception e)
-		{
-			return new GrpcUserResult
-			{
-				Status = new Result
+			default:
+			case GrpcUserFetch.IdentifierOneofCase.None:
+				return new GrpcUserResult
 				{
-					Status = Status.Error,
-					Error = e.Message
+					Status = new Result
+					{
+						Status = Status.MissingParameters
+					}
+				};
+			case GrpcUserFetch.IdentifierOneofCase.Id:
+				result = await collection.Find(u => u.Id == request.Id).FirstOrDefaultAsync();
+				break;
+			case GrpcUserFetch.IdentifierOneofCase.Username:
+				result = await collection.Find(u => u.Username == request.Username).FirstOrDefaultAsync();
+				break;
+			case GrpcUserFetch.IdentifierOneofCase.Email:
+				if (!MyRegex().IsMatch(request.Email))
+				{
+					return new GrpcUserResult
+					{
+						Status = new Result
+						{
+							Status = Status.Error,
+							Error = "Wrong format"
+						}
+					}; 
 				}
-			};
+				result = await collection.Find(u => u.Email == request.Email).FirstOrDefaultAsync();
+				break;
 		}
 
 		if (result == null)
@@ -774,7 +782,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				Status = new Result
 				{
 					Status = Status.Error,
-					Error = "No matches"
+					Error = "User not exists"
 				}
 			};
 
@@ -930,7 +938,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		try
 		{
 			var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt)
-				.Set(u => u.NeedsProvisioning, true)
+				.Set(u => u.NeedsProvisioning, true) //TODO non credo serva il rpovisioning
 				.Push(u => u.PasswordHistory, currentPassword);
 
 			if (user.PasswordHistory!.Count >= _redBoxSettings.PasswordHistorySize)
@@ -953,6 +961,77 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		};
 	}
 
+	[AuthenticationRequired]
+	public override async Task<Result> UserPasswordChange(PasswordChange request, ServerCallContext context)
+	{
+		var user = context.GetUser();
+		var oldPasswordStatus = OldPasswordVerify(request.OldPassword, user.Id).Result;
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
+		
+		if (oldPasswordStatus.HasError)
+		{
+			return oldPasswordStatus;
+		}
+
+		var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
+		//faccio così perchè non so cosa conterrà effettivamente alla fine il context
+		try
+		{
+			user = await collection.Find(filter).FirstOrDefaultAsync();
+		}
+		catch (MongoException e)
+		{
+			return new Result
+			{
+				Status = Status.Error,
+				Error = e.Message
+			};
+		}
+
+		
+		var oldSalt = user.Salt;
+		var password = request.NewPassword;
+
+		var currentPassword = (password: user.PasswordHash, oldSalt);
+		if (WasPasswordAlreadyUsed(user.PasswordHistory, currentPassword, request.NewPassword))
+		{
+			return new Result
+			{
+				Status = Status.Error,
+				Error = "Password already used"
+			};
+		}
+		
+		var salt = _passwordUtility.CreateSalt();
+		var passwordHash = _passwordUtility.HashPassword(password, salt);
+		var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt)
+			.Push(u => u.PasswordHistory, currentPassword);
+		
+		if (user.PasswordHistory!.Count >= _redBoxSettings.PasswordHistorySize)
+			await collection.UpdateOneAsync(filter, Builders<User>.Update.PopFirst(u => u.PasswordHistory));
+
+		// Update password hash and history
+		try
+		{
+			await collection.UpdateOneAsync(filter, update);
+		}
+		catch (MongoWriteException e)
+		{
+			return new Result
+			{
+				Status = Status.Error,
+				Error = e.Message
+			};
+		}
+
+		await _redBoxEmailUtility.SendPasswordChangedAsync(user.Email, user.Username);
+		return new Result
+		{
+			Status = Status.Ok
+		};
+
+	}
+
 	private bool WasPasswordAlreadyUsed(IEnumerable<(byte[] Password, byte[] Salt)>? history,
 		(byte[] Password, byte[] Salt) currentPassword, string newPassword)
 	{
@@ -960,5 +1039,37 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		       (currentPassword.Password.SequenceEqual(_passwordUtility.HashPassword(newPassword,
 			       currentPassword.Salt)) || history.Any(old =>
 			       old.Password.SequenceEqual(_passwordUtility.HashPassword(newPassword, old.Salt))));
+	}
+	
+	private async Task<Result> OldPasswordVerify(string oldPassword, string id)
+	{
+		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
+		var filter = Builders<User>.Filter.Eq(user => user.Id, id);
+		User user;
+
+		try
+		{
+			user = await collection.Find(filter).FirstOrDefaultAsync();
+		}
+		catch (MongoException e)
+		{
+			return new Result
+			{
+				Status = Status.Error,
+				Error = e.Message
+			};
+		}
+
+		if (_passwordUtility.VerifyPassword(oldPassword, user.Salt, user.PasswordHash))
+			return new Result
+			{
+				Status = Status.Ok
+			};
+		
+		return new Result
+		{
+			Status = Status.Error,
+			Error = "Old password does not match"
+		};
 	}
 }
