@@ -77,18 +77,22 @@ message GrpcProvisionResult {
 }
 
 service GrpcUserServices {
-  rpc CreateUser (GrpcUser) returns (shared.Result);
-  rpc DeleteUser (GrpcUser) returns (shared.Result);
   rpc ModifyUser (GrpcUser) returns (shared.Result);
   rpc TokenCheck (StringRequest) returns (shared.Result);
-  rpc SetUserRandomPassword (StringRequest) returns (shared.Result);
   rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
   rpc FinalizeEmailChange (StringRequest) returns (shared.Result);
-  //TODO bulk operations
   rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
-  rpc BlockStateChange (GrpcUser) returns (shared.Result);
   rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult); 
   rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
   rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
   rpc UserPasswordChange (PasswordChange) returns (shared.Result);
+}
+
+service GrpcAdminServices {
+  rpc CreateUser (GrpcUser) returns (shared.Result);
+  rpc DeleteUser (GrpcUser) returns (shared.Result);
+  rpc SetUserRandomPassword (StringRequest) returns (shared.Result);
+  rpc BlockStateChange (GrpcUser) returns (shared.Result);
+  rpc AdminModifyUser (GrpcUser) returns (shared.Result);
+  //TODO bulk operations
 }
