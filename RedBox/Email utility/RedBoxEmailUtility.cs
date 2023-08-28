@@ -38,7 +38,7 @@ public class RedBoxEmailUtility : IRedBoxEmailUtility
 		await _commonEmailUtility.SendAsync(toAddress, "Il tuo nuovo account RedBox", body);
 	}
 
-	public async Task SendPasswordChangedAsync(string toAddress, string password, string username)
+	public async Task SendAdminPasswordChangedAsync(string toAddress, string password, string username)
 	{
 		var template = Handlebars.Compile(await File.ReadAllTextAsync(_redBoxEmailSettings.NewPasswordTemplateFile));
 		var data = new
@@ -64,7 +64,7 @@ public class RedBoxEmailUtility : IRedBoxEmailUtility
 
 		var token = HttpUtility.UrlEncode(iv.Concat(encData).ToArray());
 
-		var template = Handlebars.Compile(await File.ReadAllTextAsync(_redBoxEmailSettings.EmailConfirmTemplate));
+		var template = Handlebars.Compile(await File.ReadAllTextAsync(_redBoxEmailSettings.EmailConfirmTemplateFile));
 		var data = new
 		{
 			id,
@@ -76,6 +76,21 @@ public class RedBoxEmailUtility : IRedBoxEmailUtility
 		if (body is null) throw new Exception("Unable to compile html template");
 
 		await _commonEmailUtility.SendAsync(toAddress, "RedBox: conferma il tuo nuovo indirizzo email", body);
+	}
+
+	public async Task SendPasswordChangedAsync(string toAddress, string username)
+	{
+		var template =
+			Handlebars.Compile(await File.ReadAllTextAsync(_redBoxEmailSettings.ChangedPasswordTemplateFile));
+		var data = new
+		{
+			username
+		};
+
+		var body = template(data);
+		if (body is null) throw new Exception("Unable to compile html template");
+
+		await _commonEmailUtility.SendAsync(toAddress, "RedBox: password modificata", body);
 	}
 
 	public Task SendAccountLockNotificationAsync(string toAddress, string username)
