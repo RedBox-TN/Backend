@@ -40,8 +40,6 @@
     <ItemGroup>
         <Protobuf Include="Protos\User.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
         <Protobuf Include="..\Shared\Protos\Shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
-        <Folder Include="Protos\"/>
-        <Folder Include="Services\"/>
     </ItemGroup>
 
 

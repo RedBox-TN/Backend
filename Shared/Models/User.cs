@@ -12,7 +12,6 @@ public partial class User
 	public string Id { get; set; } = null!;
 
 	public string Surname { get; set; } = null!;
-
 	public string Email { get; set; } = null!;
 	public string Username { get; set; } = null!;
 	[MemoryPackIgnore] public byte[] PasswordHash { get; set; } = null!;
@@ -23,7 +22,6 @@ public partial class User
 	public bool IsFaEnable { get; set; } = false;
 	public byte[]? FaSeed { get; set; } = null!;
 	[BsonIgnore] public ulong SecurityHash { get; set; }
-
 	[MemoryPackIgnore] public DateTime LastAccess { get; set; }
 
 	[BsonRepresentation(BsonType.String)]
@@ -42,8 +40,6 @@ public partial class User
 	public string Name { get; set; } = null!;
 	[BsonIgnore] public bool IsAuthenticated { get; set; }
 	public string Biography { get; set; } = null!;
-
 	public string PathToPic { get; set; } = null!;
-
 	[BsonIgnoreIfDefault] public bool NeedsProvisioning { get; set; } = false;
 }
