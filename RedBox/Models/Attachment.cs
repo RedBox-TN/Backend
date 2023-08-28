@@ -9,6 +9,5 @@ public sealed class Attachment
 	[BsonRepresentation(BsonType.ObjectId)]
 	public string? Id { get; set; }
 
-	public string Location { get; set; } = null!;
-	public string Name { get; set; } = null!;
+	public string? Name { get; set; } = null!;
 }

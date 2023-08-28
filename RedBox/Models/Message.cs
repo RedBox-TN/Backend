@@ -12,9 +12,11 @@ public sealed class Message
 	[BsonRepresentation(BsonType.ObjectId)]
 	public string? UserId { get; set; }
 
-	public byte[]? Text { get; set; } = null!;
+	public byte[]? EncryptedText { get; set; } = null!;
+	public byte[]? Iv { get; set; } = null!;
 
-	public Attachment Attachment { get; set; } = null!;
+	[BsonIgnoreIfNull] public Attachment? Attachment { get; set; } = null!;
 
+	[BsonRepresentation(BsonType.DateTime)]
 	public DateTime? Timestamp { get; set; } = null!;
 }
