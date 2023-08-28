@@ -36,22 +36,9 @@ message GrpcUser {
   repeated string chats = 15;
 }
 
-message GrpcUserFetch {
-  oneof identifier{
-    string id = 1;
-    string username = 2;
-    string email = 3;
-  }
-}
-
 message ForgottenPasswordRequest {
   string token = 1;
   string new_password = 2;
-}
-
-message PasswordChange {
-  string old_password = 2;
-  string new_password = 3;
 }
 
 message StringRequest{
@@ -77,22 +64,17 @@ message GrpcProvisionResult {
 }
 
 service GrpcUserServices {
-  rpc ModifyUser (GrpcUser) returns (shared.Result);
-  rpc TokenCheck (StringRequest) returns (shared.Result);
-  rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
-  rpc FinalizeEmailChange (StringRequest) returns (shared.Result);
-  rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
-  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult); 
-  rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
-  rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
-  rpc UserPasswordChange (PasswordChange) returns (shared.Result);
-}
-
-service GrpcAdminServices {
   rpc CreateUser (GrpcUser) returns (shared.Result);
   rpc DeleteUser (GrpcUser) returns (shared.Result);
+  rpc ModifyUser (GrpcUser) returns (shared.Result);
+  rpc TokenCheck (StringRequest) returns (shared.Result);
   rpc SetUserRandomPassword (StringRequest) returns (shared.Result);
-  rpc BlockStateChange (GrpcUser) returns (shared.Result);
-  rpc AdminModifyUser (GrpcUser) returns (shared.Result);
+  rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
+  rpc FinalizeEmailChange (StringRequest) returns (shared.Result);
   //TODO bulk operations
+  rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
+  rpc BlockStateChange (GrpcUser) returns (shared.Result);
+  rpc FetchUser (GrpcUser) returns (GrpcUserResult); 
+  rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
+  rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
 }
