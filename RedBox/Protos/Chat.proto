@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package redbox_services;
+
+option csharp_namespace = "RedBoxServices";
+
+import "google/protobuf/empty.proto";
+
+import "Shared.proto";
