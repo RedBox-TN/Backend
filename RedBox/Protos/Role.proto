@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package redbox_services;
+
+option csharp_namespace = "RedBoxServices";
+
+import "google/protobuf/empty.proto";
+
+import "Shared.proto";
+
+message GrpcPermission {
+  string name = 1;
+  uint32 code = 2;
+}
+
+message GrpcRole {
+  optional string id = 1; // optional | not used on creation
+  repeated GrpcPermission permissions = 2;
+  string description = 3;
+  string name = 4;
+}
+
+message GrpcRoleIdentifier {
+  oneof identifier {
+    string id = 1;
+    string name = 2;
+  }
+}
+
+message GrpcRoleResult {
+  GrpcRole roles = 1;
+  shared.Result status = 2;
+}
+
+message GrpcRoleResults {
+  repeated GrpcRole roles = 1;
+  shared.Result status = 2;
+}
+
+service GrpcRoleService {
+  rpc CreateRole (GrpcRole) returns (shared.Result);
+  rpc DeleteRole (GrpcRoleIdentifier) returns (shared.Result);
+  rpc ModifyRole (GrpcRole) returns (shared.Result);
+  rpc FetchRole (GrpcRoleIdentifier) returns (GrpcRoleResult);
+  rpc FetchAllRoles (google.protobuf.Empty) returns (GrpcRoleResults);
+}

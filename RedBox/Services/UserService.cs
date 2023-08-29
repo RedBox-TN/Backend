@@ -454,27 +454,24 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 }
             };
 
-        var user = new GrpcUser[]
+        var user = new GrpcUser
         {
-            new()
-            {
-                Id = string.IsNullOrEmpty(result.Id) ? "" : result.Id,
-                Name = string.IsNullOrEmpty(result.Name) ? "" : result.Name,
-                Surname = string.IsNullOrEmpty(result.Surname) ? "" : result.Surname,
-                Email = string.IsNullOrEmpty(result.Email) ? "" : result.Email,
-                RoleId = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
-                IsBlocked = result.IsBlocked,
-                IsFaEnabled = result.IsFaEnable,
-                Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
-                Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-                PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
-                Chats = { result.ChatIds ?? new[] { "" } }
-            }
+            Id = string.IsNullOrEmpty(result.Id) ? "" : result.Id,
+            Name = string.IsNullOrEmpty(result.Name) ? "" : result.Name,
+            Surname = string.IsNullOrEmpty(result.Surname) ? "" : result.Surname,
+            Email = string.IsNullOrEmpty(result.Email) ? "" : result.Email,
+            RoleId = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
+            IsBlocked = result.IsBlocked,
+            IsFaEnabled = result.IsFaEnable,
+            Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
+            Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
+            PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
+            Chats = { result.ChatIds ?? new[] { "" } }
         };
 
         return new GrpcUserResult
         {
-            User = { user },
+            User = user,
             Status = new Result
             {
                 Status = Status.Ok
@@ -489,7 +486,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="context">current context</param>
     /// <returns>contains all the users fetched with the necessary info and a status code</returns>
     [AuthenticationRequired]
-    public override async Task<GrpcUserResult> FetchAllUsers(Empty request, ServerCallContext context)
+    public override async Task<GrpcUserResults> FetchAllUsers(Empty request, ServerCallContext context)
     {
         var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
@@ -512,7 +509,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Chats = { result[i].ChatIds ?? new[] { "" } }
             };
 
-        return new GrpcUserResult
+        return new GrpcUserResults
         {
             User = { users },
             Status = new Result
