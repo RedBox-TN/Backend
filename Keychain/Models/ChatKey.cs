@@ -5,6 +5,6 @@ namespace Keychain.Models;
 
 public sealed class ChatKey : Key
 {
-	[BsonRepresentation(BsonType.ObjectId)]
-	public string? ChatCollectionName { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? ChatCollectionName { get; set; }
 }

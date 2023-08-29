@@ -19,9 +19,9 @@ builder.AddRedBoxAuthenticationAndAuthorization();
 
 builder.Services.AddGrpc(options =>
 {
-	options.MaxReceiveMessageSize =
-		(settings.GetValue<int>("MaxAttachmentSizeMb") * settings.GetValue<int>("MaxAttachmentsPerMsg") +
-		 settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
+    options.MaxReceiveMessageSize =
+        (settings.GetValue<int>("MaxAttachmentSizeMb") * settings.GetValue<int>("MaxAttachmentsPerMsg") +
+         settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
 });
 
 var app = builder.Build();
