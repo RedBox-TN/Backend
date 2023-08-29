@@ -53,6 +53,10 @@ message PasswordChange {
   string old_password = 2;
   string new_password = 3;
 }
+message Grpc2FAChange {
+  optional string id = 1;
+  optional bool is_fa_enabled = 2;
+}
 
 message StringRequest{
   string value = 1;
@@ -81,8 +85,8 @@ service GrpcUserServices {
   rpc TokenCheck (StringRequest) returns (shared.Result);
   rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
   rpc FinalizeEmailChange (StringRequest) returns (shared.Result);
-  rpc FAStateChange (GrpcUser) returns (Grpc2faResult);
-  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult);
+  rpc FAStateChange (Grpc2FAChange) returns (Grpc2faResult);
+  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult); 
   rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResult);
   rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
   rpc UserPasswordChange (PasswordChange) returns (shared.Result);
