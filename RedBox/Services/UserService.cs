@@ -282,12 +282,12 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="context">current context</param>
     /// <returns>Status code and message of operation, qrcode and manual code for 2FA</returns>
     [PermissionsRequired(DefaultPermissions.EnableLocal2Fa)]
-    public override async Task<Grpc2faResult> FAStateChange(GrpcUser request, ServerCallContext context)
+    public override async Task<Grpc2faResult> FAStateChange(Grpc2FAChange request, ServerCallContext context)
     {
         var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
         // missing parameters
-        if (!request.HasIsFaEnabled || !request.HasId || !MyRegex().IsMatch(request.Email))
+        if (!request.HasIsFaEnabled || !request.HasId)
             return new Grpc2faResult
             {
                 Status = new Result
@@ -300,17 +300,16 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
         var update = Builders<User>.Update.Set(user1 => user1.IsFaEnable, request.IsFaEnabled);
         string? qrcode = null, manualCode = null;
 
-
         if (request.IsFaEnabled)
         {
-            var faSeed = _totpUtility.CreateSharedSecret(request.Email, out qrcode, out manualCode);
+            var userFetched = await collection.Find(u => u.Id == request.Id).FirstOrDefaultAsync();
+            var faSeed = _totpUtility.CreateSharedSecret(userFetched.Email, out qrcode, out manualCode);
             update.Set(user1 => user1.FaSeed, faSeed);
         }
         else
         {
             update.Set(user1 => user1.FaSeed, null);
         }
-
 
         try
         {
