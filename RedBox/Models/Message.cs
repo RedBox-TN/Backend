@@ -7,10 +7,10 @@ public sealed class Message
 {
 	[BsonId]
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string? Id { get; set; }
+	public string? Id { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string? UserId { get; set; }
+	public string? SenderId { get; set; } = null!;
 
 	public byte[]? EncryptedText { get; set; } = null!;
 	public byte[]? Iv { get; set; } = null!;
@@ -19,4 +19,8 @@ public sealed class Message
 
 	[BsonRepresentation(BsonType.DateTime)]
 	public DateTime? Timestamp { get; set; } = null!;
+
+	public byte DeleteCounter { get; set; } = 0;
+
+	[BsonIgnoreIfDefault] public bool? ToRead { get; set; } = true;
 }

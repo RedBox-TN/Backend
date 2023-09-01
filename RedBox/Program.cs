@@ -28,6 +28,7 @@ var app = builder.Build();
 
 app.MapGrpcService<UserService>();
 app.MapGrpcService<AdminService>();
+app.MapGrpcService<ChatService>();
 
 app.UseRedBoxAuthenticationAndAuthorization();
 
