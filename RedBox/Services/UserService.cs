@@ -436,8 +436,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                     {
                         Status = new Result
                         {
-                            Status = Status.Error,
-                            Error = "Wrong format"
+                            Status = Status.MissingParameters,
                         }
                     };
                 result = await collection.Find(u => u.Email == request.Email).FirstOrDefaultAsync();
@@ -492,6 +491,16 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 
         var result = await collection.FindSync(_ => true).ToListAsync();
         var users = new GrpcUser[result.Count];
+        
+        if (result.Count == 0)
+            return new GrpcUserResults
+            {
+                Status = new Result
+                {
+                    Status = Status.Error,
+                    Error = "No user found"
+                }
+            };
 
         for (var i = 0; i < result.Count; i++)
             users[i] = new GrpcUser

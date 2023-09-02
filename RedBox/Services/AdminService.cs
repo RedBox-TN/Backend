@@ -164,10 +164,16 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
     [PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
     public override async Task<Result> AdminModifyUser(GrpcUser request, ServerCallContext context)
     {
-        var user = context.GetUser();
         var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
-
+        if (!request.HasId)
+        {
+            return new Result
+            {
+                Status = Status.MissingParameters
+            };
+        }
+        
         var update = Builders<User>.Update;
         var updates = new List<UpdateDefinition<User>>();
         var filter = Builders<User>.Filter.Eq(user1 => user1.Id, request.Id);

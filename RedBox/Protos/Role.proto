@@ -8,14 +8,9 @@ import "google/protobuf/empty.proto";
 
 import "Shared.proto";
 
-message GrpcPermission {
-  string name = 1;
-  uint32 code = 2;
-}
-
 message GrpcRole {
   optional string id = 1; // optional | not used on creation
-  repeated GrpcPermission permissions = 2;
+  optional uint32 permissions = 2; // optional | needed to check if it's sent to modify
   string description = 3;
   string name = 4;
 }
@@ -28,7 +23,7 @@ message GrpcRoleIdentifier {
 }
 
 message GrpcRoleResult {
-  GrpcRole roles = 1;
+  GrpcRole role = 1;
   shared.Result status = 2;
 }
 
