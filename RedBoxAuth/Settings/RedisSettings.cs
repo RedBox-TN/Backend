@@ -5,13 +5,13 @@ namespace RedBoxAuth.Settings;
 /// </summary>
 public class RedisSettings
 {
-	/// <summary>
-	///     Index of database storing current authenticated users
-	/// </summary>
-	public int SessionDatabaseIndex { get; set; } = 0;
+    /// <summary>
+    ///     Index of database storing current authenticated users
+    /// </summary>
+    public int SessionDatabaseIndex { get; set; } = 0;
 
-	/// <summary>
-	///     Index of database storing association between usernames of authenticated users and current token
-	/// </summary>
-	public int UsernameTokenDatabaseIndex { get; set; } = 1;
+    /// <summary>
+    ///     Index of database storing association between usernames of authenticated users and current token
+    /// </summary>
+    public int UsernameTokenDatabaseIndex { get; set; } = 1;
 }

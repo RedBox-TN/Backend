@@ -7,11 +7,11 @@ namespace Shared.Models;
 [MemoryPackable]
 public partial class Role
 {
-	[BsonId]
-	[BsonRepresentation(BsonType.ObjectId)]
-	public string Id { get; set; } = null!;
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string Id { get; set; } = null!;
 
-	public string Name { get; set; } = null!;
-	public string Description { get; set; } = null!;
-	public uint Permissions { get; set; }
+    public string Name { get; set; } = null!;
+    public string Description { get; set; } = null!;
+    public uint Permissions { get; set; }
 }
