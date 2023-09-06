@@ -7,11 +7,11 @@ namespace RedBoxAuth.Cache;
 /// </summary>
 public interface IBasicAuthCache
 {
-	/// <summary>
-	///     Try to retrieve the user, if the token is invalid, return false
-	/// </summary>
-	/// <param name="key">The token</param>
-	/// <param name="user">out, the user corresponding to the token</param>
-	/// <returns>Bool, true if token is valid, false if not</returns>
-	public bool TryToGet(string? key, out User? user);
+    /// <summary>
+    ///     Try to retrieve the user, if the token is invalid, return false
+    /// </summary>
+    /// <param name="key">The token</param>
+    /// <param name="user">out, the user corresponding to the token</param>
+    /// <returns>Bool, true if token is valid, false if not</returns>
+    public bool TryToGet(string? key, out User? user);
 }

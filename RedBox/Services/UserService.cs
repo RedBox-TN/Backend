@@ -436,8 +436,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                     {
                         Status = new Result
                         {
-                            Status = Status.Error,
-                            Error = "Wrong format"
+                            Status = Status.MissingParameters,
                         }
                     };
                 result = await collection.Find(u => u.Email == request.Email).FirstOrDefaultAsync();
@@ -454,27 +453,24 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 }
             };
 
-        var user = new GrpcUser[]
+        var user = new GrpcUser
         {
-            new()
-            {
-                Id = string.IsNullOrEmpty(result.Id) ? "" : result.Id,
-                Name = string.IsNullOrEmpty(result.Name) ? "" : result.Name,
-                Surname = string.IsNullOrEmpty(result.Surname) ? "" : result.Surname,
-                Email = string.IsNullOrEmpty(result.Email) ? "" : result.Email,
-                RoleId = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
-                IsBlocked = result.IsBlocked,
-                IsFaEnabled = result.IsFaEnable,
-                Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
-                Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-                PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
-                Chats = { result.ChatIds ?? new[] { "" } }
-            }
+            Id = string.IsNullOrEmpty(result.Id) ? "" : result.Id,
+            Name = string.IsNullOrEmpty(result.Name) ? "" : result.Name,
+            Surname = string.IsNullOrEmpty(result.Surname) ? "" : result.Surname,
+            Email = string.IsNullOrEmpty(result.Email) ? "" : result.Email,
+            RoleId = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
+            IsBlocked = result.IsBlocked,
+            IsFaEnabled = result.IsFaEnable,
+            Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
+            Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
+            PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
+            Chats = { result.ChatIds ?? new[] { "" } }
         };
 
         return new GrpcUserResult
         {
-            User = { user },
+            User = user,
             Status = new Result
             {
                 Status = Status.Ok
@@ -489,12 +485,22 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
     /// <param name="context">current context</param>
     /// <returns>contains all the users fetched with the necessary info and a status code</returns>
     [AuthenticationRequired]
-    public override async Task<GrpcUserResult> FetchAllUsers(Empty request, ServerCallContext context)
+    public override async Task<GrpcUserResults> FetchAllUsers(Empty request, ServerCallContext context)
     {
         var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
         var result = await collection.FindSync(_ => true).ToListAsync();
         var users = new GrpcUser[result.Count];
+        
+        if (result.Count == 0)
+            return new GrpcUserResults
+            {
+                Status = new Result
+                {
+                    Status = Status.Error,
+                    Error = "No user found"
+                }
+            };
 
         for (var i = 0; i < result.Count; i++)
             users[i] = new GrpcUser
@@ -512,7 +518,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Chats = { result[i].ChatIds ?? new[] { "" } }
             };
 
-        return new GrpcUserResult
+        return new GrpcUserResults
         {
             User = { users },
             Status = new Result
