@@ -20,15 +20,15 @@ public class BasicAuthCache : IBasicAuthCache
 	}
 
 	/// <inheritdoc />
-	public bool TryToGet(string? key, out User? user)
+	public bool TryToGet(string? token, out User? user)
 	{
-		if (!_redis.KeyExists(key))
+		if (!_redis.KeyExists(token))
 		{
 			user = null;
 			return false;
 		}
 
-		var stream = (byte[]?)_redis.StringGet(key);
+		var stream = (byte[]?)_redis.StringGet(token);
 
 		using var decompressor = new Decompressor();
 		user = MemoryPackSerializer.Deserialize<User>(decompressor.Unwrap(stream));

@@ -44,7 +44,6 @@ public static class RequiredAuthServices
 		builder.Services.AddSingleton<IEncryptionUtility, EncryptionUtility>();
 		builder.Services.AddSingleton<IAuthEmailUtility, AuthEmailUtility>();
 		builder.Services.AddSingleton<IPasswordUtility, PasswordUtility>();
-		builder.Services.AddSingleton<IBasicAuthCache, AuthCache>();
 		builder.Services.AddSingleton<ITotpUtility, TotpUtility>();
 		builder.Services.AddSingleton<IAuthCache, AuthCache>();
 		builder.Services.AddHttpContextAccessor();

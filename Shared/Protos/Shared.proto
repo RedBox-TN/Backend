@@ -13,9 +13,16 @@ enum Status {
   MISSING_PARAMETERS = 2;
 }
 /*
-  Represent the result of the required operation, if an error occurred then the exception message is returned
+  Represents the result of the required operation, if an error occurred then the exception message is returned
 */
 message Result {
   Status status = 1;
   optional string error = 2;
+}
+
+/*
+  Represents a string id
+*/
+message IdMessage {
+  string id = 1;
 }

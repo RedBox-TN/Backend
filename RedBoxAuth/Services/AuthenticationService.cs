@@ -111,6 +111,16 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 			};
 		}
 
+		if (_authCache.IsUserAlreadyLogged(user.Username, out var token, out var remainingTime))
+		{
+			return new LoginResponse
+			{
+				Status = LoginStatus.LoginSuccess,
+				Token = token,
+				ExpiresAt = remainingTime
+			};
+		}
+
 		user.Role = await _roleCollection.Find(r => r.Id == user.RoleId).FirstOrDefaultAsync();
 
 		user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers["User-Agent"],
