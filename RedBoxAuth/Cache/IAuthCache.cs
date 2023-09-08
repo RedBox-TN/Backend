@@ -3,7 +3,7 @@ using Shared.Models;
 namespace RedBoxAuth.Cache;
 
 /// <summary>
-///     Expose methods for working whit authenticated users
+///     Expose methods for working whit user stored in redis
 /// </summary>
 public interface IAuthCache : IBasicAuthCache
 {
@@ -18,8 +18,10 @@ public interface IAuthCache : IBasicAuthCache
 	///     Check if the user is already logged
 	/// </summary>
 	/// <param name="username">The username of the user</param>
+	/// <param name="token">Out, the current user token</param>
+	/// <param name="remainingTime">Out, the remaining time before key expiration</param>
 	/// <returns>If the user is already logged true</returns>
-	public bool IsUserAlreadyLogged(string? username);
+	public bool IsUserAlreadyLogged(string? username, out string? token, out long remainingTime);
 
 	/// <summary>
 	///     Store the user in the cache

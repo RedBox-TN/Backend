@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using MemoryPack;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using RedBoxAuth.Settings;
 using Shared.Models;
@@ -10,43 +9,33 @@ using ZstdSharp;
 namespace RedBoxAuth.Cache;
 
 /// <summary>
-///     Implementation of IAuthCache, combining redis and local cache
+///     Implementation of IAuthCache
 /// </summary>
-public class AuthCache : MemoryCache, IAuthCache
-
+public class AuthCache : IAuthCache
 {
-	private static uint _scanMinutes;
 	private readonly AuthSettings _authSettings;
+
+	// contains serialized users associated to the token
 	private readonly IDatabase _sessionDb;
+
+	// contains current token associated to the username
 	private readonly IDatabase _tokenDb;
 
-	/// <inheritdoc />
 	public AuthCache(IConnectionMultiplexer redis, IOptions<AuthSettings> options,
-		IOptions<RedisSettings> redisSettings) : base(
-		new MemoryCacheOptions
-			{ ExpirationScanFrequency = TimeSpan.FromMinutes(_scanMinutes) })
+		IOptions<RedisSettings> redisSettings)
 	{
 		_authSettings = options.Value;
 		_sessionDb = redis.GetDatabase(redisSettings.Value.SessionDatabaseIndex);
 		_tokenDb = redis.GetDatabase(redisSettings.Value.UsernameTokenDatabaseIndex);
-		_scanMinutes = options.Value.LocalCacheExpirationScanMinutes;
 	}
 
 	/// <inheritdoc />
 	public string Store(User user, out long expireAt)
 	{
 		var key = GenerateToken();
-		if (IsUserAlreadyLogged(user.Username))
-		{
-			key = _tokenDb.StringGet(user.Username);
-			expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-			return key!;
-		}
-
 		user.IsAuthenticated = true;
-		StoreRedis(user, key, _authSettings.SessionExpireMinutes);
+		Store(user, key, _authSettings.SessionExpireMinutes);
 		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-		StoreLocal(user, key, _authSettings.SessionExpireMinutes);
 		return key;
 	}
 
@@ -54,14 +43,7 @@ public class AuthCache : MemoryCache, IAuthCache
 	public string StorePending(User user, out long expireAt)
 	{
 		var key = GenerateToken();
-		if (IsUserAlreadyLogged(user.Username))
-		{
-			key = _tokenDb.StringGet(user.Username);
-			expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-			return key!;
-		}
-
-		StoreRedis(user, key, _authSettings.PendingAuthMinutes);
+		Store(user, key, _authSettings.PendingAuthMinutes);
 		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 		return key;
 	}
@@ -72,22 +54,16 @@ public class AuthCache : MemoryCache, IAuthCache
 		return _sessionDb.KeyExists(key);
 	}
 
-	public bool IsUserAlreadyLogged(string? username)
-	{
-		return _tokenDb.KeyExists(username);
-	}
-
 	/// <inheritdoc />
 	public void SetCompleted(string key, out long expiresAt)
 	{
-		var user = RedisGet(key, out _);
+		TryToGet(key, out var user);
 		_sessionDb.KeyDeleteAsync(key, CommandFlags.FireAndForget);
 
 		user!.IsAuthenticated = true;
 
-		StoreRedis(user, key, _authSettings.SessionExpireMinutes);
+		Store(user, key, _authSettings.SessionExpireMinutes);
 		expiresAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-		StoreLocal(user, key, _authSettings.SessionExpireMinutes);
 	}
 
 	/// <inheritdoc />
@@ -98,26 +74,21 @@ public class AuthCache : MemoryCache, IAuthCache
 		var username = user!.Username;
 		await _sessionDb.KeyDeleteAsync(key, CommandFlags.FireAndForget);
 		await _tokenDb.KeyDeleteAsync(username, CommandFlags.FireAndForget);
-		if (key != null) Remove(key);
 	}
 
 	/// <inheritdoc />
-	public bool TryToGet(string? key, out User? user)
+	public bool TryToGet(string? token, out User? user)
 	{
-		if (!TokenExists(key))
+		if (!TokenExists(token))
 		{
 			user = null;
 			return false;
 		}
 
-		if (!this.TryGetValue(key!, out user))
-		{
-			user = RedisGet(key!, out var ttl);
-			StoreLocal(user!, key!, ttl);
-			return true;
-		}
+		var stream = (byte[]?)_sessionDb.StringGet(token);
 
-		user = this.Get<User>(key!);
+		using var decompressor = new Decompressor();
+		user = MemoryPackSerializer.Deserialize<User>(decompressor.Unwrap(stream));
 		return true;
 	}
 
@@ -134,9 +105,19 @@ public class AuthCache : MemoryCache, IAuthCache
 		_sessionDb.KeyExpireAsync(token, TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes));
 		expiresAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds();
 
-		RenameLocal(oldToken, token);
-
 		return token;
+	}
+
+	/// <inheritdoc />
+	public bool IsUserAlreadyLogged(string? username, out string? token, out long remainingTime)
+	{
+		token = null;
+		remainingTime = 0;
+		if (!_tokenDb.KeyExists(username)) return false;
+
+		token = _tokenDb.StringGet(username);
+		remainingTime = ((DateTimeOffset)_sessionDb.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds();
+		return true;
 	}
 
 	private string GenerateToken()
@@ -154,7 +135,7 @@ public class AuthCache : MemoryCache, IAuthCache
 		return token;
 	}
 
-	private async void StoreRedis(User user, string key, uint minutes)
+	private async void Store(User user, string key, uint minutes)
 	{
 		var serialized = MemoryPackSerializer.Serialize(user);
 
@@ -165,39 +146,5 @@ public class AuthCache : MemoryCache, IAuthCache
 
 		await _sessionDb.StringSetAsync(key, compressor.Wrap(serialized).ToArray(),
 			TimeSpan.FromMinutes(minutes), When.NotExists, CommandFlags.FireAndForget);
-	}
-
-	private void StoreLocal(User user, string key, uint minutes)
-	{
-		this.Set(key, user, TimeSpan.FromMinutes(minutes));
-	}
-
-	private void StoreLocal(User user, string key, TimeSpan minutes)
-	{
-		this.Set(key, user, minutes);
-	}
-
-	private void RenameLocal(string old, string newToken)
-	{
-		var user = this.Get<User>(old);
-		if (user is null) return;
-
-		Remove(old);
-		StoreLocal(user, newToken, _authSettings.SessionExpireMinutes);
-	}
-
-	private User? RedisGet(string key, out TimeSpan remainingTime)
-	{
-		if (!TokenExists(key))
-		{
-			remainingTime = TimeSpan.Zero;
-			return null;
-		}
-
-		var stream = (byte[]?)_sessionDb.StringGet(key);
-		remainingTime = _sessionDb.KeyTimeToLive(key)!.Value;
-
-		using var decompressor = new Decompressor();
-		return MemoryPackSerializer.Deserialize<User>(decompressor.Unwrap(stream));
 	}
 }
