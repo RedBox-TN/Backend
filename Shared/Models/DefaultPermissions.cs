@@ -10,4 +10,5 @@ public struct DefaultPermissions
 	public const uint EnforceGlobal2Fa = 32;
 	public const uint ReadOtherUsersChats = 64;
 	public const uint DeleteSupervisedChat = 128;
+	public const uint ManageRoles = 256;
 }

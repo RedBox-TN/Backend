@@ -28,8 +28,8 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	private readonly AccountDatabaseSettings _databaseSettings;
 	private readonly IEncryptionUtility _encryptionUtility;
 	private readonly IPasswordUtility _passwordUtility;
-	private readonly RedBoxApplicationSettings _redBoxApplicationSettings;
 	private readonly IRedBoxEmailUtility _redBoxEmailUtility;
+	private readonly RedBoxApplicationSettings _redBoxSettings;
 	private readonly ITotpUtility _totpUtility;
 
 	public UserService(IOptions<AccountDatabaseSettings> options, IPasswordUtility passwordUtility,
@@ -43,7 +43,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		_totpUtility = totpUtility;
 		_redBoxEmailUtility = redBoxEmailUtility;
 		_encryptionUtility = encryptionUtility;
-		_redBoxApplicationSettings = redBoxSettings.Value;
+		_redBoxSettings = redBoxSettings.Value;
 		_commonEmailSettings = commonEmailSettings.Value;
 	}
 
@@ -436,8 +436,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 					{
 						Status = new Result
 						{
-							Status = Status.Error,
-							Error = "Wrong format"
+							Status = Status.MissingParameters
 						}
 					};
 				result = await collection.Find(u => u.Email == request.Email).FirstOrDefaultAsync();
@@ -454,27 +453,24 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				}
 			};
 
-		var user = new GrpcUser[]
+		var user = new GrpcUser
 		{
-			new()
-			{
-				Id = string.IsNullOrEmpty(result.Id) ? "" : result.Id,
-				Name = string.IsNullOrEmpty(result.Name) ? "" : result.Name,
-				Surname = string.IsNullOrEmpty(result.Surname) ? "" : result.Surname,
-				Email = string.IsNullOrEmpty(result.Email) ? "" : result.Email,
-				RoleId = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
-				IsBlocked = result.IsBlocked,
-				IsFaEnabled = result.IsFaEnable,
-				Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
-				Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-				PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
-				Chats = { result.ChatIds ?? new[] { "" } }
-			}
+			Id = string.IsNullOrEmpty(result.Id) ? "" : result.Id,
+			Name = string.IsNullOrEmpty(result.Name) ? "" : result.Name,
+			Surname = string.IsNullOrEmpty(result.Surname) ? "" : result.Surname,
+			Email = string.IsNullOrEmpty(result.Email) ? "" : result.Email,
+			RoleId = string.IsNullOrEmpty(result.RoleId) ? "" : result.RoleId,
+			IsBlocked = result.IsBlocked,
+			IsFaEnabled = result.IsFaEnable,
+			Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
+			Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
+			PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
+			Chats = { result.ChatIds ?? new[] { "" } }
 		};
 
 		return new GrpcUserResult
 		{
-			User = { user },
+			User = user,
 			Status = new Result
 			{
 				Status = Status.Ok
@@ -489,12 +485,22 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	/// <param name="context">current context</param>
 	/// <returns>contains all the users fetched with the necessary info and a status code</returns>
 	[AuthenticationRequired]
-	public override async Task<GrpcUserResult> FetchAllUsers(Empty request, ServerCallContext context)
+	public override async Task<GrpcUserResults> FetchAllUsers(Empty request, ServerCallContext context)
 	{
 		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		var result = await collection.FindSync(_ => true).ToListAsync();
 		var users = new GrpcUser[result.Count];
+
+		if (result.Count == 0)
+			return new GrpcUserResults
+			{
+				Status = new Result
+				{
+					Status = Status.Error,
+					Error = "No user found"
+				}
+			};
 
 		for (var i = 0; i < result.Count; i++)
 			users[i] = new GrpcUser
@@ -512,7 +518,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				Chats = { result[i].ChatIds ?? new[] { "" } }
 			};
 
-		return new GrpcUserResult
+		return new GrpcUserResults
 		{
 			User = { users },
 			Status = new Result
@@ -606,11 +612,10 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		try
 		{
 			var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt)
-				.Set(u => u.NeedsProvisioning,
-					true) //TODO non credo serva il provisioning :: si serve, se ci ragioni capisci il perche'
+				.Set(u => u.NeedsProvisioning, true) //TODO non credo serva il rpovisioning
 				.Push(u => u.PasswordHistory, currentPassword);
 
-			if (user.PasswordHistory!.Count >= _redBoxApplicationSettings.PasswordHistorySize)
+			if (user.PasswordHistory!.Count >= _redBoxSettings.PasswordHistorySize)
 				await collection.UpdateOneAsync(filter, Builders<User>.Update.PopFirst(u => u.PasswordHistory));
 
 			await collection.UpdateOneAsync(filter, update);
@@ -634,7 +639,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	public override async Task<Result> UserPasswordChange(PasswordChange request, ServerCallContext context)
 	{
 		var user = context.GetUser();
-		var oldPasswordStatus = CurrentPasswordCheck(request.OldPassword, user.Id).Result;
+		var oldPasswordStatus = OldPasswordVerify(request.OldPassword, user.Id).Result;
 		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 
 		if (oldPasswordStatus.HasError) return oldPasswordStatus;
@@ -671,7 +676,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt)
 			.Push(u => u.PasswordHistory, currentPassword);
 
-		if (user.PasswordHistory!.Count >= _redBoxApplicationSettings.PasswordHistorySize)
+		if (user.PasswordHistory!.Count >= _redBoxSettings.PasswordHistorySize)
 			await collection.UpdateOneAsync(filter, Builders<User>.Update.PopFirst(u => u.PasswordHistory));
 
 		// Update password hash and history
@@ -704,7 +709,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			       old.Password.SequenceEqual(_passwordUtility.HashPassword(newPassword, old.Salt))));
 	}
 
-	private async Task<Result> CurrentPasswordCheck(string password, string id)
+	private async Task<Result> OldPasswordVerify(string oldPassword, string id)
 	{
 		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 		var filter = Builders<User>.Filter.Eq(user => user.Id, id);
@@ -723,7 +728,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			};
 		}
 
-		if (_passwordUtility.VerifyPassword(password, user.Salt, user.PasswordHash))
+		if (_passwordUtility.VerifyPassword(oldPassword, user.Salt, user.PasswordHash))
 			return new Result
 			{
 				Status = Status.Ok

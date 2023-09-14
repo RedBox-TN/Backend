@@ -8,5 +8,4 @@ public interface IRedBoxEmailUtility
 	public Task SendAdminPasswordChangedAsync(string address, string password, string username);
 
 	public Task SendPasswordChangedAsync(string address, string username);
-	//TODO send notification email on password change from logged user
 }

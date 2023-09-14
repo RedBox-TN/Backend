@@ -1,4 +1,5 @@
 using RedBox.Email_utility;
+using RedBox.PermissionUtility;
 using RedBox.Providers;
 using RedBox.Services;
 using RedBox.Settings;
@@ -14,6 +15,7 @@ builder.Services.Configure<RedBoxApplicationSettings>(settings);
 builder.Services.Configure<RedBoxEmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
 builder.Services.AddSingleton<IRedBoxEmailUtility, RedBoxEmailUtility>();
+builder.Services.AddSingleton<IPermissionUtility, PermissionUtility>();
 builder.Services.AddSingleton<IClientsRegistryProvider, ClientsRegistryProvider>();
 
 builder.AddRedBoxAuthenticationAndAuthorization();
@@ -29,6 +31,7 @@ var app = builder.Build();
 
 app.MapGrpcService<UserService>();
 app.MapGrpcService<AdminService>();
+app.MapGrpcService<RoleService>();
 app.MapGrpcService<ConversationService>();
 
 app.UseRedBoxAuthenticationAndAuthorization();
