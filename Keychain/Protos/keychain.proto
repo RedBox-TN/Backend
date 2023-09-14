@@ -6,7 +6,7 @@ option csharp_namespace = "keychain";
 
 import "google/protobuf/empty.proto";
 
-import "Shared.proto";
+import "shared.proto";
 
 /*
   Message describing the main aes key which is used to encrypt all other keys

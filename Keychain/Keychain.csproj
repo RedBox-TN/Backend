@@ -17,15 +17,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\Keychain.proto" GrpcServices="Server" AdditionalImportDirs="..\Shared\Protos\"
-                  AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
-        <Protobuf Include="..\Shared\Protos\Shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
+        <Protobuf Include="Protos\keychain.proto" GrpcServices="Server" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
+        <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.55.0"/>
-        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.55.0"/>
-        <PackageReference Include="Grpc.Tools" Version="2.57.0">
+        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0"/>
+        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.57.0"/>
+        <PackageReference Include="Grpc.Tools" Version="2.58.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
