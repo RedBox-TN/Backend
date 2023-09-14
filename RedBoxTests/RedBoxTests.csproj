@@ -10,15 +10,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Protobuf" Version="3.24.1"/>
-        <PackageReference Include="Google.Protobuf.Tools" Version="3.24.1"/>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.55.0"/>
-        <PackageReference Include="Grpc.Net.Client" Version="2.55.0"/>
-        <PackageReference Include="Grpc.Tools" Version="2.57.0">
+        <PackageReference Include="Google.Protobuf" Version="3.24.3"/>
+        <PackageReference Include="Google.Protobuf.Tools" Version="3.24.3"/>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0"/>
+        <PackageReference Include="Grpc.Net.Client" Version="2.57.0"/>
+        <PackageReference Include="Grpc.Tools" Version="2.58.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.1"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2"/>
         <PackageReference Include="xunit" Version="2.5.0"/>
         <PackageReference Include="Xunit.Priority" Version="1.1.6"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="2.5.0">
@@ -32,9 +32,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="..\Keychain\Protos\Keychain.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
-        <Protobuf Include="..\RedBoxAuth\Protos\Authentication.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
-        <Protobuf Include="..\Shared\Protos\Shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
+        <Protobuf Include="..\Keychain\Protos\keychain.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
+        <Protobuf Include="..\RedBoxAuth\Protos\authentication.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
+        <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
     <ItemGroup>

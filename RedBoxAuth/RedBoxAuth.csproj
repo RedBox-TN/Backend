@@ -18,8 +18,8 @@
 
     <ItemGroup>
         <PackageReference Include="GoogleAuthenticator" Version="3.1.0"/>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.55.0"/>
-        <PackageReference Include="Grpc.Tools" Version="2.57.0">
+        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0"/>
+        <PackageReference Include="Grpc.Tools" Version="2.58.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -33,8 +33,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\Authentication.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
-        <Protobuf Include="..\Shared\Protos\Shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
+        <Protobuf Include="Protos\authentication.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
+        <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
     <ItemGroup>

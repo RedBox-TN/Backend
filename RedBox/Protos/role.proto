@@ -6,7 +6,7 @@ option csharp_namespace = "RedBoxServices";
 
 import "google/protobuf/empty.proto";
 
-import "Shared.proto";
+import "shared.proto";
 
 message GrpcRole {
   optional string id = 1; // optional | not used on creation
