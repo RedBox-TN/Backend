@@ -7,42 +7,42 @@ option csharp_namespace = "RedBoxServices";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-import "Shared.proto";
+import "shared.proto";
 
 /*
   Basic messages that maps classes or used in other message definitions
 */
 
-message Attachment {
+message GrpcAttachment {
   optional string id = 1;
   string name = 2;
   optional bytes data = 3;
 }
 
-message Message {
+message GrpcMessage {
   optional string id = 1;
   google.protobuf.Timestamp timestamp = 2;
   bytes iv = 3;
   optional bool to_read = 4;
   optional bytes encrypted_text = 5;
   optional string sender_id = 6;
-  optional Attachment attachment = 7;
+  repeated GrpcAttachment attachments = 7;
 }
 
-message Chat {
+message GrpcChat {
   string id = 1;
   string other_user = 2;
   google.protobuf.Timestamp created_at = 3;
-  repeated Message messages = 4;
+  repeated GrpcMessage messages = 4;
 }
 
-message Group {
+message GrpcGroup {
   string id = 1;
   string name = 2;
   repeated string members = 3;
   repeated string admins = 4;
   google.protobuf.Timestamp created_at = 5;
-  repeated Message messages = 6;
+  repeated GrpcMessage messages = 6;
   string pic_id = 7;
 }
 
@@ -55,7 +55,7 @@ message Collection {
 
 message MessageOfCollection {
   Collection collection = 1;
-  Message message = 2;
+  GrpcMessage message = 2;
 }
 
 /*
@@ -95,50 +95,52 @@ message AttachmentRequest {
 // returns a chat containing messages in bucket 0
 message ChatResponse {
   shared.Result result = 1;
-  Chat chat = 2;
+  GrpcChat chat = 2;
 }
 
 // returns multiple chats with only the latest messages, other messages are retrieved in background
 message ChatsResponse {
   shared.Result result = 1;
-  repeated Chat chats = 2;
+  repeated GrpcChat chats = 2;
 }
 
 // returns a group containing messages in bucket 0
 message GroupResponse {
   shared.Result result = 1;
-  Group group = 2;
+  GrpcGroup group = 2;
 }
 
 // returns multiple groups with only the latest messages, other messages are retrieved in background
 message GroupsResponse {
   shared.Result result = 1;
-  repeated Group groups = 2;
+  repeated GrpcGroup groups = 2;
 }
 
 // returns message in the requested bucket
 message BucketResponse {
   shared.Result result = 1;
-  repeated Message messages = 2;
+  repeated GrpcMessage messages = 2;
 }
 
 /*
   Sync messages
 */
+
 message ClientUpdate {
   oneof operation {
-    MessageOfCollection message_sent = 1;
+    MessageOfCollection sent_message = 1;
     DeleteMessagesRequest deleted_messages = 2;
     Collection collection_to_read = 3;
   }
 }
 
 message ServerUpdate {
-  shared.Result result = 1;
+  optional shared.Result result = 1;
   oneof operation {
     MessageOfCollection received_message = 2;
-    Chat new_chat = 3;
-    Group new_group = 4;
+    GrpcChat new_chat = 3;
+    GrpcGroup new_group = 4;
+    google.protobuf.Empty empty = 5;
   }
 }
 
@@ -152,6 +154,6 @@ service GrpcConversationServices {
   rpc GetAllUserOwnChats (google.protobuf.Empty) returns (ChatsResponse);
 
   rpc GetMessagesInRange (BucketRequest) returns (BucketResponse);
-  rpc GetAttachment (AttachmentRequest) returns (Attachment);
+  rpc GetAttachment (AttachmentRequest) returns (GrpcAttachment);
   rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
 }

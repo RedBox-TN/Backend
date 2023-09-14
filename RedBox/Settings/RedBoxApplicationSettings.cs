@@ -1,6 +1,6 @@
 namespace RedBox.Settings;
 
-public class RedBoxSettings
+public class RedBoxApplicationSettings
 {
 	public int PasswordHistorySize { get; set; } = 3;
 	public int MaxMessageSizeMb { get; set; } = 4;

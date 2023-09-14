@@ -6,7 +6,7 @@ option csharp_namespace = "RedBoxAuthentication";
 
 import "google/protobuf/empty.proto";
 
-import "Shared.proto";
+import "shared.proto";
 
 enum LoginStatus {
   INVALID_CREDENTIALS = 0;

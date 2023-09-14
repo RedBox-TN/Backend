@@ -14,6 +14,4 @@ public class Chat
 
 	[BsonRepresentation(BsonType.DateTime)]
 	public DateTime? CreatedAt { get; set; } = null!;
-
-	[BsonIgnore] public Message[]? Messages { get; set; } = null!;
 }
