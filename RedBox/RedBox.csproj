@@ -7,6 +7,7 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
@@ -20,16 +21,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.56.0"/>
-        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.56.0"/>
-        <PackageReference Include="Grpc.Tools" Version="2.57.0">
+        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0"/>
+        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.57.0"/>
+        <PackageReference Include="Grpc.Tools" Version="2.58.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Handlebars.Net" Version="2.1.4"/>
-        <PackageReference Include="MailKit" Version="4.1.0"/>
-        <PackageReference Include="MimeKit" Version="4.1.0"/>
+        <PackageReference Include="MailKit" Version="4.2.0"/>
+        <PackageReference Include="MimeKit" Version="4.2.0"/>
         <PackageReference Include="MongoDB.Driver" Version="2.21.0"/>
+        <PackageReference Include="MongoDB.Driver.GridFS" Version="2.21.0"/>
         <PackageReference Include="StackExchange.Redis" Version="2.6.122"/>
     </ItemGroup>
 
@@ -38,9 +40,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos\User.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
-        <Protobuf Include="Protos\Conversation.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
-        <Protobuf Include="..\Shared\Protos\Shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
+        <Protobuf Include="Protos\user.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
+        <Protobuf Include="Protos\conversation.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
+        <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
 

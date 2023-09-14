@@ -28,13 +28,13 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	private readonly AccountDatabaseSettings _databaseSettings;
 	private readonly IEncryptionUtility _encryptionUtility;
 	private readonly IPasswordUtility _passwordUtility;
+	private readonly RedBoxApplicationSettings _redBoxApplicationSettings;
 	private readonly IRedBoxEmailUtility _redBoxEmailUtility;
-	private readonly RedBoxSettings _redBoxSettings;
 	private readonly ITotpUtility _totpUtility;
 
 	public UserService(IOptions<AccountDatabaseSettings> options, IPasswordUtility passwordUtility,
 		ITotpUtility totpUtility, IRedBoxEmailUtility redBoxEmailUtility, IEncryptionUtility encryptionUtility,
-		IOptions<CommonEmailSettings> commonEmailSettings, IOptions<RedBoxSettings> redBoxSettings)
+		IOptions<CommonEmailSettings> commonEmailSettings, IOptions<RedBoxApplicationSettings> redBoxSettings)
 	{
 		_databaseSettings = options.Value;
 		var mongodbClient = new MongoClient(options.Value.ConnectionString);
@@ -43,7 +43,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		_totpUtility = totpUtility;
 		_redBoxEmailUtility = redBoxEmailUtility;
 		_encryptionUtility = encryptionUtility;
-		_redBoxSettings = redBoxSettings.Value;
+		_redBoxApplicationSettings = redBoxSettings.Value;
 		_commonEmailSettings = commonEmailSettings.Value;
 	}
 
@@ -610,7 +610,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 					true) //TODO non credo serva il provisioning :: si serve, se ci ragioni capisci il perche'
 				.Push(u => u.PasswordHistory, currentPassword);
 
-			if (user.PasswordHistory!.Count >= _redBoxSettings.PasswordHistorySize)
+			if (user.PasswordHistory!.Count >= _redBoxApplicationSettings.PasswordHistorySize)
 				await collection.UpdateOneAsync(filter, Builders<User>.Update.PopFirst(u => u.PasswordHistory));
 
 			await collection.UpdateOneAsync(filter, update);
@@ -671,7 +671,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt)
 			.Push(u => u.PasswordHistory, currentPassword);
 
-		if (user.PasswordHistory!.Count >= _redBoxSettings.PasswordHistorySize)
+		if (user.PasswordHistory!.Count >= _redBoxApplicationSettings.PasswordHistorySize)
 			await collection.UpdateOneAsync(filter, Builders<User>.Update.PopFirst(u => u.PasswordHistory));
 
 		// Update password hash and history

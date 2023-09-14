@@ -11,6 +11,8 @@ enum Status {
   OK = 0;
   ERROR = 1;
   MISSING_PARAMETERS = 2;
+  MESSAGE_TOO_BIG = 3;
+  INVALID_PARAMETER = 4;
 }
 /*
   Represents the result of the required operation, if an error occurred then the exception message is returned
