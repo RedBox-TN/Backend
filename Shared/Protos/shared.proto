@@ -11,7 +11,7 @@ enum Status {
   OK = 0;
   ERROR = 1;
   MISSING_PARAMETERS = 2;
-  MESSAGE_TOO_BIG = 3;
+  ATTACHMENT_TOO_BIG = 3;
   INVALID_PARAMETER = 4;
 }
 /*
