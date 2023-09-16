@@ -47,9 +47,10 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			switch (requestStream.Current.OperationCase)
 			{
 				case ClientUpdate.OperationOneofCase.SentMessage:
-					await NewMessage(requestStream.Current.SentMessage, userId, responseStream);
+					await NewMessage(requestStream.Current.SentMessage, responseStream, userId);
 					break;
 				case ClientUpdate.OperationOneofCase.DeletedMessages:
+					await DeleteMessages(requestStream.Current.DeletedMessages, responseStream, userId);
 					break;
 				case ClientUpdate.OperationOneofCase.CollectionToRead:
 					break;
@@ -60,7 +61,8 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		} while (await requestStream.MoveNext());
 	}
 
-	private async Task NewMessage(MessageOfCollection msgColl, string userId, IAsyncStreamWriter<ServerUpdate> response)
+	private async Task NewMessage(MessageOfCollection msgColl,
+		IServerStreamWriter<ServerUpdate> response, string userId)
 	{
 		if ((string.IsNullOrEmpty(msgColl.Collection.Chat) && string.IsNullOrEmpty(msgColl.Collection.Group)) ||
 		    (msgColl.Message.EncryptedText.IsEmpty && msgColl.Message.Attachments.Count == 0) ||
@@ -101,22 +103,6 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			return;
 		}
 
-		if (await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-			    .GetCollection<Chat>(_dbSettings.ChatDetailsCollection).Find(c => c.Id == msgColl.Collection.Chat)
-			    .CountDocumentsAsync() == 0 && await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-			    .GetCollection<Group>(_dbSettings.GroupDetailsCollection).Find(g => g.Id == msgColl.Collection.Group)
-			    .CountDocumentsAsync() == 0)
-		{
-			await response.WriteAsync(new ServerUpdate
-			{
-				Result = new Result
-				{
-					Status = Status.InvalidParameter,
-					Error = "Invalid collection "
-				}
-			});
-			return;
-		}
 
 		foreach (var attachment in msgColl.Message.Attachments)
 		{
@@ -138,7 +124,7 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			{
 				Result = new Result
 				{
-					Status = Status.MessageTooBig,
+					Status = Status.AttachmentTooBig,
 					Error = $"{attachment.Name} was too big"
 				}
 			});
@@ -202,6 +188,7 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			});
 
 			await session.AbortTransactionAsync();
+			return;
 		}
 
 		msgColl.Message.Id = dbMessage.Id;
@@ -216,20 +203,106 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		};
 
 		if (msgColl.Collection.HasChat)
-		{
-			var otherUserId =
-				_mongoClient.GetDatabase(_dbSettings.DatabaseName)
-					.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-					.Find(c => c.Id == msgColl.Collection.Chat).First().MembersIds!.First(i => i != userId);
-			await _clientsRegistry.NotifyOneAsync(otherUserId, update);
-		}
+			await _clientsRegistry.NotifyOneAsync(GetOtherChatUser(msgColl.Collection.Chat, userId), update);
 		else
+			await _clientsRegistry.NotifyMultiAsync(GetGroupMembers(msgColl.Collection.Group, userId), update);
+	}
+
+	private async Task DeleteMessages(DeleteMessagesRequest request, IServerStreamWriter<ServerUpdate> response,
+		string userId)
+	{
+		if ((string.IsNullOrEmpty(request.Collection.Chat) && string.IsNullOrEmpty(request.Collection.Group)) ||
+		    request.MessageIds.Count == 0)
 		{
-			var usersIds =
-				_mongoClient.GetDatabase(_dbSettings.DatabaseName)
-					.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
-					.Find(g => g.Id == msgColl.Collection.Group).First().MembersIds!.Where(i => i != userId);
-			await _clientsRegistry.NotifyMultiAsync(usersIds, update);
+			await response.WriteAsync(new ServerUpdate
+			{
+				Result = new Result
+				{
+					Status = Status.MissingParameters,
+					Error = "Each request must contains at least one message id and the collection in which it belongs"
+				}
+			});
+			return;
 		}
+
+		var chat = _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(request.Collection.Chat);
+		var group = _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
+			.GetCollection<Message>(request.Collection.Group);
+
+		try
+		{
+			if (request.Collection.HasChat)
+				await chat.UpdateManyAsync(Builders<Message>.Filter.In(m => m.Id, request.MessageIds),
+					Builders<Message>.Update.Set(m => m.UserDeleted, true));
+			else
+				await group.UpdateManyAsync(Builders<Message>.Filter.In(m => m.Id, request.MessageIds),
+					Builders<Message>.Update.Set(m => m.UserDeleted, true));
+		}
+		catch (MongoException e)
+		{
+			await response.WriteAsync(new ServerUpdate
+			{
+				Result = new Result
+				{
+					Status = Status.Error,
+					Error = e.Message
+				}
+			});
+			return;
+		}
+
+		if (request.Collection.HasChat)
+			await _clientsRegistry.NotifyOneAsync(GetOtherChatUser(request.Collection.Chat, userId),
+				new ServerUpdate
+				{
+					Result = new Result
+					{
+						Status = Status.Ok
+					},
+					DeletedMessages = new DeleteMessagesRequest
+					{
+						Collection = new Collection
+						{
+							Chat = request.Collection.Chat
+						}
+					}
+				});
+		else
+			await _clientsRegistry.NotifyMultiAsync(GetGroupMembers(request.Collection.Group, userId), new ServerUpdate
+			{
+				Result = new Result
+				{
+					Status = Status.Ok
+				},
+				DeletedMessages = new DeleteMessagesRequest
+				{
+					Collection = new Collection
+					{
+						Chat = request.Collection.Chat
+					}
+				}
+			});
+
+		await response.WriteAsync(new ServerUpdate
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			}
+		});
+	}
+
+	private IEnumerable<string> GetGroupMembers(string collectionId, string userId)
+	{
+		return _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Group>(_dbSettings.GroupDetailsCollection).Find(g => g.Id == collectionId).First()
+			.MembersIds!
+			.Where(i => i != userId);
+	}
+
+	private string GetOtherChatUser(string collectionId, string userId)
+	{
+		return _mongoClient.GetDatabase(_dbSettings.DatabaseName).GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+			.Find(c => c.Id == collectionId).First().MembersIds!.First(i => i != userId);
 	}
 }

@@ -140,7 +140,7 @@ message ServerUpdate {
     MessageOfCollection received_message = 2;
     GrpcChat new_chat = 3;
     GrpcGroup new_group = 4;
-    google.protobuf.Empty empty = 5;
+    DeleteMessagesRequest deleted_messages = 5;
   }
 }
 

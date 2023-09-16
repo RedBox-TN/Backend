@@ -22,7 +22,7 @@ public sealed class Message
 	[BsonRepresentation(BsonType.DateTime)]
 	public DateTime? Timestamp { get; set; } = null!;
 
-	public byte DeleteFlag { get; set; } = 0;
+	[BsonIgnoreIfDefault] public bool? UserDeleted { get; set; } = false;
 
 	[BsonIgnoreIfDefault] public bool? ToRead { get; set; } = true;
 }
