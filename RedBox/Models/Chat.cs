@@ -13,5 +13,5 @@ public class Chat
 	public string[]? MembersIds { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.DateTime)]
-	public DateTime? CreatedAt { get; set; } = null!;
+	public DateTime CreatedAt { get; set; }
 }
