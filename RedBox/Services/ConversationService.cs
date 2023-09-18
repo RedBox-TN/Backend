@@ -107,7 +107,40 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 
 	public override async Task<GroupsResponse> GetAllUserGroups(Empty request, ServerCallContext context)
 	{
-		return await base.GetAllUserGroups(request, context);
+		var ids = context.GetUser().GroupIds;
+		if (ids.Length == 0)
+			return new GroupsResponse
+			{
+				Result = new Result
+				{
+					Status = Status.Ok
+				}
+			};
+
+		var found = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Group>(_dbSettings.GroupDetailsCollection).Find(Builders<Group>.Filter.In(g => g.Id, ids))
+			.ToListAsync();
+
+		var result = new GrpcGroup[found.Count];
+		for (var i = 0; i < found.Count; i++)
+			result[i] = new GrpcGroup
+			{
+				Id = found[i].Id,
+				Name = found[i].Name,
+				Admins = { found[i].AdminsIds },
+				Members = { found[i].MembersIds },
+				CreatedAt = Timestamp.FromDateTime(found[i].CreatedAt),
+				Messages = { await GetMessageFromCollection(found[i].Id!, isGroup: true) }
+			};
+
+		return new GroupsResponse
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Groups = { result }
+		};
 	}
 
 	public override async Task<GroupResponse> CreateGroup(GroupCreationRequest request, ServerCallContext context)
@@ -145,14 +178,14 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 	{
 		return _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 			.GetCollection<Group>(_dbSettings.GroupDetailsCollection).Find(g => g.Id == collectionId).First()
-			.MembersIds!
+			.MembersIds
 			.Where(i => i != userId);
 	}
 
 	private string GetOtherChatUser(string collectionId, string userId)
 	{
 		return _mongoClient.GetDatabase(_dbSettings.DatabaseName).GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-			.Find(c => c.Id == collectionId).First().MembersIds!.First(i => i != userId);
+			.Find(c => c.Id == collectionId).First().MembersIds.First(i => i != userId);
 	}
 
 	private async Task<GrpcMessage[]> GetChatMessagesAsync(string chatId, int chunk = 0)
@@ -505,7 +538,7 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			{
 				var chat = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 					.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-					.Find(g => g.Id == request.Chat && g.MembersIds!.Contains(userId)).FirstAsync();
+					.Find(g => g.Id == request.Chat && g.MembersIds.Contains(userId)).FirstAsync();
 
 				update.Chat = new GrpcChat
 				{
@@ -519,7 +552,7 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			{
 				var group = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 					.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
-					.Find(g => g.Id == request.Group && g.MembersIds!.Contains(userId)).FirstAsync();
+					.Find(g => g.Id == request.Group && g.MembersIds.Contains(userId)).FirstAsync();
 
 				update.Group = new GrpcGroup
 				{
@@ -560,5 +593,32 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		return await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 			.GetCollection<Group>(_dbSettings.ChatDetailsCollection)
 			.Find(c => c.Id == chatId && c.MembersIds.Contains(userId)).CountDocumentsAsync() > 0;
+	}
+
+	private async Task<GrpcMessage?> GetMessageFromCollection(string collectionId, string? messageId = null,
+		bool isGroup = false)
+	{
+		var collection = isGroup
+			? _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).GetCollection<Message>(collectionId)
+			: _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(collectionId);
+
+		Message? found;
+		if (messageId is not null)
+			found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstAsync();
+		else
+			found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstAsync();
+
+		if (found is null) return null;
+
+		return new GrpcMessage
+		{
+			Id = found.Id,
+			Timestamp = Timestamp.FromDateTime(found.Timestamp),
+			EncryptedText = ByteString.CopyFrom(found.EncryptedText),
+			Iv = ByteString.CopyFrom(found.Iv),
+			ToRead = found.ToRead,
+			SenderId = found.SenderId,
+			Attachments = { ToGrpcAttachments(found.Attachments) }
+		};
 	}
 }
