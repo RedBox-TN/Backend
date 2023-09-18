@@ -47,8 +47,7 @@ public partial class ConversationService
 			var indexes = new CreateIndexModel<Message>[]
 			{
 				new(Builders<Message>.IndexKeys.Descending(m => m.Timestamp)),
-				new(Builders<Message>.IndexKeys.Ascending(m => m.UserDeleted)),
-				new(Builders<Message>.IndexKeys.Ascending(m => m.ToRead))
+				new(Builders<Message>.IndexKeys.Ascending(m => m.UserDeleted))
 			};
 			await collection.Indexes.CreateManyAsync(indexes);
 
@@ -179,7 +178,6 @@ public partial class ConversationService
 				Timestamp = Timestamp.FromDateTime(found[i].Timestamp),
 				EncryptedText = ByteString.CopyFrom(found[i].EncryptedText),
 				Iv = ByteString.CopyFrom(found[i].Iv),
-				ToRead = found[i].ToRead,
 				SenderId = found[i].SenderId,
 				Attachments = { ToGrpcAttachments(found[i].Attachments) }
 			};

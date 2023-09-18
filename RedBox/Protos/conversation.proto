@@ -23,10 +23,9 @@ message GrpcMessage {
   optional string id = 1;
   google.protobuf.Timestamp timestamp = 2;
   bytes iv = 3;
-  optional bool to_read = 4;
-  optional bytes encrypted_text = 5;
-  optional string sender_id = 6;
-  repeated GrpcAttachment attachments = 7;
+  optional bytes encrypted_text = 4;
+  optional string sender_id = 5;
+  repeated GrpcAttachment attachments = 6;
 }
 
 message GrpcChat {

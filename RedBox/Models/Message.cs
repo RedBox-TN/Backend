@@ -23,5 +23,4 @@ public sealed class Message
 	public DateTime Timestamp { get; set; }
 
 	public bool UserDeleted { get; set; } = false;
-	public bool ToRead { get; set; } = true;
 }
