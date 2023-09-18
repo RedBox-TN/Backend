@@ -33,7 +33,6 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		_mongoClient = new MongoClient(_dbSettings.ConnectionString);
 	}
 
-	[AuthenticationRequired]
 	public override async Task Sync(IAsyncStreamReader<ClientUpdate> requestStream,
 		IServerStreamWriter<ServerUpdate> responseStream, ServerCallContext context)
 	{
@@ -44,7 +43,7 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			switch (requestStream.Current.OperationCase)
 			{
 				case ClientUpdate.OperationOneofCase.SentMessage:
-					await NewMessage(requestStream.Current.SentMessage, responseStream, userId);
+					await SendMessage(requestStream.Current.SentMessage, responseStream, userId);
 					break;
 				case ClientUpdate.OperationOneofCase.DeletedMessages:
 					await DeleteMessages(requestStream.Current.DeletedMessages, responseStream, userId);
@@ -60,7 +59,164 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		_clientsRegistry.Remove(userId);
 	}
 
-	private async Task NewMessage(MessageOfCollection msgColl,
+	public override async Task<GroupResponse> GetUserGroupFromId(IdMessage request, ServerCallContext context)
+	{
+		if (string.IsNullOrEmpty(request.Id))
+			return new GroupResponse
+			{
+				Result = new Result
+				{
+					Status = Status.MissingParameters,
+					Error = "Request must contains an id of a valid group"
+				}
+			};
+
+		var groupsDetails = _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Group>(_dbSettings.GroupDetailsCollection);
+		var found = await groupsDetails.Find(g => g.Id == request.Id && g.MembersIds.Contains(context.GetUser().Id))
+			.FirstAsync();
+
+		if (found is null)
+			return new GroupResponse
+			{
+				Result = new Result
+				{
+					Status = Status.InvalidParameter,
+					Error = "Invalid id"
+				}
+			};
+
+		var messages = await GetGroupMessagesAsync(request.Id);
+		return new GroupResponse
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Group = new GrpcGroup
+			{
+				Id = found.Id,
+				CreatedAt = Timestamp.FromDateTime(found.CreatedAt),
+				Name = found.Name,
+				Admins = { found.AdminsIds },
+				Members = { found.MembersIds },
+				Messages = { messages }
+			}
+		};
+	}
+
+	public override async Task<GroupsResponse> GetAllUserGroups(Empty request, ServerCallContext context)
+	{
+		return await base.GetAllUserGroups(request, context);
+	}
+
+	public override async Task<GroupResponse> CreateGroup(GroupCreationRequest request, ServerCallContext context)
+	{
+		return await base.CreateGroup(request, context);
+	}
+
+	public override async Task<ChatResponse> CreateChat(IdMessage request, ServerCallContext context)
+	{
+		return await base.CreateChat(request, context);
+	}
+
+	public override async Task<ChatResponse> GetChatFromId(IdMessage request, ServerCallContext context)
+	{
+		return await base.GetChatFromId(request, context);
+	}
+
+	public override async Task<ChatsResponse> GetAllUserOwnChats(Empty request, ServerCallContext context)
+	{
+		return await base.GetAllUserOwnChats(request, context);
+	}
+
+	public override async Task<BucketResponse> GetMessagesInRange(MessageChunkRequest request,
+		ServerCallContext context)
+	{
+		return await base.GetMessagesInRange(request, context);
+	}
+
+	public override async Task<GrpcAttachment> GetAttachment(AttachmentRequest request, ServerCallContext context)
+	{
+		return await base.GetAttachment(request, context);
+	}
+
+	private IEnumerable<string> GetGroupMembers(string collectionId, string userId)
+	{
+		return _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Group>(_dbSettings.GroupDetailsCollection).Find(g => g.Id == collectionId).First()
+			.MembersIds!
+			.Where(i => i != userId);
+	}
+
+	private string GetOtherChatUser(string collectionId, string userId)
+	{
+		return _mongoClient.GetDatabase(_dbSettings.DatabaseName).GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+			.Find(c => c.Id == collectionId).First().MembersIds!.First(i => i != userId);
+	}
+
+	private async Task<GrpcMessage[]> GetChatMessagesAsync(string chatId, int chunk = 0)
+	{
+		var found = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(chatId)
+			.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp)
+			.Skip(chunk * _appSettings.MsgRetrieveChunkSize)
+			.Limit(_appSettings.MsgRetrieveChunkSize).ToListAsync();
+
+		var messages = new GrpcMessage[found.Count];
+		for (var i = 0; i < found.Count; i++)
+			messages[i] = new GrpcMessage
+			{
+				Id = found[i].Id,
+				Timestamp = Timestamp.FromDateTime(found[i].Timestamp),
+				EncryptedText = ByteString.CopyFrom(found[i].EncryptedText),
+				Iv = ByteString.CopyFrom(found[i].Iv),
+				ToRead = found[i].ToRead,
+				SenderId = found[i].SenderId,
+				Attachments = { ToGrpcAttachments(found[i].Attachments) }
+			};
+
+		return messages;
+	}
+
+	private async Task<GrpcMessage[]> GetGroupMessagesAsync(string groupId, int chunk = 0)
+	{
+		var found = await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).GetCollection<Message>(groupId)
+			.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp)
+			.Skip(chunk * _appSettings.MsgRetrieveChunkSize)
+			.Limit(_appSettings.MsgRetrieveChunkSize).ToListAsync();
+
+		var messages = new GrpcMessage[found.Count];
+		for (var i = 0; i < found.Count; i++)
+			messages[i] = new GrpcMessage
+			{
+				Id = found[i].Id,
+				Timestamp = Timestamp.FromDateTime(found[i].Timestamp),
+				EncryptedText = ByteString.CopyFrom(found[i].EncryptedText),
+				Iv = ByteString.CopyFrom(found[i].Iv),
+				ToRead = found[i].ToRead,
+				SenderId = found[i].SenderId,
+				Attachments = { ToGrpcAttachments(found[i].Attachments) }
+			};
+
+		return messages;
+	}
+
+	private GrpcAttachment[] ToGrpcAttachments(Attachment[]? attachments)
+	{
+		if (attachments is null) return Array.Empty<GrpcAttachment>();
+
+		var result = new GrpcAttachment[attachments.Length];
+		for (var i = 0; i < attachments.Length; i++)
+			result[i] = new GrpcAttachment
+			{
+				Id = attachments[i].Id,
+				Name = attachments[i].Name
+			};
+
+		return result;
+	}
+
+	private async Task SendMessage(MessageOfCollection msgColl,
 		IServerStreamWriter<ServerUpdate> response, string userId)
 	{
 		if ((string.IsNullOrEmpty(msgColl.Collection.Chat) && string.IsNullOrEmpty(msgColl.Collection.Group)) ||
@@ -74,6 +230,21 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 					Status = Status.MissingParameters,
 					Error =
 						"Each message must contain one collection, an iv and at least some text or one attachment"
+				}
+			});
+			return;
+		}
+
+		if ((msgColl.Collection.HasChat && !await IsInChatAsync(userId, msgColl.Collection.Chat)) ||
+		    !await IsInGroupAsync(userId, msgColl.Collection.Group))
+		{
+			await response.WriteAsync(new ServerUpdate
+			{
+				Result = new Result
+				{
+					Status = Status.InvalidParameter,
+					Error =
+						"Invalid collection name"
 				}
 			});
 			return;
@@ -101,7 +272,6 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 			});
 			return;
 		}
-
 
 		foreach (var attachment in msgColl.Message.Attachments)
 		{
@@ -133,6 +303,7 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		using var session = await _mongoClient.StartSessionAsync();
 		try
 		{
+			session.StartTransaction();
 			if (msgColl.Message.Attachments.Count > 0)
 			{
 				var bucket = new GridFSBucket(_mongoClient.GetDatabase(_dbSettings.GridFsDatabase),
@@ -144,7 +315,6 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 
 				dbMessage.Attachments = new Attachment[msgColl.Message.Attachments.Count];
 
-				session.StartTransaction();
 				for (var i = 0; i < msgColl.Message.Attachments.Count; i++)
 					unsafe
 					{
@@ -378,78 +548,17 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		await response.WriteAsync(update);
 	}
 
-	private IEnumerable<string> GetGroupMembers(string collectionId, string userId)
+	private async Task<bool> IsInGroupAsync(string userId, string groupId)
 	{
-		return _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-			.GetCollection<Group>(_dbSettings.GroupDetailsCollection).Find(g => g.Id == collectionId).First()
-			.MembersIds!
-			.Where(i => i != userId);
+		return await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
+			.Find(g => g.Id == groupId && g.MembersIds.Contains(userId)).CountDocumentsAsync() > 0;
 	}
 
-	private string GetOtherChatUser(string collectionId, string userId)
+	private async Task<bool> IsInChatAsync(string userId, string chatId)
 	{
-		return _mongoClient.GetDatabase(_dbSettings.DatabaseName).GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-			.Find(c => c.Id == collectionId).First().MembersIds!.First(i => i != userId);
-	}
-
-	private async Task<GrpcMessage[]> GetChatMessagesAsync(string chatId, int chunk = 0)
-	{
-		var found = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(chatId)
-			.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp)
-			.Skip(chunk * _appSettings.MsgRetrieveChunkSize)
-			.Limit(_appSettings.MsgRetrieveChunkSize).ToListAsync();
-
-		var messages = new GrpcMessage[found.Count];
-		for (var i = 0; i < found.Count; i++)
-			messages[i] = new GrpcMessage
-			{
-				Id = found[i].Id,
-				Timestamp = Timestamp.FromDateTime(found[i].Timestamp),
-				EncryptedText = ByteString.CopyFrom(found[i].EncryptedText),
-				Iv = ByteString.CopyFrom(found[i].Iv),
-				ToRead = found[i].ToRead,
-				SenderId = found[i].SenderId,
-				Attachments = { ToGrpcAttachments(found[i].Attachments) }
-			};
-
-		return messages;
-	}
-
-	private async Task<GrpcMessage[]> GetGroupMessagesAsync(string groupId, int chunk = 0)
-	{
-		var found = await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).GetCollection<Message>(groupId)
-			.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp)
-			.Skip(chunk * _appSettings.MsgRetrieveChunkSize)
-			.Limit(_appSettings.MsgRetrieveChunkSize).ToListAsync();
-
-		var messages = new GrpcMessage[found.Count];
-		for (var i = 0; i < found.Count; i++)
-			messages[i] = new GrpcMessage
-			{
-				Id = found[i].Id,
-				Timestamp = Timestamp.FromDateTime(found[i].Timestamp),
-				EncryptedText = ByteString.CopyFrom(found[i].EncryptedText),
-				Iv = ByteString.CopyFrom(found[i].Iv),
-				ToRead = found[i].ToRead,
-				SenderId = found[i].SenderId,
-				Attachments = { ToGrpcAttachments(found[i].Attachments) }
-			};
-
-		return messages;
-	}
-
-	private static GrpcAttachment[] ToGrpcAttachments(Attachment[]? attachments)
-	{
-		if (attachments is null) return Array.Empty<GrpcAttachment>();
-
-		var result = new GrpcAttachment[attachments.Length];
-		for (var i = 0; i < attachments.Length; i++)
-			result[i] = new GrpcAttachment
-			{
-				Id = attachments[i].Id,
-				Name = attachments[i].Name
-			};
-
-		return result;
+		return await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Group>(_dbSettings.ChatDetailsCollection)
+			.Find(c => c.Id == chatId && c.MembersIds.Contains(userId)).CountDocumentsAsync() > 0;
 	}
 }
