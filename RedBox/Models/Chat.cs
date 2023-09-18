@@ -10,7 +10,7 @@ public class Chat
 	public string? Id { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string[]? MembersIds { get; set; } = null!;
+	public string[] MembersIds { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.DateTime)]
 	public DateTime CreatedAt { get; set; }
