@@ -148,10 +148,9 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		};
 	}
 
+	[PermissionsRequired(DefaultPermissions.CreateGroups)]
 	public override async Task<GroupResponse> CreateGroup(GroupCreationRequest request, ServerCallContext context)
 	{
-		//todo controlli
-
 		string groupId;
 		Timestamp timestamp;
 		string[] members;
@@ -234,9 +233,88 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 		};
 	}
 
+	[PermissionsRequired(DefaultPermissions.CreateChats)]
 	public override async Task<ChatResponse> CreateChat(IdMessage request, ServerCallContext context)
 	{
-		return await base.CreateChat(request, context);
+		using var session = await _mongoClient.StartSessionAsync();
+		var userId = context.GetUser().Id;
+		string chatId;
+		string[] members;
+		Timestamp timestamp;
+
+		try
+		{
+			await session.AbortTransactionAsync();
+
+			members = new[] { userId, request.Id };
+			var chatDetail = new Chat
+			{
+				CreatedAt = DateTime.Now,
+				MembersIds = members
+			};
+
+			await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+				.GetCollection<Chat>(_dbSettings.ChatDetailsCollection).InsertOneAsync(chatDetail);
+
+			chatId = chatDetail.Id!;
+			timestamp = Timestamp.FromDateTime(chatDetail.CreatedAt);
+
+			await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).CreateCollectionAsync(chatId);
+
+			var collection = _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
+				.GetCollection<Message>(chatId);
+			var indexes = new CreateIndexModel<Message>[]
+			{
+				new(Builders<Message>.IndexKeys.Descending(m => m.Timestamp)),
+				new(Builders<Message>.IndexKeys.Ascending(m => m.UserDeleted)),
+				new(Builders<Message>.IndexKeys.Ascending(m => m.ToRead))
+			};
+			await collection.Indexes.CreateManyAsync(indexes);
+
+			var userCollection = _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
+				.GetCollection<User>(_userDbSettings.UsersCollection);
+
+			await userCollection.UpdateManyAsync(Builders<User>.Filter.In(u => u.Id, members),
+				Builders<User>.Update.Push(u => u.ChatIds, chatId));
+
+			await session.CommitTransactionAsync();
+		}
+		catch (MongoException e)
+		{
+			return new ChatResponse
+			{
+				Result = new Result
+				{
+					Status = Status.Error,
+					Error = e.Message
+				}
+			};
+		}
+
+		var chat = new GrpcChat
+		{
+			Id = chatId,
+			CreatedAt = timestamp,
+			Members = { members }
+		};
+
+		await _clientsRegistry.NotifyOneAsync(request.Id, new ServerUpdate
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Chat = chat
+		});
+
+		return new ChatResponse
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Chat = chat
+		};
 	}
 
 	public override async Task<ChatResponse> GetChatFromId(IdMessage request, ServerCallContext context)
