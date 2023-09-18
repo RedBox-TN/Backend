@@ -9,8 +9,10 @@ using RedBox.Providers;
 using RedBox.Settings;
 using RedBoxAuth;
 using RedBoxAuth.Authorization;
+using RedBoxAuth.Settings;
 using RedBoxServices;
 using Shared;
+using Shared.Models;
 using Status = Shared.Status;
 
 namespace RedBox.Services;
@@ -22,11 +24,14 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 	private readonly IClientsRegistryProvider _clientsRegistry;
 	private readonly RedBoxDatabaseSettings _dbSettings;
 	private readonly IMongoClient _mongoClient;
+	private readonly AccountDatabaseSettings _userDbSettings;
 
 	public ConversationService(IOptions<RedBoxDatabaseSettings> dbSettings,
-		IOptions<RedBoxApplicationSettings> appSettings, IClientsRegistryProvider clientsRegistry)
+		IOptions<RedBoxApplicationSettings> appSettings, IClientsRegistryProvider clientsRegistry,
+		IOptions<AccountDatabaseSettings> userDbSettings)
 	{
 		_clientsRegistry = clientsRegistry;
+		_userDbSettings = userDbSettings.Value;
 		_dbSettings = dbSettings.Value;
 		_appSettings = appSettings.Value;
 
@@ -145,7 +150,88 @@ public class ConversationService : GrpcConversationServices.GrpcConversationServ
 
 	public override async Task<GroupResponse> CreateGroup(GroupCreationRequest request, ServerCallContext context)
 	{
-		return await base.CreateGroup(request, context);
+		//todo controlli
+
+		string groupId;
+		Timestamp timestamp;
+		string[] members;
+
+		using var session = await _mongoClient.StartSessionAsync();
+		try
+		{
+			members = request.Members.ToArray();
+			var groupDetails = new Group
+			{
+				Name = request.Name,
+				CreatedAt = DateTime.Now,
+				AdminsIds = request.Admins.ToArray(),
+				MembersIds = members
+			};
+
+			session.StartTransaction();
+			await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+				.GetCollection<Group>(_dbSettings.GroupDetailsCollection).InsertOneAsync(groupDetails);
+
+			groupId = groupDetails.Id!;
+			timestamp = Timestamp.FromDateTime(groupDetails.CreatedAt);
+
+			await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).CreateCollectionAsync(groupDetails.Id);
+			var collection = _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
+				.GetCollection<Message>(groupDetails.Id);
+			var indexes = new CreateIndexModel<Message>[]
+			{
+				new(Builders<Message>.IndexKeys.Descending(m => m.Timestamp)),
+				new(Builders<Message>.IndexKeys.Ascending(m => m.UserDeleted))
+			};
+			await collection.Indexes.CreateManyAsync(indexes);
+
+			var userCollection = _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
+				.GetCollection<User>(_userDbSettings.UsersCollection);
+
+			await userCollection.UpdateManyAsync(Builders<User>.Filter.In(u => u.Id, request.Members),
+				Builders<User>.Update.Push(u => u.GroupIds, groupDetails.Id));
+
+			await session.CommitTransactionAsync();
+		}
+		catch (MongoException e)
+		{
+			await session.AbortTransactionAsync();
+			return new GroupResponse
+			{
+				Result = new Result
+				{
+					Status = Status.Error,
+					Error = e.Message
+				}
+			};
+		}
+
+		var group = new GrpcGroup
+		{
+			Id = groupId,
+			Name = request.Name,
+			CreatedAt = timestamp,
+			Members = { request.Members },
+			Admins = { request.Admins }
+		};
+
+		await _clientsRegistry.NotifyMultiAsync(members.Where(i => i != context.GetUser().Id), new ServerUpdate
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Group = group
+		});
+
+		return new GroupResponse
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Group = group
+		};
 	}
 
 	public override async Task<ChatResponse> CreateChat(IdMessage request, ServerCallContext context)
