@@ -2,6 +2,7 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 using RedBox.Models;
@@ -100,9 +101,28 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		};
 	}
 
-	public override async Task<GrpcAttachment> GetAttachment(AttachmentRequest request, ServerCallContext context)
+	public override async Task<GrpcAttachment> GetAttachmentData(AttachmentRequest request, ServerCallContext context)
 	{
-		return await base.GetAttachment(request, context);
+		var bucket = new GridFSBucket(_mongoClient.GetDatabase(_dbSettings.GridFsDatabase),
+			new GridFSBucketOptions
+			{
+				BucketName = request.BucketName,
+				ChunkSizeBytes = _dbSettings.GridFsChunkSizeBytes
+			});
+
+		var fileMetadata =
+			await (await bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(f => f.Id, new ObjectId(request.FileId))))
+				.FirstAsync();
+
+		return new GrpcAttachment
+		{
+			Id = request.FileId,
+			Name = fileMetadata.Filename,
+			Data = ByteString.CopyFrom(await bucket.DownloadAsBytesAsync(fileMetadata.Id, new GridFSDownloadOptions
+			{
+				CheckMD5 = false
+			}))
+		};
 	}
 
 	private static IEnumerable<GrpcAttachment> ToGrpcAttachments(Attachment[]? attachments)
