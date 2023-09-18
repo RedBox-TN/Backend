@@ -422,7 +422,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		await response.WriteAsync(update);
 	}
 	
-	private async Task<GrpcMessage?> GetMessageFromCollection(string collectionId, string? messageId = null,
+	private async Task<GrpcMessage?> GetMessageFromCollectionAsync(string collectionId, string? messageId = null,
 		bool isGroup = false)
 	{
 		var collection = isGroup

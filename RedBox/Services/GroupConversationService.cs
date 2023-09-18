@@ -85,7 +85,7 @@ public partial class ConversationService
 				Admins = { found[i].AdminsIds },
 				Members = { found[i].MembersIds },
 				CreatedAt = Timestamp.FromDateTime(found[i].CreatedAt),
-				Messages = { await GetMessageFromCollection(found[i].Id!, isGroup: true) }
+				Messages = { await GetMessageFromCollectionAsync(found[i].Id!, isGroup: true) }
 			};
 
 		return new GroupsResponse

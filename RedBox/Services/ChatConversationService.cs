@@ -133,7 +133,29 @@ public partial class ConversationService
 
 	public override async Task<ChatsResponse> GetAllUserOwnChats(Empty request, ServerCallContext context)
 	{
-		return await base.GetAllUserOwnChats(request, context);
+		var user = context.GetUser();
+		var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+			.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
+
+		var result = new GrpcChat[chats.Count];
+		for (var i = 0; i < chats.Count; i++)
+			result[i] = new GrpcChat
+			{
+				Id = chats[i].Id,
+				CreatedAt = Timestamp.FromDateTime(chats[i].CreatedAt),
+				Members = { chats[i].MembersIds },
+				Messages = { await GetMessageFromCollectionAsync(chats[i].Id!) }
+			};
+
+		return new ChatsResponse
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Chats = { result }
+		};
 	}
 
 	private string GetOtherChatUser(string collectionId, string userId)
