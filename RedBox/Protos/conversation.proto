@@ -151,6 +151,6 @@ service GrpcConversationServices {
   rpc GetAllUserOwnChats (google.protobuf.Empty) returns (ChatsResponse);
 
   rpc GetMessagesInRange (MessageChunkRequest) returns (BucketResponse);
-  rpc GetAttachment (AttachmentRequest) returns (GrpcAttachment);
+  rpc GetAttachmentData (AttachmentRequest) returns (GrpcAttachment);
   rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
 }
