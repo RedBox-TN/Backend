@@ -12,7 +12,6 @@ using RedBoxAuth.Authorization;
 using RedBoxAuth.Settings;
 using RedBoxServices;
 using Shared;
-using Shared.Models;
 using Status = Shared.Status;
 
 namespace RedBox.Services;
@@ -63,19 +62,50 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 
 		_clientsRegistry.Remove(userId);
 	}
-	
+
 	public override async Task<BucketResponse> GetMessagesInRange(MessageChunkRequest request,
 		ServerCallContext context)
 	{
-		return await base.GetMessagesInRange(request, context);
+		List<Message> messages;
+		if (request.Collection.HasChat)
+			messages = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
+				.GetCollection<Message>(request.Collection.Chat).Find(_ => true)
+				.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
+				.ToListAsync();
+		else
+			messages = await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
+				.GetCollection<Message>(request.Collection.Group).Find(_ => true)
+				.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
+				.ToListAsync();
+
+		var result = new GrpcMessage[messages.Count];
+		for (var i = 0; i < messages.Count; i++)
+			result[i] = new GrpcMessage
+			{
+				Id = messages[i].Id,
+				Timestamp = Timestamp.FromDateTime(messages[i].Timestamp),
+				SenderId = messages[i].SenderId,
+				EncryptedText = ByteString.CopyFrom(messages[i].EncryptedText),
+				Iv = ByteString.CopyFrom(messages[i].Iv),
+				Attachments = { ToGrpcAttachments(messages[i].Attachments) }
+			};
+
+		return new BucketResponse
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Messages = { result }
+		};
 	}
 
 	public override async Task<GrpcAttachment> GetAttachment(AttachmentRequest request, ServerCallContext context)
 	{
 		return await base.GetAttachment(request, context);
 	}
-	
-	private GrpcAttachment[] ToGrpcAttachments(Attachment[]? attachments)
+
+	private static IEnumerable<GrpcAttachment> ToGrpcAttachments(Attachment[]? attachments)
 	{
 		if (attachments is null) return Array.Empty<GrpcAttachment>();
 
@@ -91,7 +121,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 	}
 
 	private async Task SendMessage(MessageOfCollection msgColl,
-		IServerStreamWriter<ServerUpdate> response, string userId)
+		IAsyncStreamWriter<ServerUpdate> response, string userId)
 	{
 		if ((string.IsNullOrEmpty(msgColl.Collection.Chat) && string.IsNullOrEmpty(msgColl.Collection.Group)) ||
 		    (msgColl.Message.EncryptedText.IsEmpty && msgColl.Message.Attachments.Count == 0) ||
@@ -127,7 +157,6 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		var dbMessage = new Message
 		{
 			SenderId = userId,
-			ToRead = true,
 			Iv = msgColl.Message.Iv.ToByteArray(),
 			Timestamp = DateTime.Now
 		};
@@ -260,7 +289,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		}
 	}
 
-	private async Task DeleteMessages(DeleteMessagesRequest request, IServerStreamWriter<ServerUpdate> response,
+	private async Task DeleteMessages(DeleteMessagesRequest request, IAsyncStreamWriter<ServerUpdate> response,
 		string userId)
 	{
 		if ((string.IsNullOrEmpty(request.Collection.Chat) && string.IsNullOrEmpty(request.Collection.Group)) ||
@@ -421,7 +450,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 
 		await response.WriteAsync(update);
 	}
-	
+
 	private async Task<GrpcMessage?> GetMessageFromCollectionAsync(string collectionId, string? messageId = null,
 		bool isGroup = false)
 	{
@@ -443,7 +472,6 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			Timestamp = Timestamp.FromDateTime(found.Timestamp),
 			EncryptedText = ByteString.CopyFrom(found.EncryptedText),
 			Iv = ByteString.CopyFrom(found.Iv),
-			ToRead = found.ToRead,
 			SenderId = found.SenderId,
 			Attachments = { ToGrpcAttachments(found.Attachments) }
 		};

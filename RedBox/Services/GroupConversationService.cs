@@ -206,7 +206,6 @@ public partial class ConversationService
 				Timestamp = Timestamp.FromDateTime(found[i].Timestamp),
 				EncryptedText = ByteString.CopyFrom(found[i].EncryptedText),
 				Iv = ByteString.CopyFrom(found[i].Iv),
-				ToRead = found[i].ToRead,
 				SenderId = found[i].SenderId,
 				Attachments = { ToGrpcAttachments(found[i].Attachments) }
 			};
