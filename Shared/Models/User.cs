@@ -37,6 +37,5 @@ public partial class User
 	public string Name { get; set; } = null!;
 	[BsonIgnore] public bool IsAuthenticated { get; set; }
 	public string Biography { get; set; } = null!;
-	public string PathToPic { get; set; } = null!;
 	[BsonIgnoreIfDefault] public bool NeedsProvisioning { get; set; } = false;
 }

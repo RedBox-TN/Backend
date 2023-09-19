@@ -56,6 +56,15 @@ message MessageOfCollection {
   GrpcMessage message = 2;
 }
 
+// represent basic info about a user
+message UserInfo {
+  string id = 1;
+  string username = 2;
+  string name = 3;
+  string surname = 4;
+  string email = 5;
+}
+
 /*
   Request messages
 */
@@ -119,6 +128,11 @@ message BucketResponse {
   repeated GrpcMessage messages = 2;
 }
 
+// returns users data needed to create a new group or chat
+message AvailableUsersResponse {
+  repeated UserInfo users = 1;
+}
+
 /*
   Sync messages
 */
@@ -150,6 +164,8 @@ service GrpcConversationServices {
   rpc GetChatFromId (shared.IdMessage) returns (ChatResponse);
   rpc GetAllUserOwnChats (google.protobuf.Empty) returns (ChatsResponse);
 
+  rpc GetUsersForConversation(google.protobuf.Empty) returns (AvailableUsersResponse);
+  
   rpc GetMessagesInRange (MessageChunkRequest) returns (BucketResponse);
   rpc GetAttachmentData (AttachmentRequest) returns (GrpcAttachment);
   rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
