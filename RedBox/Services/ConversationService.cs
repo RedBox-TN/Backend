@@ -223,10 +223,37 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			return;
 		}
 
+		var update = new ServerUpdate
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			}
+		};
 		using var session = await _mongoClient.StartSessionAsync();
 		try
 		{
 			session.StartTransaction();
+
+			if (msgColl.Collection.HasChat)
+			{
+				var chat = _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
+					.GetCollection<Message>(msgColl.Collection.Chat);
+				await chat.InsertOneAsync(dbMessage);
+
+				msgColl.Message.Id = dbMessage.Id;
+				update.ReceivedMessage = msgColl;
+			}
+			else
+			{
+				var group = _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
+					.GetCollection<Message>(msgColl.Collection.Group);
+				await group.InsertOneAsync(dbMessage);
+
+				msgColl.Message.Id = dbMessage.Id;
+				update.ReceivedMessage = msgColl;
+			}
+
 			if (msgColl.Message.Attachments.Count > 0)
 			{
 				var bucket = new GridFSBucket(_mongoClient.GetDatabase(_dbSettings.GridFsDatabase),
@@ -239,60 +266,20 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				dbMessage.Attachments = new Attachment[msgColl.Message.Attachments.Count];
 
 				for (var i = 0; i < msgColl.Message.Attachments.Count; i++)
-					unsafe
-					{
-						using var memory = msgColl.Message.Attachments[i].Data.Memory.Pin();
-						using var stream = new UnmanagedMemoryStream((byte*)memory.Pointer,
-							msgColl.Message.Attachments[i].Data.Length);
-						var attachmentId = bucket.UploadFromStream(msgColl.Message.Attachments[i].Name, stream);
-
-						var id = attachmentId.ToString()!;
-						dbMessage.Attachments[i].Id = id;
-						dbMessage.Attachments[i].Name = msgColl.Message.Attachments[i].Name;
-
-						msgColl.Message.Attachments[i].Id = id;
-						msgColl.Message.Attachments[i].ClearData();
-					}
-			}
-
-			if (msgColl.Collection.HasChat)
-			{
-				var chat = _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
-					.GetCollection<Message>(msgColl.Collection.Chat);
-				await chat.InsertOneAsync(dbMessage);
-				await session.CommitTransactionAsync();
-
-				msgColl.Message.Id = dbMessage.Id;
-				var update = new ServerUpdate
 				{
-					Result = new Result
-					{
-						Status = Status.Ok
-					},
-					ReceivedMessage = msgColl
-				};
+					var attachmentId = await bucket.UploadFromBytesAsync(msgColl.Message.Attachments[i].Name,
+						msgColl.Message.Attachments[i].ToByteArray());
 
-				await _clientsRegistry.NotifyOneAsync(GetOtherChatUser(msgColl.Collection.Chat, userId), update);
+					var id = attachmentId.ToString()!;
+					dbMessage.Attachments[i].Id = id;
+					dbMessage.Attachments[i].Name = msgColl.Message.Attachments[i].Name;
+
+					msgColl.Message.Attachments[i].Id = id;
+					msgColl.Message.Attachments[i].ClearData();
+				}
 			}
-			else
-			{
-				var group = _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
-					.GetCollection<Message>(msgColl.Collection.Group);
-				await group.InsertOneAsync(dbMessage);
-				await session.CommitTransactionAsync();
 
-				msgColl.Message.Id = dbMessage.Id;
-				var update = new ServerUpdate
-				{
-					Result = new Result
-					{
-						Status = Status.Ok
-					},
-					ReceivedMessage = msgColl
-				};
-
-				await _clientsRegistry.NotifyMultiAsync(GetGroupMembers(msgColl.Collection.Group, userId), update);
-			}
+			await session.CommitTransactionAsync();
 		}
 		catch (MongoException e)
 		{
@@ -307,6 +294,11 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 
 			await session.AbortTransactionAsync();
 		}
+
+		if (msgColl.Collection.HasChat)
+			await _clientsRegistry.NotifyOneAsync(GetOtherChatUser(msgColl.Collection.Chat, userId), update);
+		else
+			await _clientsRegistry.NotifyMultiAsync(GetGroupMembers(msgColl.Collection.Group, userId), update);
 	}
 
 	private async Task DeleteMessages(DeleteMessagesRequest request, IAsyncStreamWriter<ServerUpdate> response,
