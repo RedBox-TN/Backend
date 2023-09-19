@@ -71,11 +71,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		if (MyRegex().IsMatch(request.Email))
 			await _redBoxEmailUtility.SendEmailChangedAsync(request.Email.Normalize(), request.Id,
 				user.Username.Normalize());
-
-		// Path to profile pic modification
-		if (!string.IsNullOrEmpty(request.PathToPic))
-			updates.Add(update.Set(user1 => user1.PathToPic, request.PathToPic));
-
+		
 		// Biography modification
 		if (!string.IsNullOrEmpty(request.Biography))
 			updates.Add(update.Set(user1 => user1.Biography, request.Biography));
@@ -464,8 +460,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			IsFaEnabled = result.IsFaEnable,
 			Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
 			Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-			PathToPic = string.IsNullOrEmpty(result.PathToPic) ? "" : result.PathToPic,
-			Chats = { result.ChatIds ?? new[] { "" } }
+			Chats = { result.ChatIds }
 		};
 
 		return new GrpcUserResult
@@ -514,8 +509,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				IsFaEnabled = result[i].IsFaEnable,
 				Username = string.IsNullOrEmpty(result[i].Username) ? "" : result[i].Username,
 				Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography,
-				PathToPic = string.IsNullOrEmpty(result[i].PathToPic) ? "" : result[i].PathToPic,
-				Chats = { result[i].ChatIds ?? new[] { "" } }
+				Chats = { result[i].ChatIds }
 			};
 
 		return new GrpcUserResults

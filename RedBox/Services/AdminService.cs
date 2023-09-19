@@ -198,10 +198,6 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 		// RoleId modification, assume RoleId is correct
 		if (!string.IsNullOrEmpty(request.RoleId)) updates.Add(update.Set(user1 => user1.RoleId, request.RoleId));
 
-		// Path to profile image modification
-		if (!string.IsNullOrEmpty(request.PathToPic))
-			updates.Add(update.Set(user1 => user1.PathToPic, request.PathToPic));
-
 		// FA enabling or disabling
 		if (request.HasIsFaEnabled)
 		{

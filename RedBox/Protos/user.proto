@@ -20,8 +20,7 @@ message GrpcUser {
   repeated string removed_chats = 11;
   repeated string added_chats = 12;
   string biography = 13;
-  string path_to_pic = 14;
-  repeated string chats = 15;
+  repeated string chats = 14;
 }
 
 message GrpcUserFetch {
@@ -79,7 +78,7 @@ service GrpcUserServices {
   rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
   rpc FinalizeEmailChange (StringRequest) returns (shared.Result);
   rpc FAStateChange (Grpc2FAChange) returns (Grpc2faResult);
-  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult); 
+  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult);
   rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResults);
   rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
   rpc UserPasswordChange (PasswordChange) returns (shared.Result);
