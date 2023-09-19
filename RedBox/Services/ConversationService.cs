@@ -13,6 +13,7 @@ using RedBoxAuth.Authorization;
 using RedBoxAuth.Settings;
 using RedBoxServices;
 using Shared;
+using Shared.Models;
 using Status = Shared.Status;
 
 namespace RedBox.Services;
@@ -122,6 +123,51 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				CheckMD5 = false
 			}))
+		};
+	}
+
+	[PermissionsRequired(DefaultPermissions.CreateChats)]
+	public override async Task<AvailableUsersResponse> GetUsersForConversation(Empty request, ServerCallContext context)
+	{
+		var user = context.GetUser();
+		var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+			.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+			.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
+
+		var excluded = chats.Select(c => c.MembersIds.First(u => u != user.Id));
+
+		var found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
+			.GetCollection<User>(_userDbSettings.UsersCollection)
+			.Find(Builders<User>.Filter.Not(Builders<User>.Filter.In(u => u.Id, excluded))).ToListAsync();
+
+		if (found.Count == 0)
+			return new AvailableUsersResponse
+			{
+				Result = new Result
+				{
+					Status = Status.Ok
+				},
+				Users = { Array.Empty<UserInfo>() }
+			};
+
+		var users = new UserInfo[found.Count];
+		for (var i = 0; i < found.Count; i++)
+			users[i] = new UserInfo
+			{
+				Id = found[i].Id,
+				Name = found[i].Name,
+				Surname = found[i].Surname,
+				Email = found[i].Email,
+				Username = found[i].Username
+			};
+
+		return new AvailableUsersResponse
+		{
+			Result = new Result
+			{
+				Status = Status.Ok
+			},
+			Users = { users }
 		};
 	}
 

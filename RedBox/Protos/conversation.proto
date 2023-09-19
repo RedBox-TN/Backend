@@ -130,7 +130,8 @@ message BucketResponse {
 
 // returns users data needed to create a new group or chat
 message AvailableUsersResponse {
-  repeated UserInfo users = 1;
+  shared.Result result = 1;
+  repeated UserInfo users = 2;
 }
 
 /*

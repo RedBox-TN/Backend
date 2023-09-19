@@ -248,7 +248,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 	/// <param name="request">user with ID and new block value</param>
 	/// <param name="context">current context</param>
 	/// <returns>Status code and message of operation</returns>
-	[PermissionsRequired(DefaultPermissions.BlockUsers)]
+	[PermissionsRequired(DefaultPermissions.BlockUsersLogin)]
 	public override async Task<Result> BlockStateChange(GrpcUser request, ServerCallContext context)
 	{
 		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
