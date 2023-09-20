@@ -67,18 +67,15 @@ public class SupervisedChatService : GrpcSupervisedChatService.GrpcSupervisedCha
     [PermissionsRequired(DefaultPermissions.DeleteSupervisedChat)]
     public override async Task<Result> DeleteSupervisedChat(IdMessage request, ServerCallContext context)
     {
-        var chatDb = _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-            .GetCollection<GrpcChat>(_dbSettings.ChatDetailsCollection);
-
-        var result = await chatDb.Find(c => c.Id == request.Id).FirstOrDefaultAsync();
-
-        // problema, manca il campo delete, quindi non posso controllarlo
-
-        await chatDb.DeleteOneAsync(c => c.Id == request.Id);
-
-        var messageDb = _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-            .GetCollection<Message>(result.Id);
-
+        var chats = _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(request.Id);
+        if (await chats.CountDocumentsAsync(_ => true) == await chats.CountDocumentsAsync(m => m.UserDeleted))
+            await chats.DeleteManyAsync(_ => true);
+        else
+            return new Result
+            {
+                Status = Status.Error,
+                Error = "chat not completely deleted"
+            };
         return new Result
         {
             Status = Status.Ok
@@ -88,11 +85,10 @@ public class SupervisedChatService : GrpcSupervisedChatService.GrpcSupervisedCha
     private async Task<GrpcMessage[]> GetChatMessagesAsync(string chatId, int chunk = 0)
     {
         var found = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(chatId)
-            .Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp)
+            .Find(_ => true).SortByDescending(m => m.Timestamp)
             .Skip(chunk * _appSettings.MsgRetrieveChunkSize)
             .Limit(_appSettings.MsgRetrieveChunkSize).ToListAsync();
 
-        // TODO manca il check del deleted (se cancellato non è da fetchare)
         var messages = new GrpcMessage[found.Count];
         for (var i = 0; i < found.Count; i++)
             messages[i] = new GrpcMessage
