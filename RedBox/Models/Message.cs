@@ -17,12 +17,10 @@ public sealed class Message
 
 	[BsonIgnoreIfNull]
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string[]? AttachmentIds { get; set; } = null!;
+	public Attachment[]? Attachments { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.DateTime)]
-	public DateTime? Timestamp { get; set; } = null!;
+	public DateTime Timestamp { get; set; }
 
-	public byte DeleteFlag { get; set; } = 0;
-
-	[BsonIgnoreIfDefault] public bool? ToRead { get; set; } = true;
+	public bool UserDeleted { get; set; } = false;
 }

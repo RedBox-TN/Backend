@@ -9,11 +9,9 @@ namespace RedBoxTests.Authentication;
 public class Authentication
 {
 	private readonly AuthenticationGrpcService.AuthenticationGrpcServiceClient _client;
-	private readonly ITestOutputHelper _testOutputHelper;
 
-	public Authentication(ITestOutputHelper testOutputHelper)
+	public Authentication()
 	{
-		_testOutputHelper = testOutputHelper;
 		var channel = GrpcChannel.ForAddress(Common.RedBoxServerAddress);
 		_client = new AuthenticationGrpcService.AuthenticationGrpcServiceClient(channel);
 	}
