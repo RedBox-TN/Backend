@@ -22,9 +22,9 @@ builder.AddRedBoxAuthenticationAndAuthorization();
 
 builder.Services.AddGrpc(options =>
 {
-	options.MaxReceiveMessageSize =
-		(settings.GetValue<int>("MaxAttachmentSizeMb") * (settings.GetValue<int>("MaxAttachmentsPerMsg") + 1) +
-		 settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
+    options.MaxReceiveMessageSize =
+        (settings.GetValue<int>("MaxAttachmentSizeMb") * (settings.GetValue<int>("MaxAttachmentsPerMsg") + 1) +
+         settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
 });
 
 var app = builder.Build();
@@ -33,6 +33,7 @@ app.MapGrpcService<UserService>();
 app.MapGrpcService<AdminService>();
 app.MapGrpcService<RoleService>();
 app.MapGrpcService<ConversationService>();
+app.MapGrpcService<SupervisedChatService>();
 
 app.UseRedBoxAuthenticationAndAuthorization();
 
