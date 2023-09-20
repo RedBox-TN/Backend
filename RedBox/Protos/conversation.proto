@@ -19,6 +19,7 @@ message GrpcAttachment {
   optional bytes data = 3;
 }
 
+// TODO manca il deleted (utente visualizza messaggio cancellato)
 message GrpcMessage {
   optional string id = 1;
   google.protobuf.Timestamp timestamp = 2;
@@ -170,4 +171,9 @@ service GrpcConversationServices {
   rpc GetMessagesInRange (MessageChunkRequest) returns (BucketResponse);
   rpc GetAttachmentData (AttachmentRequest) returns (GrpcAttachment);
   rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
+}
+
+service GrpcSupervisedChatService {
+  rpc GetSupervisedChat (shared.IdMessage) returns (ChatResponse);
+  rpc DeleteSupervisedChat (shared.IdMessage) returns (shared.Result);
 }
