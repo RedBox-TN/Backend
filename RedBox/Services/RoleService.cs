@@ -2,6 +2,7 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using RedBox.Permission_Utility;
 using RedBox.PermissionUtility;
 using RedBoxAuth.Authorization;
 using RedBoxAuth.Settings;
