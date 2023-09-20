@@ -24,13 +24,10 @@ public partial class User
 	[BsonIgnore] public ulong SecurityHash { get; set; }
 	[MemoryPackIgnore] public DateTime LastAccess { get; set; }
 
-	[BsonRepresentation(BsonType.String)]
-	[BsonIgnoreIfNull]
-	public string[]? ChatIds { get; set; } = null!;
+	[BsonRepresentation(BsonType.String)] public string[] ChatIds { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.ObjectId)]
-	[BsonIgnoreIfNull]
-	public string[]? GroupIds { get; set; } = null!;
+	public string[] GroupIds { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.ObjectId)]
 	[MemoryPackIgnore]
@@ -40,6 +37,5 @@ public partial class User
 	public string Name { get; set; } = null!;
 	[BsonIgnore] public bool IsAuthenticated { get; set; }
 	public string Biography { get; set; } = null!;
-	public string PathToPic { get; set; } = null!;
 	[BsonIgnoreIfDefault] public bool NeedsProvisioning { get; set; } = false;
 }

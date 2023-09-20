@@ -23,15 +23,14 @@ message GrpcMessage {
   optional string id = 1;
   google.protobuf.Timestamp timestamp = 2;
   bytes iv = 3;
-  optional bool to_read = 4;
-  optional bytes encrypted_text = 5;
-  optional string sender_id = 6;
-  repeated GrpcAttachment attachments = 7;
+  optional bytes encrypted_text = 4;
+  optional string sender_id = 5;
+  repeated GrpcAttachment attachments = 6;
 }
 
 message GrpcChat {
   string id = 1;
-  string other_user = 2;
+  repeated string members = 2;
   google.protobuf.Timestamp created_at = 3;
   repeated GrpcMessage messages = 4;
 }
@@ -43,7 +42,6 @@ message GrpcGroup {
   repeated string admins = 4;
   google.protobuf.Timestamp created_at = 5;
   repeated GrpcMessage messages = 6;
-  string pic_id = 7;
 }
 
 message Collection {
@@ -58,22 +56,30 @@ message MessageOfCollection {
   GrpcMessage message = 2;
 }
 
+// represent basic info about a user
+message UserInfo {
+  string id = 1;
+  string username = 2;
+  string name = 3;
+  string surname = 4;
+  string email = 5;
+}
+
 /*
   Request messages
 */
 
 // requests the creations of a group
 message GroupCreationRequest {
-  string group_name = 1;
+  string name = 1;
   repeated string members = 2;
   repeated string admins = 3;
-  bytes pic = 4;
 }
 
 // requests messages from a specific collection in chunk, size is decided server side
-message BucketRequest {
+message MessageChunkRequest {
   Collection collection = 1;
-  int32 next_chunk = 2;
+  int32 chunk = 2;
 }
 
 // requests to mark one or more message as deleted for current user
@@ -122,6 +128,12 @@ message BucketResponse {
   repeated GrpcMessage messages = 2;
 }
 
+// returns users data needed to create a new group or chat
+message AvailableUsersResponse {
+  shared.Result result = 1;
+  repeated UserInfo users = 2;
+}
+
 /*
   Sync messages
 */
@@ -130,7 +142,7 @@ message ClientUpdate {
   oneof operation {
     MessageOfCollection sent_message = 1;
     DeleteMessagesRequest deleted_messages = 2;
-    Collection collection_to_read = 3;
+    Collection get_collection_details = 3;
   }
 }
 
@@ -138,9 +150,9 @@ message ServerUpdate {
   optional shared.Result result = 1;
   oneof operation {
     MessageOfCollection received_message = 2;
-    GrpcChat new_chat = 3;
-    GrpcGroup new_group = 4;
-    google.protobuf.Empty empty = 5;
+    GrpcChat chat = 3;
+    GrpcGroup group = 4;
+    DeleteMessagesRequest deleted_messages = 5;
   }
 }
 
@@ -153,7 +165,9 @@ service GrpcConversationServices {
   rpc GetChatFromId (shared.IdMessage) returns (ChatResponse);
   rpc GetAllUserOwnChats (google.protobuf.Empty) returns (ChatsResponse);
 
-  rpc GetMessagesInRange (BucketRequest) returns (BucketResponse);
-  rpc GetAttachment (AttachmentRequest) returns (GrpcAttachment);
+  rpc GetUsersForConversation(google.protobuf.Empty) returns (AvailableUsersResponse);
+  
+  rpc GetMessagesInRange (MessageChunkRequest) returns (BucketResponse);
+  rpc GetAttachmentData (AttachmentRequest) returns (GrpcAttachment);
   rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
 }

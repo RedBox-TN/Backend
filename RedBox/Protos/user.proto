@@ -20,8 +20,7 @@ message GrpcUser {
   repeated string removed_chats = 11;
   repeated string added_chats = 12;
   string biography = 13;
-  string path_to_pic = 14;
-  repeated string chats = 15;
+  repeated string chats = 14;
 }
 
 message GrpcUserFetch {

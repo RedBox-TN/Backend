@@ -34,6 +34,7 @@
     <ItemGroup>
         <Protobuf Include="..\Keychain\Protos\keychain.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
         <Protobuf Include="..\RedBoxAuth\Protos\authentication.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
+        <Protobuf Include="..\RedBox\Protos\conversation.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
         <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
@@ -42,5 +43,6 @@
             <HintPath>..\..\..\..\.nuget\packages\mongodb.bson\2.19.1\lib\netstandard2.1\MongoDB.Bson.dll</HintPath>
         </Reference>
     </ItemGroup>
+
 
 </Project>

@@ -15,12 +15,10 @@ public class UserKeyCreationServiceTest
 	private readonly GrpcKeychainServices.GrpcKeychainServicesClient
 		_client;
 
-	private readonly ITestOutputHelper _console;
 	private readonly Metadata _metadata;
 
-	public UserKeyCreationServiceTest(ITestOutputHelper testOutputHelper)
+	public UserKeyCreationServiceTest()
 	{
-		_console = testOutputHelper;
 		var channel = GrpcChannel.ForAddress(Common.RedBoxServerAddress);
 		var login = new AuthenticationGrpcService.AuthenticationGrpcServiceClient(channel);
 
