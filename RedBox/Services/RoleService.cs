@@ -2,7 +2,7 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using RedBox.PermissionUtility;
+using RedBox.Permission_Utility;
 using RedBoxAuth.Authorization;
 using RedBoxAuth.Settings;
 using RedBoxServices;
@@ -217,7 +217,10 @@ public class RoleService : GrpcRoleService.GrpcRoleServiceBase
 
         return new GrpcRoleResults
         {
-            Roles = { grpcRoles },
+            Roles =
+            {
+                grpcRoles
+            },
             Status = new Result
             {
                 Status = Status.Ok

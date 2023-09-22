@@ -21,7 +21,6 @@ message Result {
   Status status = 1;
   optional string error = 2;
 }
-
 /*
   Represents a string id
 */
