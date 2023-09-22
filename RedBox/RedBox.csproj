@@ -8,6 +8,7 @@
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">

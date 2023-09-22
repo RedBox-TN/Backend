@@ -16,5 +16,10 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
+  },
+  "Kestrel": {
+    "EndpointDefaults": {
+      "Protocols": "Http1AndHttp2"
+    }
   }
 }

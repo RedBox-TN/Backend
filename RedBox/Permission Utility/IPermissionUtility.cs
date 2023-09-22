@@ -1,4 +1,4 @@
-namespace RedBox.PermissionUtility;
+namespace RedBox.Permission_Utility;
 
 public interface IPermissionUtility
 {
