@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBox.Email_utility;
@@ -460,7 +462,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
             IsFaEnabled = result.IsFaEnable,
             Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
             Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-            Chats = { result.ChatIds }
+            Chats = { IsChatNull(result.ChatIds) }
         };
 
         return new GrpcUserResult
@@ -509,7 +511,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 IsFaEnabled = result[i].IsFaEnable,
                 Username = string.IsNullOrEmpty(result[i].Username) ? "" : result[i].Username,
                 Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography,
-                Chats = { result[i].ChatIds }
+                Chats = { IsChatNull(result[i].ChatIds) }
             };
 
         return new GrpcUserResults
@@ -520,6 +522,11 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
                 Status = Status.Ok
             }
         };
+    }
+
+    private string[] IsChatNull(string[]? chats)
+    {
+        return chats ?? Array.Empty<string>();
     }
 
     /// <summary>

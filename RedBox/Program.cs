@@ -28,13 +28,27 @@ builder.Services.AddGrpc(options =>
          settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorAppOrigin",
+        builder => builder
+            .WithOrigins("http://localhost:5199")
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+});
+
+
 var app = builder.Build();
 
-app.MapGrpcService<UserService>();
-app.MapGrpcService<AdminService>();
-app.MapGrpcService<RoleService>();
-app.MapGrpcService<ConversationService>();
-app.MapGrpcService<SupervisedChatService>();
+app.UseCors("AllowBlazorAppOrigin");
+
+app.UseGrpcWeb();
+
+app.MapGrpcService<UserService>().EnableGrpcWeb();
+app.MapGrpcService<AdminService>().EnableGrpcWeb();
+app.MapGrpcService<RoleService>().EnableGrpcWeb();
+app.MapGrpcService<ConversationService>().EnableGrpcWeb();
+app.MapGrpcService<SupervisedChatService>().EnableGrpcWeb();
 
 app.UseRedBoxAuthenticationAndAuthorization();
 
