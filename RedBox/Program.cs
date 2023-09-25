@@ -44,11 +44,10 @@ app.UseCors("AllowBlazorAppOrigin");
 
 app.UseGrpcWeb();
 
-app.MapGrpcService<UserService>().EnableGrpcWeb();
+app.MapGrpcService<AccountServices>().EnableGrpcWeb();
 app.MapGrpcService<AdminService>().EnableGrpcWeb();
-app.MapGrpcService<RoleService>().EnableGrpcWeb();
 app.MapGrpcService<ConversationService>().EnableGrpcWeb();
-app.MapGrpcService<SupervisedChatService>().EnableGrpcWeb();
+app.MapGrpcService<SupervisedConversationService>().EnableGrpcWeb();
 
 app.UseRedBoxAuthenticationAndAuthorization();
 
