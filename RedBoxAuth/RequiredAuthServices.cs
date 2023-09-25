@@ -85,6 +85,6 @@ public static class RequiredAuthServices
     public static void UseRedBoxAuthenticationAndAuthorization(this WebApplication app)
     {
         app.UseMiddleware<AuthorizationMiddleware>();
-        app.MapGrpcService<AuthenticationService>();
+        app.MapGrpcService<AuthenticationService>().EnableGrpcWeb();
     }
 }
