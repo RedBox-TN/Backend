@@ -4,7 +4,6 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using keychain;
 using RedBoxAuthentication;
-using Xunit.Abstractions;
 using Xunit.Priority;
 
 namespace RedBoxTests.Keychain;

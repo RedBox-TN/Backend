@@ -3,7 +3,6 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBox.Permission_Utility;
-using RedBox.PermissionUtility;
 using RedBoxAuth.Authorization;
 using RedBoxAuth.Settings;
 using RedBoxServices;
@@ -13,20 +12,8 @@ using Status = Shared.Status;
 
 namespace RedBox.Services;
 
-public class RoleService : GrpcRoleService.GrpcRoleServiceBase
+public partial class AdminService 
 {
-	private readonly IMongoDatabase _database;
-	private readonly AccountDatabaseSettings _databaseSettings;
-	private readonly IPermissionUtility _permissionUtility;
-
-	public RoleService(IOptions<AccountDatabaseSettings> options, IPermissionUtility permissionUtility)
-	{
-		_databaseSettings = options.Value;
-		var mongodbClient = new MongoClient(_databaseSettings.ConnectionString);
-		_database = mongodbClient.GetDatabase(_databaseSettings.DatabaseName);
-		_permissionUtility = permissionUtility;
-	}
-
 	[PermissionsRequired(DefaultPermissions.ManageRoles)]
 	public override async Task<Result> CreateRole(GrpcRole request, ServerCallContext context)
 	{
@@ -218,7 +205,10 @@ public class RoleService : GrpcRoleService.GrpcRoleServiceBase
 
 		return new GrpcRoleResults
 		{
-			Roles = { grpcRoles },
+			Roles =
+			{
+				grpcRoles
+			},
 			Status = new Result
 			{
 				Status = Status.Ok

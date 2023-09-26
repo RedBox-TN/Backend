@@ -10,15 +10,17 @@ import "google/protobuf/timestamp.proto";
 import "shared.proto";
 
 /*
-  Basic messages that maps classes or used in other message definitions
+  Messaggi di base che mappano le classi o che vengono utilizzati in altre definizioni.
 */
 
+// mappa la classe Attachment che rappresenta un allegato
 message GrpcAttachment {
   optional string id = 1;
   string name = 2;
   optional bytes data = 3;
 }
 
+// mappa la classe Message che rappresenta un messaggio di una chat o di un gruppo 
 message GrpcMessage {
   optional string id = 1;
   google.protobuf.Timestamp timestamp = 2;
@@ -28,6 +30,7 @@ message GrpcMessage {
   repeated GrpcAttachment attachments = 6;
 }
 
+// mappa la classe Chat che rappresenta una chat tra due utenti
 message GrpcChat {
   string id = 1;
   repeated string members = 2;
@@ -35,6 +38,7 @@ message GrpcChat {
   repeated GrpcMessage messages = 4;
 }
 
+// mappa la classe Group che rappresenta un gruppo tra due o piu' utenti
 message GrpcGroup {
   string id = 1;
   string name = 2;
@@ -44,6 +48,7 @@ message GrpcGroup {
   repeated GrpcMessage messages = 6;
 }
 
+// contiene l'id di una chat o di un gruppo
 message Collection {
   oneof name {
     string chat = 1;
@@ -51,12 +56,13 @@ message Collection {
   }
 }
 
+// contiene un messaggio e l'id della chat o del gruppo a cui appartiene
 message MessageOfCollection {
   Collection collection = 1;
   GrpcMessage message = 2;
 }
 
-// represent basic info about a user
+// rappresenta le informazioni di un'utente visibili da tutti
 message UserInfo {
   string id = 1;
   string username = 2;
@@ -66,108 +72,142 @@ message UserInfo {
 }
 
 /*
-  Request messages
+  Messaggi di richiesta
 */
 
-// requests the creations of a group
+// richiede la creazione di un gruppo
 message GroupCreationRequest {
   string name = 1;
   repeated string members = 2;
   repeated string admins = 3;
 }
 
-// requests messages from a specific collection in chunk, size is decided server side
+// richiede i messaggi di una collezione specifica in chunk, la cui dimensione viene decisa dal server
 message MessageChunkRequest {
   Collection collection = 1;
   int32 chunk = 2;
 }
 
-// requests to mark one or more message as deleted for current user
+// richiede di contrassegnare uno o più messaggi come cancellati per l'utente corrente
 message DeleteMessagesRequest {
   Collection collection = 1;
   repeated string message_ids = 2;
 }
 
-// requests an attachment, bucket_name is equivalent to collection_name
+// richiede un allegato, bucket_name è equivalente a collection_name
 message AttachmentRequest {
   string bucket_name = 1;
   string file_id = 2;
 }
 
 /*
-  Response messages
+  Messaggi di risposta
 */
 
-// returns a chat containing messages in bucket 0
+// restituisce una chat contenente i messaggi nel bucket 0
 message ChatResponse {
   shared.Result result = 1;
   GrpcChat chat = 2;
 }
 
-// returns multiple chats with only the latest messages, other messages are retrieved in background
+// restituisce più chat con solo i messaggi più recenti; gli altri messaggi vengono recuperati in background
 message ChatsResponse {
   shared.Result result = 1;
   repeated GrpcChat chats = 2;
 }
 
-// returns a group containing messages in bucket 0
+// restituisce un gruppo contenente i messaggi nel bucket 0
 message GroupResponse {
   shared.Result result = 1;
   GrpcGroup group = 2;
 }
 
-// returns multiple groups with only the latest messages, other messages are retrieved in background
+// restituisce gruppi multipli con solo i messaggi più recenti, gli altri messaggi vengono recuperati in background
 message GroupsResponse {
   shared.Result result = 1;
   repeated GrpcGroup groups = 2;
 }
 
-// returns message in the requested bucket
+// restituisce il messaggio nel secchio richiesto
 message BucketResponse {
   shared.Result result = 1;
   repeated GrpcMessage messages = 2;
 }
 
-// returns users data needed to create a new group or chat
+// restituisce agli utenti i dati necessari per la creazione di un nuovo gruppo o di una chat
 message AvailableUsersResponse {
   shared.Result result = 1;
   repeated UserInfo users = 2;
 }
 
 /*
-  Sync messages
+  Messaggi di Sync
 */
 
+// rappresenta un'azione del client, come l'invio o la cancellazione di un messaggio o la creazione di una conversazione
 message ClientUpdate {
+  // l'operazione richiesta
   oneof operation {
+    // invio di un nuovo messaggio
     MessageOfCollection sent_message = 1;
+    // la cancellazione di un messaggio
     DeleteMessagesRequest deleted_messages = 2;
+    // il recupero dei dettagli di una conversazione
     Collection get_collection_details = 3;
   }
 }
 
+// rappresenta un update del server, per il client, come un nuovo messaggio o una nuova conversazione
 message ServerUpdate {
-  optional shared.Result result = 1;
+  shared.Result result = 1;
+  // l'operazione effettuata
   oneof operation {
+    // il client ha ricevuto un nuovo messaggio
     MessageOfCollection received_message = 2;
+    // il client ha richiesto o e' stato aggiunto ad una nuova chat
     GrpcChat chat = 3;
+    // il client ha richiesto o e' stato aggiunto ad un nuovo gruppo
     GrpcGroup group = 4;
+    // il client deve eliminare dei messaggi
     DeleteMessagesRequest deleted_messages = 5;
   }
 }
 
+// rappresenta le api per le chat e i gruppi
 service GrpcConversationServices {
+  // ottiene la definizione di un gruppo partendo dall id e l'ultimo blocco di messaggi (la dimensione e' decisa dal server)
   rpc GetUserGroupFromId (shared.IdMessage) returns (GroupResponse);
+  // ottiene tutti i gruppi di cui l'utente e' membro
   rpc GetAllUserGroups (google.protobuf.Empty) returns (GroupsResponse);
+  // crea un gruppo con gli utenti selezionati
   rpc CreateGroup (GroupCreationRequest) returns (GroupResponse);
 
+  // crea una nuova chat tra utenti singoli
   rpc CreateChat (shared.IdMessage) returns (ChatResponse);
+  // ottiene la definizione della chat partendo dall'id e l'ultimo blocco di messaggi (la dimensione e' decisa dal server)
   rpc GetChatFromId (shared.IdMessage) returns (ChatResponse);
+  // ottiene la definizione di ogni chat di cui l'utente e' membro
   rpc GetAllUserOwnChats (google.protobuf.Empty) returns (ChatsResponse);
 
+  // ottiene tutti gli utenti con cui e' possibile iniziare una chat
   rpc GetUsersForConversation(google.protobuf.Empty) returns (AvailableUsersResponse);
-  
+  // ottiene i messaggi di un gruppo o una chat, in blocchi di dimensione fissata dal server
   rpc GetMessagesInRange (MessageChunkRequest) returns (BucketResponse);
+  // ottiene il contenuto di un allegato
   rpc GetAttachmentData (AttachmentRequest) returns (GrpcAttachment);
+  // mantiene i client sincronizzati col server
   rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
+}
+
+// rappresenta le api per la letture delle chat da parte dei supervisori
+service GrpcSupervisedConversationService {
+  // ottiene tutte le chat supervisionate, ognuna con l'ultimo messaggio inviato
+  rpc GetAllChats (google.protobuf.Empty) returns (ChatsResponse);
+  // ottiene tutti i gruppi supervisionati, ognuno con l'ultimo messaggio inviato
+  rpc GetAllGroups (google.protobuf.Empty) returns (GroupsResponse);
+
+  // recupera i messaggi di un gruppo o una chat, in blocchi di dimensione fissata dal server
+  rpc GetMessagesInRange (MessageChunkRequest) returns (BucketResponse);
+  // ottiene il contenuto di un allegato
+  rpc GetAttachmentData (AttachmentRequest) returns (GrpcAttachment);
 }

@@ -2,7 +2,6 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Net.Client;
 using RedBoxAuthentication;
-using Xunit.Abstractions;
 
 namespace RedBoxTests.Authentication;
 

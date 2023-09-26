@@ -89,7 +89,10 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				SenderId = messages[i].SenderId,
 				EncryptedText = ByteString.CopyFrom(messages[i].EncryptedText),
 				Iv = ByteString.CopyFrom(messages[i].Iv),
-				Attachments = { ToGrpcAttachments(messages[i].Attachments) }
+				Attachments =
+				{
+					ToGrpcAttachments(messages[i].Attachments)
+				}
 			};
 
 		return new BucketResponse
@@ -98,7 +101,10 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Status = Status.Ok
 			},
-			Messages = { result }
+			Messages =
+			{
+				result
+			}
 		};
 	}
 
@@ -147,7 +153,10 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				{
 					Status = Status.Ok
 				},
-				Users = { Array.Empty<UserInfo>() }
+				Users =
+				{
+					Array.Empty<UserInfo>()
+				}
 			};
 
 		var users = new UserInfo[found.Count];
@@ -167,7 +176,10 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Status = Status.Ok
 			},
-			Users = { users }
+			Users =
+			{
+				users
+			}
 		};
 	}
 
@@ -472,8 +484,14 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				{
 					Id = chat.Id,
 					CreatedAt = Timestamp.FromDateTime(chat.CreatedAt),
-					Members = { chat.MembersIds },
-					Messages = { await GetChatMessagesAsync(chat.Id!) }
+					Members =
+					{
+						chat.MembersIds
+					},
+					Messages =
+					{
+						await GetChatMessagesAsync(chat.Id!)
+					}
 				};
 			}
 			else
@@ -487,9 +505,18 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 					Id = group.Id,
 					CreatedAt = Timestamp.FromDateTime(group.CreatedAt),
 					Name = group.Name,
-					Admins = { group.AdminsIds },
-					Members = { group.MembersIds },
-					Messages = { await GetGroupMessagesAsync(group.Id!) }
+					Admins =
+					{
+						group.AdminsIds
+					},
+					Members =
+					{
+						group.MembersIds
+					},
+					Messages =
+					{
+						await GetGroupMessagesAsync(group.Id!)
+					}
 				};
 			}
 		}
@@ -531,7 +558,10 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			EncryptedText = ByteString.CopyFrom(found.EncryptedText),
 			Iv = ByteString.CopyFrom(found.Iv),
 			SenderId = found.SenderId,
-			Attachments = { ToGrpcAttachments(found.Attachments) }
+			Attachments =
+			{
+				ToGrpcAttachments(found.Attachments)
+			}
 		};
 	}
 }

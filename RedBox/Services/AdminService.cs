@@ -3,6 +3,7 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBox.Email_utility;
+using RedBox.Permission_Utility;
 using RedBoxAuth.Authorization;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Settings;
@@ -21,9 +22,11 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 	private readonly IPasswordUtility _passwordUtility;
 	private readonly IRedBoxEmailUtility _redBoxEmailUtility;
 	private readonly ITotpUtility _totpUtility;
+	private readonly IPermissionUtility _permissionUtility;
+
 
 	public AdminService(IOptions<AccountDatabaseSettings> databaseSettings, IPasswordUtility passwordUtility,
-		IRedBoxEmailUtility redBoxEmailUtility, ITotpUtility totpUtility)
+		IRedBoxEmailUtility redBoxEmailUtility, ITotpUtility totpUtility, IPermissionUtility permissionUtility)
 	{
 		_databaseSettings = databaseSettings.Value;
 		var mongodbClient = new MongoClient(_databaseSettings.UsersCollection);
@@ -182,12 +185,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 		// Surname modification
 		if (!string.IsNullOrEmpty(request.Surname))
 			updates.Add(update.Set(user1 => user1.Surname, request.Surname.Normalize()));
-
-		//todo si puo' modificare?? R: Se si mancano dei controlli
-		// Username modification
-		if (!string.IsNullOrEmpty(request.Username))
-			updates.Add(update.Set(user1 => user1.Username, request.Username));
-
+		
 		// Email modification, passing through email mod API
 		if (MyRegex().IsMatch(request.Email))
 		{
