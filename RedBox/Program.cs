@@ -23,17 +23,31 @@ builder.AddRedBoxAuthenticationAndAuthorization();
 
 builder.Services.AddGrpc(options =>
 {
-	options.MaxReceiveMessageSize =
-		(settings.GetValue<int>("MaxAttachmentSizeMb") * (settings.GetValue<int>("MaxAttachmentsPerMsg") + 1) +
-		 settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
+    options.MaxReceiveMessageSize =
+        (settings.GetValue<int>("MaxAttachmentSizeMb") * (settings.GetValue<int>("MaxAttachmentsPerMsg") + 1) +
+         settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
 });
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorAppOrigin",
+        builder => builder
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+});
+
 
 var app = builder.Build();
 
-app.MapGrpcService<UserService>();
-app.MapGrpcService<AdminService>();
-app.MapGrpcService<RoleService>();
-app.MapGrpcService<ConversationService>();
+app.UseCors("AllowBlazorAppOrigin");
+
+app.UseGrpcWeb();
+
+app.MapGrpcService<AccountServices>().EnableGrpcWeb();
+app.MapGrpcService<AdminService>().EnableGrpcWeb();
+app.MapGrpcService<ConversationService>().EnableGrpcWeb();
+app.MapGrpcService<SupervisedConversationService>().EnableGrpcWeb();
 
 app.UseRedBoxAuthenticationAndAuthorization();
 

@@ -36,6 +36,5 @@ public class Conversation
 	[Priority(-1)]
 	public async void CreateChat()
 	{
-		
 	}
 }

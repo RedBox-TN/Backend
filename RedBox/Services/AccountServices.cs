@@ -21,7 +21,7 @@ using Status = Shared.Status;
 
 namespace RedBox.Services;
 
-public partial class UserService : GrpcUserServices.GrpcUserServicesBase
+public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBase
 {
 	private readonly CommonEmailSettings _commonEmailSettings;
 	private readonly IMongoDatabase _database;
@@ -32,7 +32,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 	private readonly RedBoxApplicationSettings _redBoxSettings;
 	private readonly ITotpUtility _totpUtility;
 
-	public UserService(IOptions<AccountDatabaseSettings> options, IPasswordUtility passwordUtility,
+	public AccountServices(IOptions<AccountDatabaseSettings> options, IPasswordUtility passwordUtility,
 		ITotpUtility totpUtility, IRedBoxEmailUtility redBoxEmailUtility, IEncryptionUtility encryptionUtility,
 		IOptions<CommonEmailSettings> commonEmailSettings, IOptions<RedBoxApplicationSettings> redBoxSettings)
 	{
@@ -71,7 +71,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		if (MyRegex().IsMatch(request.Email))
 			await _redBoxEmailUtility.SendEmailChangedAsync(request.Email.Normalize(), request.Id,
 				user.Username.Normalize());
-		
+
 		// Biography modification
 		if (!string.IsNullOrEmpty(request.Biography))
 			updates.Add(update.Set(user1 => user1.Biography, request.Biography));
@@ -460,7 +460,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 			IsFaEnabled = result.IsFaEnable,
 			Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
 			Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-			Chats = { result.ChatIds }
+			Chats = { IsChatNull(result.ChatIds) }
 		};
 
 		return new GrpcUserResult
@@ -509,7 +509,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				IsFaEnabled = result[i].IsFaEnable,
 				Username = string.IsNullOrEmpty(result[i].Username) ? "" : result[i].Username,
 				Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography,
-				Chats = { result[i].ChatIds }
+				Chats = { IsChatNull(result[i].ChatIds) }
 			};
 
 		return new GrpcUserResults
@@ -520,6 +520,11 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 				Status = Status.Ok
 			}
 		};
+	}
+
+	private string[] IsChatNull(string[]? chats)
+	{
+		return chats ?? Array.Empty<string>();
 	}
 
 	/// <summary>
@@ -606,7 +611,7 @@ public partial class UserService : GrpcUserServices.GrpcUserServicesBase
 		try
 		{
 			var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash).Set(u => u.Salt, salt)
-				.Set(u => u.NeedsProvisioning, true) //TODO non credo serva il rpovisioning
+				.Set(u => u.NeedsProvisioning, true)
 				.Push(u => u.PasswordHistory, currentPassword);
 
 			if (user.PasswordHistory!.Count >= _redBoxSettings.PasswordHistorySize)
