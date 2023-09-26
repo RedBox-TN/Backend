@@ -42,9 +42,9 @@ public partial class KeychainServices
 	}
 
 	[PermissionsRequired(DefaultPermissions.DeleteSupervisedChat)]
-	public override async Task<Result> DeleteSupervisorChatKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<Result> DeleteSupervisorChatKey(StringMessage request, ServerCallContext context)
 	{
-		if (string.IsNullOrEmpty(request.Id))
+		if (string.IsNullOrEmpty(request.Value))
 			return new Result
 			{
 				Status = Status.MissingParameters
@@ -54,7 +54,7 @@ public partial class KeychainServices
 
 		try
 		{
-			await collection.DeleteOneAsync(k => k.Id == request.Id);
+			await collection.DeleteOneAsync(k => k.Id == request.Value);
 
 			return new Result
 			{
@@ -72,9 +72,9 @@ public partial class KeychainServices
 	}
 
 	[PermissionsRequired(DefaultPermissions.DeleteSupervisedChat)]
-	public override async Task<Result> DeleteSupervisorGroupKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<Result> DeleteSupervisorGroupKey(StringMessage request, ServerCallContext context)
 	{
-		if (string.IsNullOrEmpty(request.Id))
+		if (string.IsNullOrEmpty(request.Value))
 			return new Result
 			{
 				Status = Status.MissingParameters
@@ -84,7 +84,7 @@ public partial class KeychainServices
 
 		try
 		{
-			await collection.DeleteOneAsync(k => k.Id == request.Id);
+			await collection.DeleteOneAsync(k => k.Id == request.Value);
 
 			return new Result
 			{

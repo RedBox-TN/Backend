@@ -78,9 +78,9 @@ public partial class KeychainServices
 		}
 	}
 
-	public override async Task<Result> DeleteUserChatKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<Result> DeleteUserChatKey(StringMessage request, ServerCallContext context)
 	{
-		if (string.IsNullOrEmpty(request.Id))
+		if (string.IsNullOrEmpty(request.Value))
 			return new Result
 			{
 				Status = Status.MissingParameters
@@ -91,7 +91,7 @@ public partial class KeychainServices
 
 		try
 		{
-			await collection.DeleteOneAsync(k => k.UserOwnerId == id && k.ChatCollectionName == request.Id);
+			await collection.DeleteOneAsync(k => k.UserOwnerId == id && k.ChatCollectionName == request.Value);
 			return new Result
 			{
 				Status = Status.Ok
@@ -107,9 +107,9 @@ public partial class KeychainServices
 		}
 	}
 
-	public override async Task<Result> DeleteUserGroupKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<Result> DeleteUserGroupKey(StringMessage request, ServerCallContext context)
 	{
-		if (string.IsNullOrEmpty(request.Id))
+		if (string.IsNullOrEmpty(request.Value))
 			return new Result
 			{
 				Status = Status.MissingParameters
@@ -120,7 +120,7 @@ public partial class KeychainServices
 
 		try
 		{
-			await collection.DeleteOneAsync(k => k.UserOwnerId == id && k.ChatCollectionName == request.Id);
+			await collection.DeleteOneAsync(k => k.UserOwnerId == id && k.ChatCollectionName == request.Value);
 			return new Result
 			{
 				Status = Status.Ok

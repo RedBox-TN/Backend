@@ -164,9 +164,9 @@ message ServerUpdate {
   oneof operation {
     // il client ha ricevuto un nuovo messaggio
     MessageOfCollection received_message = 2;
-    // il client ha richiesto o e' stato aggiunto ad una nuova chat
+    // il client ha richiesto o è stato aggiunto ad una nuova chat
     GrpcChat chat = 3;
-    // il client ha richiesto o e' stato aggiunto ad un nuovo gruppo
+    // il client ha richiesto o è stato aggiunto ad un nuovo gruppo
     GrpcGroup group = 4;
     // il client deve eliminare dei messaggi
     DeleteMessagesRequest deleted_messages = 5;
@@ -175,21 +175,21 @@ message ServerUpdate {
 
 // rappresenta le api per le chat e i gruppi
 service GrpcConversationServices {
-  // ottiene la definizione di un gruppo partendo dall id e l'ultimo blocco di messaggi (la dimensione e' decisa dal server)
-  rpc GetUserGroupFromId (shared.IdMessage) returns (GroupResponse);
-  // ottiene tutti i gruppi di cui l'utente e' membro
+  // ottiene la definizione di un gruppo partendo dall id e l'ultimo blocco di messaggi (la dimensione è decisa dal server)
+  rpc GetUserGroupFromId (shared.StringMessage) returns (GroupResponse);
+  // ottiene tutti i gruppi di cui l'utente è membro
   rpc GetAllUserGroups (google.protobuf.Empty) returns (GroupsResponse);
   // crea un gruppo con gli utenti selezionati
   rpc CreateGroup (GroupCreationRequest) returns (GroupResponse);
 
   // crea una nuova chat tra utenti singoli
-  rpc CreateChat (shared.IdMessage) returns (ChatResponse);
-  // ottiene la definizione della chat partendo dall'id e l'ultimo blocco di messaggi (la dimensione e' decisa dal server)
-  rpc GetChatFromId (shared.IdMessage) returns (ChatResponse);
-  // ottiene la definizione di ogni chat di cui l'utente e' membro
+  rpc CreateChat (shared.StringMessage) returns (ChatResponse);
+  // ottiene la definizione della chat partendo dall'id e l'ultimo blocco di messaggi (la dimensione è decisa dal server)
+  rpc GetChatFromId (shared.StringMessage) returns (ChatResponse);
+  // ottiene la definizione di ogni chat di cui l'utente è membro
   rpc GetAllUserOwnChats (google.protobuf.Empty) returns (ChatsResponse);
 
-  // ottiene tutti gli utenti con cui e' possibile iniziare una chat
+  // ottiene tutti gli utenti con cui è possibile iniziare una chat
   rpc GetUsersForConversation(google.protobuf.Empty) returns (AvailableUsersResponse);
   // ottiene i messaggi di un gruppo o una chat, in blocchi di dimensione fissata dal server
   rpc GetMessagesInRange (MessageChunkRequest) returns (BucketResponse);

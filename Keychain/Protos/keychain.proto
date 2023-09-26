@@ -72,12 +72,6 @@ message SupervisorKeyCreationRequest {
   optional bytes iv = 3;
 }
 /*
-  Messaggio semplice con un id che è specializzato dal contesto
-*/
-message KeyFromIdRequest {
-  string id = 1;
-}
-/*
   Messaggio utilizzato per aggiornare una chiave esistente, l'id è specializzato dal contesto
 */
 message UpdateKeyRequest {
@@ -161,34 +155,34 @@ service GrpcKeychainServices {
   rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (shared.Result);
   // crea la chiave pubblica e privata per i supervisori
   rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (shared.Result);
-  // recupera la chiave principale (AES) dell'utente con cui tutte le altre chiavi sono cifrate, (l'id utente e' ottenuto dalla sessione)
+  // recupera la chiave principale (AES) dell'utente con cui tutte le altre chiavi sono cifrate, (l'id utente è ottenuto dalla sessione)
   rpc GetUserMasterKey(google.protobuf.Empty) returns (KeyResponse);
   // recupera la chiave pubblica di un utente da is id
-  rpc GetUserPublicKey (KeyFromIdRequest) returns (KeyResponse);
-  // recupera la chiave privata dell'utente (l'id utente e' ottenuto dalla sessione)
+  rpc GetUserPublicKey (shared.StringMessage) returns (KeyResponse);
+  // recupera la chiave privata dell'utente (l'id utente è ottenuto dalla sessione)
   rpc GetUserPrivateKey (google.protobuf.Empty) returns (KeyResponse);
   // recupera la chiave utilizzata per cifrare i messaggi di una chat dato l'id
-  rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
+  rpc GetChatKey (shared.StringMessage) returns (KeyResponse);
   // recupera la chiave utilizzata per cifrare i messaggi di un gruppo dato l'id
-  rpc GetGroupKey(KeyFromIdRequest) returns (KeyResponse);
-  // recupera tutte le chiavi delle chat dell'utente (l'id utente e' ottenuto dalla sessione)
+  rpc GetGroupKey(shared.StringMessage) returns (KeyResponse);
+  // recupera tutte le chiavi delle chat dell'utente (l'id utente è ottenuto dalla sessione)
   rpc GetChatsKeys (google.protobuf.Empty) returns (KeysResponse);
-  // recupera tutte le chiavi dei gruppi di cui l'utente e' membro (l'id utente e' ottenuto dalla sessione)
+  // recupera tutte le chiavi dei gruppi di cui l'utente è membro (l'id utente è ottenuto dalla sessione)
   rpc GetGroupsKey(google.protobuf.Empty) returns (KeysResponse);
   // recupera tutte le chiavi delle chat dell'utente che sono state cifrate con la sua chiave pubblica, viene utilizzato quando un utente riceve un messaggio da una nuova chat
   rpc GetUserChatKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
-  // recupera tutte le chiavi dei gruppi di cui l'utente e' membro e che sono state cifrate con la sua chiave pubblica, viene utilizzato quando un utente e' inserito in un gruppo
+  // recupera tutte le chiavi dei gruppi di cui l'utente è membro e che sono state cifrate con la sua chiave pubblica, viene utilizzato quando un utente è inserito in un gruppo
   rpc GetUserGroupKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
-  // recupera la chiave supervisor dell'utente (l'id utente e' ottenuto dalla sessione)
+  // recupera la chiave supervisor dell'utente (l'id utente è ottenuto dalla sessione)
   rpc GetUserSupervisorMasterKey(google.protobuf.Empty) returns (KeyResponse);
   // recupera la chiave pubblica dei supervisori
   rpc GetSupervisorPublicKey(google.protobuf.Empty) returns (KeyResponse);
   // recupera la chiave privata supervisore di un utente 
   rpc GetSupervisorPrivateKey(google.protobuf.Empty) returns (KeyResponse);
   // recupera la chiave supervisore usata per leggere i messaggi della chat
-  rpc GetSupervisedChatKey(KeyFromIdRequest) returns (KeyResponse);
+  rpc GetSupervisedChatKey(shared.StringMessage) returns (KeyResponse);
   // recupera la chiave supervisore usata per leggere i messaggi del gruppo
-  rpc GetSupervisedGroupKey(KeyFromIdRequest) returns (KeyResponse);
+  rpc GetSupervisedGroupKey(shared.StringMessage) returns (KeyResponse);
   // recupera le chiavi di tutte le chat supervisionate
   rpc GetSupervisedChatsKeys(google.protobuf.Empty) returns (KeysResponse);
   // recupera le chiavi di tutti i gruppi supervisionati
@@ -213,7 +207,7 @@ service GrpcKeychainServices {
   rpc UpdateUserSupervisorMasterKey (MasterKey) returns (shared.Result);
   // aggiorna la chiave di chat supervisionata con l'id della chiave corrispondente
   rpc UpdateSupervisedChatKey (UpdateKeyRequest) returns (shared.Result);
-  // aggiorna la chiave del gruppo sorvegliato con l'id della chiave corrispondente
+  // aggiorna la chiave del gruppo supervisionato con l'id della chiave corrispondente
   rpc UpdateSupervisedGroupKey (UpdateKeyRequest) returns (shared.Result);
   // aggiorna più chiavi con gli id corrispondenti
   rpc UpdateMultipleSupervisorKeys (UpdateSupervisorKeysRequest) returns (shared.Result);
@@ -222,15 +216,15 @@ service GrpcKeychainServices {
   // elimina le chiavi private e pubbliche dell'utente dall'id utente, se l'id della richiesta è vuoto o manca l'autorizzazione necessaria
   rpc DeleteUserKeyPair (DeleteKeyFromUserIdRequest) returns (shared.Result);
   // elimina la chiave di chat dall'id utente e dal nome della raccolta di chat
-  rpc DeleteUserChatKey (KeyFromIdRequest) returns (shared.Result);
+  rpc DeleteUserChatKey (shared.StringMessage) returns (shared.Result);
   // elimina la chiave di chat dall'id utente e dal nome della raccolta di chat
-  rpc DeleteUserGroupKey (KeyFromIdRequest) returns (shared.Result);
+  rpc DeleteUserGroupKey (shared.StringMessage) returns (shared.Result);
   // elimina tutte le chiavi utente dall'id utente, se l'id della richiesta è vuoto o manca l'autorizzazione necessaria
   rpc DeleteAllUserKeys (DeleteKeyFromUserIdRequest) returns (shared.Result);
   // elimina la chiave master dell'utente per il supervisore dall'id utente, se l'id della richiesta è vuoto o manca l'autorizzazione richiesta
   rpc DeleteUserSupervisorMasterKey (DeleteKeyFromUserIdRequest) returns (shared.Result);
-  // elimina la chiave di una chat sorvegliata
-  rpc DeleteSupervisorChatKey (KeyFromIdRequest) returns (shared.Result);
+  // elimina la chiave di una chat supervisionata
+  rpc DeleteSupervisorChatKey (shared.StringMessage) returns (shared.Result);
   // elimina la chiave di un gruppo supervisionato
-  rpc DeleteSupervisorGroupKey (KeyFromIdRequest) returns (shared.Result);
+  rpc DeleteSupervisorGroupKey (shared.StringMessage) returns (shared.Result);
 }

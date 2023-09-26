@@ -14,9 +14,9 @@ namespace RedBox.Services;
 
 public partial class ConversationService
 {
-	public override async Task<GroupResponse> GetUserGroupFromId(IdMessage request, ServerCallContext context)
+	public override async Task<GroupResponse> GetUserGroupFromId(StringMessage request, ServerCallContext context)
 	{
-		if (string.IsNullOrEmpty(request.Id))
+		if (string.IsNullOrEmpty(request.Value))
 			return new GroupResponse
 			{
 				Result = new Result
@@ -28,7 +28,7 @@ public partial class ConversationService
 
 		var groupsDetails = _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 			.GetCollection<Group>(_dbSettings.GroupDetailsCollection);
-		var found = await groupsDetails.Find(g => g.Id == request.Id && g.MembersIds.Contains(context.GetUser().Id))
+		var found = await groupsDetails.Find(g => g.Id == request.Value && g.MembersIds.Contains(context.GetUser().Id))
 			.FirstAsync();
 
 		if (found is null)
@@ -41,7 +41,7 @@ public partial class ConversationService
 				}
 			};
 
-		var messages = await GetGroupMessagesAsync(request.Id);
+		var messages = await GetGroupMessagesAsync(request.Value);
 		return new GroupResponse
 		{
 			Result = new Result
