@@ -5,6 +5,7 @@ using keychain;
 using Keychain.Models;
 using MongoDB.Driver;
 using RedBoxAuth;
+using Shared;
 
 namespace Keychain.Services;
 
@@ -23,10 +24,10 @@ public partial class KeychainServices
 		};
 	}
 
-	public override async Task<KeyResponse> GetUserPublicKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<KeyResponse> GetUserPublicKey(StringMessage request, ServerCallContext context)
 	{
 		var keysCollection = _database.GetCollection<Key>(_settings.UsersPublicKeysCollection);
-		var key = await keysCollection.Find(k => k.UserOwnerId == request.Id).FirstOrDefaultAsync();
+		var key = await keysCollection.Find(k => k.UserOwnerId == request.Value).FirstOrDefaultAsync();
 
 		return new KeyResponse
 		{
@@ -47,12 +48,12 @@ public partial class KeychainServices
 		};
 	}
 
-	public override async Task<KeyResponse> GetChatKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<KeyResponse> GetChatKey(StringMessage request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var keysCollection = _database.GetCollection<ChatKey>(_settings.ChatsKeysCollection);
 		var key = await keysCollection.Find(k =>
-				k.UserOwnerId == id && k.ChatCollectionName == request.Id && k.IsEncryptedWithUserPublicKey == null)
+				k.UserOwnerId == id && k.ChatCollectionName == request.Value && k.IsEncryptedWithUserPublicKey == null)
 			.FirstOrDefaultAsync();
 
 		return new KeyResponse
@@ -62,14 +63,14 @@ public partial class KeychainServices
 		};
 	}
 
-	public override async Task<KeyResponse> GetGroupKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<KeyResponse> GetGroupKey(StringMessage request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var keysCollection = _database.GetCollection<ChatKey>(_settings.GroupsKeysCollection);
 
 
 		var key = await keysCollection.Find(k =>
-				k.UserOwnerId == id && k.ChatCollectionName == request.Id && k.IsEncryptedWithUserPublicKey == null)
+				k.UserOwnerId == id && k.ChatCollectionName == request.Value && k.IsEncryptedWithUserPublicKey == null)
 			.FirstOrDefaultAsync();
 
 		return new KeyResponse

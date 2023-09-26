@@ -20,9 +20,9 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 	private readonly IMongoDatabase _database;
 	private readonly AccountDatabaseSettings _databaseSettings;
 	private readonly IPasswordUtility _passwordUtility;
+	private readonly IPermissionUtility _permissionUtility;
 	private readonly IRedBoxEmailUtility _redBoxEmailUtility;
 	private readonly ITotpUtility _totpUtility;
-	private readonly IPermissionUtility _permissionUtility;
 
 
 	public AdminService(IOptions<AccountDatabaseSettings> databaseSettings, IPasswordUtility passwordUtility,
@@ -185,7 +185,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 		// Surname modification
 		if (!string.IsNullOrEmpty(request.Surname))
 			updates.Add(update.Set(user1 => user1.Surname, request.Surname.Normalize()));
-		
+
 		// Email modification, passing through email mod API
 		if (MyRegex().IsMatch(request.Email))
 		{
@@ -291,7 +291,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 	/// <param name="context">current Context</param>
 	/// <returns>Status code and message of the operation</returns>
 	[PermissionsRequired(DefaultPermissions.ManageUsersAccounts)]
-	public override async Task<Result> SetUserRandomPassword(StringRequest request, ServerCallContext context)
+	public override async Task<Result> SetUserRandomPassword(StringMessage request, ServerCallContext context)
 	{
 		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 

@@ -8,6 +8,7 @@ import "google/protobuf/empty.proto";
 
 import "shared.proto";
 
+// mappa la classe User
 message GrpcUser {
   optional string id = 1;
   string name = 2;
@@ -23,6 +24,7 @@ message GrpcUser {
   repeated string chats = 14;
 }
 
+// richiesta che contiene un id, uno username o una mail di un utente
 message GrpcUserFetch {
   oneof identifier{
     string id = 1;
@@ -30,93 +32,113 @@ message GrpcUserFetch {
     string email = 3;
   }
 }
-
+// richiesta di ripristino della password
 message ForgottenPasswordRequest {
   string token = 1;
   string new_password = 2;
 }
-
+// richiesta di cambio della password, data quella vecchia
 message PasswordChange {
   string old_password = 2;
   string new_password = 3;
 }
+// per attivare o disattivare la 2fa sull'account di un utente
 message Grpc2FAChange {
   optional string id = 1;
   optional bool is_fa_enabled = 2;
 }
-
-message StringRequest{
-  string value = 1;
-}
-
+// risposta contenente un utente
 message GrpcUserResult {
   GrpcUser user = 1;
   shared.Result status = 2;
 }
-
+// riposta contente più utenti
 message GrpcUserResults {
   repeated GrpcUser user = 1;
   shared.Result status = 2;
 }
-
+// risposta contente il risultato dell'attivazione dell'autenticazione a due fattori
 message Grpc2faResult {
   string qrcode = 1;
   string manual_code = 2;
   shared.Result status = 3;
 }
-
+// risposta contente il risultato dell'operazione di provisoning di un account
 message GrpcProvisionResult {
   bool fa_provisioning = 1;
   bool password_provisioning = 2;
   bool key_provisioning = 3;
   shared.Result status = 4;
 }
-
+// mappa la classe Role
 message GrpcRole {
   optional string id = 1;
   optional uint32 permissions = 2;
   string description = 3;
   string name = 4;
 }
-
+// richiede un ruolo dato l'id o il nome
 message GrpcRoleIdentifier {
   oneof identifier {
     string id = 1;
     string name = 2;
   }
 }
-
+// risposta contenente un ruolo
 message GrpcRoleResult {
   GrpcRole role = 1;
   shared.Result status = 2;
 }
-
+// risposta contenente molteplici ruoli
 message GrpcRoleResults {
   repeated GrpcRole roles = 1;
   shared.Result status = 2;
 }
-
+/*
+  Servizi per la gestione del proprio account da parte degli utenti
+*/
 service GrpcAccountServices {
+  // consente di apportare modifiche al proprio account utente
   rpc ModifyUser (GrpcUser) returns (shared.Result);
-  rpc TokenCheck (StringRequest) returns (shared.Result);
+  // consente di verificare se il token utilizzato per le altre richieste è valido
+  rpc TokenCheck (shared.StringMessage) returns (shared.Result);
+  // consente di effettuare il cambio della password in caso di smarrimento
   rpc ForgottenPasswordReset (ForgottenPasswordRequest) returns (shared.Result);
-  rpc FinalizeEmailChange (StringRequest) returns (shared.Result);
+  // consente di completare il cambio dell'indirizzo email
+  rpc FinalizeEmailChange (shared.StringMessage) returns (shared.Result);
+  // consente di modificare lo stato dell'autenticazione a due fattori sul proprio account
   rpc FAStateChange (Grpc2FAChange) returns (Grpc2faResult);
-  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult); 
+  // recupera un'utente
+  rpc FetchUser (GrpcUserFetch) returns (GrpcUserResult);
+  // recupera tutti gli utenti
   rpc FetchAllUsers (google.protobuf.Empty) returns (GrpcUserResults);
+  // effettua il provisioning dell'account utente
   rpc AccountProvision (GrpcUser) returns (GrpcProvisionResult);
+  // consente di cambiare la password, conoscendo quella vecchia
   rpc UserPasswordChange (PasswordChange) returns (shared.Result);
 }
-
+/*
+   Servizi per la gestione degli account utenti da parte degli amministratori (possessori del permesso Manage User Account)   
+*/
 service GrpcAdminServices {
+  // crea un nuovo utente
   rpc CreateUser (GrpcUser) returns (shared.Result);
+  // cancella un utente
   rpc DeleteUser (GrpcUser) returns (shared.Result);
-  rpc SetUserRandomPassword (StringRequest) returns (shared.Result);
+  // imposta una password random ad un utente specifico, la password è comunicata per email e valida per un solo login. Al login è richiesto di cambiarla 
+  rpc SetUserRandomPassword (shared.StringMessage) returns (shared.Result);
+  // impedisce la modifica dello stato dell'autenticazione a due fattori
   rpc BlockStateChange (GrpcUser) returns (shared.Result);
+  // modifica un account utente
   rpc AdminModifyUser (GrpcUser) returns (shared.Result);
+  // crea un nuovo ruolo con degli specifici permessi
   rpc CreateRole (GrpcRole) returns (shared.Result);
+  // cancella un ruolo
   rpc DeleteRole (GrpcRoleIdentifier) returns (shared.Result);
+  // modifica un ruolo
   rpc ModifyRole (GrpcRole) returns (shared.Result);
+  // recupera i dettagli di un ruolo
   rpc FetchRole (GrpcRoleIdentifier) returns (GrpcRoleResult);
+  // recupera tutti i ruoli presenti
   rpc FetchAllRoles (google.protobuf.Empty) returns (GrpcRoleResults);
 }

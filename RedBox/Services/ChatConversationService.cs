@@ -15,7 +15,7 @@ namespace RedBox.Services;
 public partial class ConversationService
 {
 	[PermissionsRequired(DefaultPermissions.CreateChats)]
-	public override async Task<ChatResponse> CreateChat(IdMessage request, ServerCallContext context)
+	public override async Task<ChatResponse> CreateChat(StringMessage request, ServerCallContext context)
 	{
 		using var session = await _mongoClient.StartSessionAsync();
 		var userId = context.GetUser().Id;
@@ -27,7 +27,7 @@ public partial class ConversationService
 		{
 			await session.AbortTransactionAsync();
 
-			members = new[] { userId, request.Id };
+			members = new[] { userId, request.Value };
 			var chatDetail = new Chat
 			{
 				CreatedAt = DateTime.Now,
@@ -78,7 +78,7 @@ public partial class ConversationService
 			Members = { members }
 		};
 
-		await _clientsRegistry.NotifyOneAsync(request.Id, new ServerUpdate
+		await _clientsRegistry.NotifyOneAsync(request.Value, new ServerUpdate
 		{
 			Result = new Result
 			{
@@ -97,12 +97,12 @@ public partial class ConversationService
 		};
 	}
 
-	public override async Task<ChatResponse> GetChatFromId(IdMessage request, ServerCallContext context)
+	public override async Task<ChatResponse> GetChatFromId(StringMessage request, ServerCallContext context)
 	{
 		var userId = context.GetUser().Id;
 		var chat = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 			.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-			.Find(c => c.Id == request.Id && c.MembersIds.Contains(userId)).FirstAsync();
+			.Find(c => c.Id == request.Value && c.MembersIds.Contains(userId)).FirstAsync();
 
 		if (chat is null)
 			return new ChatResponse

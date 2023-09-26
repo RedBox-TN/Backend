@@ -23,18 +23,18 @@ builder.AddRedBoxAuthenticationAndAuthorization();
 
 builder.Services.AddGrpc(options =>
 {
-    options.MaxReceiveMessageSize =
-        (settings.GetValue<int>("MaxAttachmentSizeMb") * (settings.GetValue<int>("MaxAttachmentsPerMsg") + 1) +
-         settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
+	options.MaxReceiveMessageSize =
+		(settings.GetValue<int>("MaxAttachmentSizeMb") * (settings.GetValue<int>("MaxAttachmentsPerMsg") + 1) +
+		 settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
 });
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowBlazorAppOrigin",
-        builder => builder
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod());
+	options.AddPolicy("AllowBlazorAppOrigin",
+		b => b
+			.AllowAnyOrigin()
+			.AllowAnyHeader()
+			.AllowAnyMethod());
 });
 
 
