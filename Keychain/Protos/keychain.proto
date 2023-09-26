@@ -12,7 +12,7 @@ import "shared.proto";
   Messaggio che descrive la chiave aes principale, utilizzata per crittografare tutte le altre chiavi.
 */
 message MasterKey {
-  bytes encryptedData = 1;
+  bytes encrypted_data = 1;
   bytes iv = 2;
 }
 /*
