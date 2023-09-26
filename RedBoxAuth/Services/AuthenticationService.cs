@@ -149,64 +149,64 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 	/// <inheritdoc />
 	[AuthenticationRequired]
-	public override Task<Empty> Logout(Empty request, ServerCallContext context)
+	public override async Task<Empty> Logout(Empty request, ServerCallContext context)
 	{
 		var key = context.GetHttpContext().Request.Headers[Constants.TokenHeaderName];
 
-		_authCache.DeleteAsync(key);
+		await _authCache.DeleteAsync(key);
 
-		return Task.FromResult(new Empty());
+		return new Empty();
 	}
 
 	/// <inheritdoc />
-	public override Task<TwoFactorResponse> Verify2FA(TwoFactorRequest request, ServerCallContext context)
+	public override async Task<TwoFactorResponse> Verify2FA(TwoFactorRequest request, ServerCallContext context)
 	{
 		if (!_authCache.TryToGet(request.Token, out var user))
-			return Task.FromResult(new TwoFactorResponse
+			return new TwoFactorResponse
 			{
 				Code = TwoFactorResponseCode.UserNotLogged
-			});
+			};
 
 
 		if (!user!.IsFaEnable)
-			return Task.FromResult(new TwoFactorResponse
+			return new TwoFactorResponse
 			{
 				Code = TwoFactorResponseCode.TfaNotEnabled
-			});
+			};
 
 		if (user.IsAuthenticated)
-			return Task.FromResult(new TwoFactorResponse
+			return new TwoFactorResponse
 			{
 				Code = TwoFactorResponseCode.AlreadyVerified
-			});
+			};
 
 		if (!_totp.VerifyCode(user.FaSeed!, request.TwoFaCode))
-			return Task.FromResult(new TwoFactorResponse
+			return new TwoFactorResponse
 			{
 				Code = TwoFactorResponseCode.InvalidCode
-			});
+			};
 
 		_authCache.SetCompleted(request.Token, out var expiresAt);
 
-		return Task.FromResult(new TwoFactorResponse
+		return new TwoFactorResponse
 		{
 			Code = TwoFactorResponseCode.ValidCode,
 			TokenExpiresAt = expiresAt
-		});
+		};
 	}
 
 	/// <inheritdoc />
 	[AuthenticationRequired]
-	public override Task<TokenRefreshResponse> RefreshToken(Empty request, ServerCallContext context)
+	public override async Task<TokenRefreshResponse> RefreshToken(Empty request, ServerCallContext context)
 	{
 		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]!,
 			out var expiresAt);
 
-		return Task.FromResult(new TokenRefreshResponse
+		return new TokenRefreshResponse
 		{
 			Token = token,
 			ExpiresAt = expiresAt
-		});
+		};
 	}
 
 	/// <inheritdoc />

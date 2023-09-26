@@ -47,12 +47,6 @@ public interface IAuthCache : IBasicAuthCache
 	public void SetCompleted(string key, out long expiresAt);
 
 	/// <summary>
-	///     DeleteAsync user from cache
-	/// </summary>
-	/// <param name="key">The token</param>
-	public void DeleteAsync(string? key);
-
-	/// <summary>
 	///     Refresh the token, creating a new one
 	/// </summary>
 	/// <param name="oldToken">The current token</param>
