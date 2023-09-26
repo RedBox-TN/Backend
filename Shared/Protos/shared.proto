@@ -5,24 +5,29 @@ package shared;
 option csharp_namespace = "Shared";
 
 /*
-  Indicates if the operation has success  
+  Indica lo stato dell'operazione
 */
 enum Status {
+  // l'operazione ha avuto successo
   OK = 0;
+  // l'operazione ha causato un errore
   ERROR = 1;
+  // la richiesta e' incompleta
   MISSING_PARAMETERS = 2;
+  // l'allegato e' troppo grande, la dimensione e' decisa dal server
   ATTACHMENT_TOO_BIG = 3;
+  // uno dei parametri della richiesta non e' corretto
   INVALID_PARAMETER = 4;
 }
 /*
-  Represents the result of the required operation, if an error occurred then the exception message is returned
+  Rappresenta il risultato dell'operazione, se lo status e' diverso da OK allora il campo error contiene cosa ha causato l'errore
 */
 message Result {
   Status status = 1;
   optional string error = 2;
 }
 /*
-  Represents a string id
+  Rappresenta un messaggio generico che contiene una stringa, usato in altre definizioni
 */
 message IdMessage {
   string id = 1;
