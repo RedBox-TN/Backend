@@ -173,7 +173,7 @@ message ServerUpdate {
   }
 }
 
-// rappresenta le api per le chat e i gruppi
+// servizi per le chat e i gruppi
 service GrpcConversationServices {
   // ottiene la definizione di un gruppo partendo dall id e l'ultimo blocco di messaggi (la dimensione è decisa dal server)
   rpc GetUserGroupFromId (shared.StringMessage) returns (GroupResponse);
@@ -199,7 +199,7 @@ service GrpcConversationServices {
   rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
 }
 
-// rappresenta le api per la letture delle chat da parte dei supervisori
+// servizi per la letture delle chat da parte dei supervisori
 service GrpcSupervisedConversationService {
   // ottiene tutte le chat supervisionate, ognuna con l'ultimo messaggio inviato
   rpc GetAllChats (google.protobuf.Empty) returns (ChatsResponse);
