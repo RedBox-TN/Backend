@@ -119,7 +119,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 	/// <param name="request">Request containing only the encrypted token</param>
 	/// <param name="context">current Context</param>
 	/// <returns>Status code and message of the operation</returns>
-	public override async Task<Result> TokenCheck(StringRequest request, ServerCallContext context)
+	public override async Task<Result> TokenCheck(StringMessage request, ServerCallContext context)
 	{
 		// Retrieve token and convert to bytes
 		var byteToken = HttpUtility.UrlDecodeToBytes(request.Value);
@@ -189,7 +189,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 	/// <param name="request">Request containing only the AES token</param>
 	/// <param name="context">current Context</param>
 	/// <returns>Status code and message of the operation</returns>
-	public override async Task<Result> FinalizeEmailChange(StringRequest request, ServerCallContext context)
+	public override async Task<Result> FinalizeEmailChange(StringMessage request, ServerCallContext context)
 	{
 		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
 

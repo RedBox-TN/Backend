@@ -8,24 +8,37 @@ import "google/protobuf/empty.proto";
 
 import "shared.proto";
 
+// rappresenta gli esiti dell'operazione di login
 enum LoginStatus {
+  // le credenziali fornite sono sbagliate
   INVALID_CREDENTIALS = 0;
+  // mancano uno o più parametri nella richiesta
   MISSING_PARAMETER = 1;
+  // l'utente è già correttamente autenticato
   ALREADY_LOGGED = 2;
+  // l'utente non esiste
   USER_NOT_EXIST = 3;
+  // il login ha avuto successo
   LOGIN_SUCCESS = 4;
+  // le credenziali sono corrette ma è attiva l'autenticazione a due fattori
   REQUIRE_2FA = 5;
+  // l'utente è bloccato
   IS_BLOCKED = 6;
 }
-
+// rappresenta il risultato dell'operazione di verifica dell'autenticazione a due fattori
 enum TwoFactorResponseCode {
+  // il codice totp è valido
   VALID_CODE = 0;
+  // il codice totp è invalido
   INVALID_CODE = 1;
+  // l'utente non ha verificato le credenziali, invocare l'api Login
   USER_NOT_LOGGED = 2;
+  // l'autenticazione a due fattori non è attiva
   TFA_NOT_ENABLED = 3;
+  // l'utente ha già completato l'operazione di autenticazione
   ALREADY_VERIFIED = 4;
 }
-
+// rappresenta una richiesta di login
 message LoginRequest {
   string password = 1;
   oneof identifier {
@@ -33,40 +46,45 @@ message LoginRequest {
     string email = 3;
   }
 }
-
+// rappresenta la risposta della procedura di autenticazione
 message LoginResponse {
   LoginStatus status = 1;
   optional string token = 2;
   optional int64 expiresAt = 3;
   optional uint32 attempts_left = 4;
 }
-
+// rappresenta la richiesta di verifica del codice totp
 message TwoFactorRequest {
   string two_fa_code = 1;
   string token = 2;
 }
-
+// rappresenta la risposta delle operazioni di verifica del codice totp
 message TwoFactorResponse {
   TwoFactorResponseCode code = 1;
   optional int64 tokenExpiresAt = 2;
 }
-
+// rappresenta la risposta dell'operazione di aggiornamento del token
 message TokenRefreshResponse {
   string Token = 1;
   int64 expiresAt = 2;
 }
-
+// rappresenta il risultato dell'operazione di reset della password
 message PasswordResetRequest {
   oneof identifier {
     string email_address = 1;
     string username = 2;
   }
 }
-
+// servizi per l'autenticazione e l'aggiornamento dei token
 service AuthenticationGrpcService {
+  // consente di effettuare il login data la password e lo username o la mail
   rpc Login (LoginRequest) returns (LoginResponse);
+  // effettua il logout eliminando la sessione
   rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty);
+  // consente di completare la procedura di autenticazione quando l'autenticazione a due fattori è attiva
   rpc Verify2FA(TwoFactorRequest) returns (TwoFactorResponse);
+  // effettua l'aggiornamento del token prima che scada
   rpc RefreshToken(google.protobuf.Empty) returns (TokenRefreshResponse);
+  // consente di recuperare la password, ricevendo per email il un token univoco
   rpc ForgottenPassword(PasswordResetRequest) returns (shared.Result);
 }
