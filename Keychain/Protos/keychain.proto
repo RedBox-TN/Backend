@@ -9,22 +9,23 @@ import "google/protobuf/empty.proto";
 import "shared.proto";
 
 /*
-  Message describing the main aes key which is used to encrypt all other keys
+  Messaggio che descrive la chiave aes principale, utilizzata per crittografare tutte le altre chiavi.
 */
 message MasterKey {
   bytes encryptedData = 1;
   bytes iv = 2;
 }
 /*
-  Message describing the key pair of individual user, used to exchange keys with other users  
+  Messaggio che descrive la coppia di chiavi del singolo utente, utilizzato per lo scambio di chiavi con altri utenti. 
 */
 message UserKeyPairCreationRequest {
   bytes public_key = 1;
   bytes encrypted_private_key = 2;
-  bytes iv = 3; // iv of the encrypted private key
+  // iv della chiave privata cifrata
+  bytes iv = 3;
 }
 /*
-  Message describing the key of a chat
+  Messaggio che descrive la chiave di una chat
 */
 message ChatKeyCreationRequest {
   string chat_collection_name = 1;
@@ -35,7 +36,7 @@ message ChatKeyCreationRequest {
   bytes encrypted_key_for_supervisors = 6;
 }
 /*
-  Message describing the key of a member of a group when is created
+  Messaggio che descrive la chiave di un membro di un gruppo quando viene creato
 */
 message GroupMemberKey {
   string user_id = 1;
@@ -43,9 +44,9 @@ message GroupMemberKey {
   bytes iv = 3;
 }
 /*
-  Message describing keys created when a group chat is crated, creator_key is the key of the chat
-  encrypted with user master key, members_keys is the chat key encrypted with the public key of each
-  member added during creation 
+  Messaggio che descrive le chiavi create quando una chat di gruppo viene creata, creator_key è la chiave della chat
+  crittografata con la chiave principale dell'utente, members_keys è la chiave della chat crittografata con la chiave pubblica di ogni membro aggiunto durante la creazione.
+  membro aggiunto durante la creazione
 */
 message GroupKeysCreationRequest {
   bytes encrypted_creator_key = 1;
@@ -55,7 +56,7 @@ message GroupKeysCreationRequest {
   repeated GroupMemberKey members_keys = 5;
 }
 /*
-  Message describing the key of a member of a group added later, the key is encrypted with the user public
+  Messaggio che descrive la chiave di un membro di un gruppo aggiunto successivamente, la chiave è criptata con la chiave pubblica dell'utente
 */
 message UserGroupKeyCreationRequest {
   string user_id = 1;
@@ -63,7 +64,7 @@ message UserGroupKeyCreationRequest {
   bytes encrypted_key = 3;
 }
 /*
-  Message representing a supervisor key encrypted with user public key or master key
+  Messaggio che rappresenta una chiave del supervisore crittografata con la chiave pubblica dell'utente o con la chiave master.
 */
 message SupervisorKeyCreationRequest {
   bytes encrypted_key = 1;
@@ -71,13 +72,7 @@ message SupervisorKeyCreationRequest {
   optional bytes iv = 3;
 }
 /*
-  Simple message with an id which is specialized by the context
-*/
-message KeyFromIdRequest {
-  string id = 1;
-}
-/*
-  Message used to update an existing key, id is specialized by the context
+  Messaggio utilizzato per aggiornare una chiave esistente, l'id è specializzato dal contesto
 */
 message UpdateKeyRequest {
   string key_id = 1;
@@ -86,7 +81,7 @@ message UpdateKeyRequest {
   bool is_encrypted_with_public_key = 4;
 }
 /*
-  Message representing multiple keys that need to be updated
+  Messaggio che rappresenta più chiavi da aggiornare
 */
 message UpdateKeysRequest {
   repeated UpdateKeyRequest chat_keys = 1;
@@ -95,7 +90,7 @@ message UpdateKeysRequest {
   optional MasterKey master_key = 4;
 }
 /*
-  Message used to update an existing key pair, id is specialized by the context
+  Messaggio utilizzato per aggiornare una coppia di chiavi esistente, l'id è specializzato dal contesto
 */
 message UpdateUserKeyPairRequest {
   optional bytes public_key_data = 2;
@@ -103,7 +98,7 @@ message UpdateUserKeyPairRequest {
   bytes private_key_iv = 5;
 }
 /*
-    Message representing multiple supervisor keys that need to be updated
+  Messaggio che rappresenta più chiavi di supervisore che devono essere aggiornate
 */
 message UpdateSupervisorKeysRequest {
   repeated UpdateKeyRequest chat_keys = 1;
@@ -111,7 +106,7 @@ message UpdateSupervisorKeysRequest {
   optional MasterKey master_key = 3;
 }
 /*
-  Message representing a key retrieved with the corresponding keychain, the parameters are populated based on the key type
+  Messaggio che rappresenta una chiave recuperata con il portachiavi corrispondente, i parametri sono popolati in base al tipo di chiave
 */
 message KeyResponse {
   optional string id = 1;
@@ -120,108 +115,116 @@ message KeyResponse {
   optional string chat_collection_name = 4;
 }
 /*
-  Message representing multiple keys of the same type (parameters should be populated equally)
+  Messaggio che rappresenta più chiavi dello stesso tipo (i parametri devono essere popolati in modo uguale)
 */
 message KeysResponse {
   repeated KeyResponse keys = 1;
 }
 /*
-  Message representing a key which is encrypted by the public key of the user or the supervisor
+  Messaggio che rappresenta una chiave crittografata dalla chiave pubblica dell'utente o del supervisore.
 */
 message KeyEncryptedWithPublicKey {
   bytes encrypted_key_data = 1;
   string key_id = 2;
 }
 /*
-  Message representing multiple keys encrypted with public key of the user or the supervisor
+  Messaggio che rappresenta chiavi multiple crittografate con la chiave pubblica dell'utente o del supervisore
 */
 message KeysEncryptedWithPublicKey {
   repeated KeyEncryptedWithPublicKey keys = 1;
 }
 /*
-  Message representing the request of deletion of a key with the corresponding owner id, if the user wants to delete is own key, the 
-  parameter is optional
+  Messaggio che rappresenta la richiesta di cancellazione di una chiave con l'id proprietario corrispondente; se l'utente vuole cancellare la propria chiave, il parametro  è un parametro opzionale
 */
 message DeleteKeyFromUserIdRequest {
   optional string user_id = 1;
 }
 
 service GrpcKeychainServices {
-  // create user's master key, the user id is obtained by the authentication
+  // crea la chiave master dell'utente, l'id dell'utente è ottenuto dall'autenticazione
   rpc CreateUserMasterKey(MasterKey) returns (shared.Result);
-  // create user's public and private key, the user id is obtained by the authentication
+  // crea la chiave pubblica e privata dell'utente, l'id dell'utente è ottenuto dalla procedura di autenticazione.
   rpc CreateUserKeyPair (UserKeyPairCreationRequest) returns (shared.Result);
-  // create chat key, the request must contain the counter part key encrypted with is pub key
+  // crea la chiave di chat, la richiesta deve contenere la chiave di controparte criptata con la chiave pub
   rpc CreateChatKeys (ChatKeyCreationRequest) returns (shared.Result);
-  // create group key, the request contain also the keys of others members
+  // crea la chiave del gruppo, la richiesta contiene anche le chiavi degli altri membri
   rpc CreateGroupKeys (GroupKeysCreationRequest) returns (shared.Result);
-  // when a user is added later to a group, add the group key to the user keychain
+  // quando un utente viene aggiunto successivamente a un gruppo, aggiungere la chiave del gruppo al portachiavi dell'utente
   rpc CreateUserGroupKey (UserGroupKeyCreationRequest) returns (shared.Result);
-
+  // crea la chiave master cifrata con la chiave dell'utente
   rpc CreateSupervisorUserMasterKey (SupervisorKeyCreationRequest) returns (shared.Result);
+  // crea la chiave pubblica e privata per i supervisori
   rpc CreateSupervisorKeyPair (UserKeyPairCreationRequest) returns (shared.Result);
-
+  // recupera la chiave principale (AES) dell'utente con cui tutte le altre chiavi sono cifrate, (l'id utente è ottenuto dalla sessione)
   rpc GetUserMasterKey(google.protobuf.Empty) returns (KeyResponse);
-  // retrieve a user's public key from is id
-  rpc GetUserPublicKey (KeyFromIdRequest) returns (KeyResponse);
+  // recupera la chiave pubblica di un utente da is id
+  rpc GetUserPublicKey (shared.StringMessage) returns (KeyResponse);
+  // recupera la chiave privata dell'utente (l'id utente è ottenuto dalla sessione)
   rpc GetUserPrivateKey (google.protobuf.Empty) returns (KeyResponse);
-
-  rpc GetChatKey (KeyFromIdRequest) returns (KeyResponse);
-  rpc GetGroupKey(KeyFromIdRequest) returns (KeyResponse);
+  // recupera la chiave utilizzata per cifrare i messaggi di una chat dato l'id
+  rpc GetChatKey (shared.StringMessage) returns (KeyResponse);
+  // recupera la chiave utilizzata per cifrare i messaggi di un gruppo dato l'id
+  rpc GetGroupKey(shared.StringMessage) returns (KeyResponse);
+  // recupera tutte le chiavi delle chat dell'utente (l'id utente è ottenuto dalla sessione)
   rpc GetChatsKeys (google.protobuf.Empty) returns (KeysResponse);
+  // recupera tutte le chiavi dei gruppi di cui l'utente è membro (l'id utente è ottenuto dalla sessione)
   rpc GetGroupsKey(google.protobuf.Empty) returns (KeysResponse);
-
+  // recupera tutte le chiavi delle chat dell'utente che sono state cifrate con la sua chiave pubblica, viene utilizzato quando un utente riceve un messaggio da una nuova chat
   rpc GetUserChatKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
+  // recupera tutte le chiavi dei gruppi di cui l'utente è membro e che sono state cifrate con la sua chiave pubblica, viene utilizzato quando un utente è inserito in un gruppo
   rpc GetUserGroupKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
-
+  // recupera la chiave supervisor dell'utente (l'id utente è ottenuto dalla sessione)
   rpc GetUserSupervisorMasterKey(google.protobuf.Empty) returns (KeyResponse);
+  // recupera la chiave pubblica dei supervisori
   rpc GetSupervisorPublicKey(google.protobuf.Empty) returns (KeyResponse);
+  // recupera la chiave privata supervisore di un utente 
   rpc GetSupervisorPrivateKey(google.protobuf.Empty) returns (KeyResponse);
-
-  rpc GetSupervisedChatKey(KeyFromIdRequest) returns (KeyResponse);
-  rpc GetSupervisedGroupKey(KeyFromIdRequest) returns (KeyResponse);
+  // recupera la chiave supervisore usata per leggere i messaggi della chat
+  rpc GetSupervisedChatKey(shared.StringMessage) returns (KeyResponse);
+  // recupera la chiave supervisore usata per leggere i messaggi del gruppo
+  rpc GetSupervisedGroupKey(shared.StringMessage) returns (KeyResponse);
+  // recupera le chiavi di tutte le chat supervisionate
   rpc GetSupervisedChatsKeys(google.protobuf.Empty) returns (KeysResponse);
+  // recupera le chiavi di tutti i gruppi supervisionati
   rpc GetSupervisedGroupsKeys(google.protobuf.Empty) returns (KeysResponse);
-
+  // recupera la chiave supervisore dell'utente cifrata con la sua chiave pubblica
   rpc GetUserSupervisorMasterKeyEncryptedWithPublicKey(google.protobuf.Empty) returns (KeyEncryptedWithPublicKey);
+  // recupera le chiavi supervisore delle chats cifrate con la chiave pubblica supervisore che necessitano di essere decifrate con la chiave privata e crittografate con la master key
   rpc GetSupervisedChatsKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
+  // recupera le chiavi supervisore dei gruppi cifrate con la chiave pubblica supervisore che necessitano di essere decifrate con la chiave privata e crittografate con la master key
   rpc GetSupervisedGroupsKeysEncryptedWithPublicKey(google.protobuf.Empty) returns (KeysEncryptedWithPublicKey);
-
-  // update the user's master key with the corresponding user owner id
+  // aggiorna la chiave master dell'utente con l'id proprietario dell'utente corrispondente
   rpc UpdateUserMasterKey(MasterKey) returns (shared.Result);
-  // update the user's key pair with the corresponding user owner id
+  // aggiorna la coppia di chiavi dell'utente con l'id proprietario dell'utente corrispondente
   rpc UpdateUserKeyPair (UpdateUserKeyPairRequest) returns (shared.Result);
-  // update a chat key with the corresponding owner id and key id
+  // aggiorna la chiave di chat con l'id del proprietario e l'id della chiave corrispondenti (utile quando si cambia la master key)
   rpc UpdateUserChatKey (UpdateKeyRequest) returns (shared.Result);
-  // update a group key with the corresponding owner id and key id
+  // aggiorna la chiave di gruppo con l'id del proprietario e l'id della chiave corrispondenti
   rpc UpdateUserGroupKey (UpdateKeyRequest) returns (shared.Result);
-  // update multiples keys with the corresponding owner id and keys ids
+  // aggiorna le chiavi multiple con l'id del proprietario e gli id delle chiavi corrispondenti
   rpc UpdateMultipleUserKeys (UpdateKeysRequest) returns (shared.Result);
-
-  // update the user supervisor's master key from is user id
+  // aggiorna le chiavi multiple con l'id del proprietario e gli id delle chiavi corrispondenti
   rpc UpdateUserSupervisorMasterKey (MasterKey) returns (shared.Result);
-  // update the supervised chat key with the corresponding key id
+  // aggiorna la chiave di chat supervisionata con l'id della chiave corrispondente
   rpc UpdateSupervisedChatKey (UpdateKeyRequest) returns (shared.Result);
-  // update the supervised group key with the corresponding key id
+  // aggiorna la chiave del gruppo supervisionato con l'id della chiave corrispondente
   rpc UpdateSupervisedGroupKey (UpdateKeyRequest) returns (shared.Result);
-  // update multiple keys with the corresponding ids
+  // aggiorna più chiavi con gli id corrispondenti
   rpc UpdateMultipleSupervisorKeys (UpdateSupervisorKeysRequest) returns (shared.Result);
-
-  // delete user master key from user id, if the request id is empty or required permission is missing
+  // elimina la chiave master dell'utente dall'id utente, se l'id della richiesta è vuoto o manca l'autorizzazione richiesta
   rpc DeleteUserMasterKey (DeleteKeyFromUserIdRequest) returns (shared.Result);
-  // delete user's private and public keys from user id, if the request id is empty or required permission is missing
+  // elimina le chiavi private e pubbliche dell'utente dall'id utente, se l'id della richiesta è vuoto o manca l'autorizzazione necessaria
   rpc DeleteUserKeyPair (DeleteKeyFromUserIdRequest) returns (shared.Result);
-  // delete chat key from user id and chat collection name
-  rpc DeleteUserChatKey (KeyFromIdRequest) returns (shared.Result);
-  // delete group key from user id and chat collection name
-  rpc DeleteUserGroupKey (KeyFromIdRequest) returns (shared.Result);
-  // delete all the user keys from user id, if the request id is empty or required permission is missing
+  // elimina la chiave di chat dall'id utente e dal nome della raccolta di chat
+  rpc DeleteUserChatKey (shared.StringMessage) returns (shared.Result);
+  // elimina la chiave di chat dall'id utente e dal nome della raccolta di chat
+  rpc DeleteUserGroupKey (shared.StringMessage) returns (shared.Result);
+  // elimina tutte le chiavi utente dall'id utente, se l'id della richiesta è vuoto o manca l'autorizzazione necessaria
   rpc DeleteAllUserKeys (DeleteKeyFromUserIdRequest) returns (shared.Result);
-
-  // delete the user's master key for supervisor from user id, if the request id is empty or required permission is missing
+  // elimina la chiave master dell'utente per il supervisore dall'id utente, se l'id della richiesta è vuoto o manca l'autorizzazione richiesta
   rpc DeleteUserSupervisorMasterKey (DeleteKeyFromUserIdRequest) returns (shared.Result);
-  // delete the key of a supervised chat
-  rpc DeleteSupervisorChatKey (KeyFromIdRequest) returns (shared.Result);
-  // delete the key of a supervised group
-  rpc DeleteSupervisorGroupKey (KeyFromIdRequest) returns (shared.Result);
+  // elimina la chiave di una chat supervisionata
+  rpc DeleteSupervisorChatKey (shared.StringMessage) returns (shared.Result);
+  // elimina la chiave di un gruppo supervisionato
+  rpc DeleteSupervisorGroupKey (shared.StringMessage) returns (shared.Result);
 }

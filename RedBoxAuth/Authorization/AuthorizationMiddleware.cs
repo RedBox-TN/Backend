@@ -40,28 +40,44 @@ public class AuthorizationMiddleware
 		var permAttribute = metadata.GetMetadata<PermissionsRequiredAttribute>();
 
 		if (permAttribute is not null)
-			if (IsUserAuthenticated(context, out user) && HasPermission(user!, permAttribute.Permissions))
+			if (IsUserAuthenticated(context, out var validHash, out user) &&
+			    HasPermission(user!, permAttribute.Permissions))
 			{
 				context.Items[Constants.UserContextKey] = user;
 				await _next(context);
 				return;
 			}
-			else
+			else if (validHash)
 			{
 				context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+				return;
+			}
+			else
+			{
+				// scurity hash is invalid, user must be reauthenticated
+				context.Response.StatusCode = Constants.Status440LoginTimeOut;
+				await _authCache.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
 				return;
 			}
 
 		if (metadata.Contains(new AuthenticationRequiredAttribute()))
 		{
-			if (IsUserAuthenticated(context, out user))
+			if (IsUserAuthenticated(context, out var validHash, out user))
 			{
 				context.Items[Constants.UserContextKey] = user;
 				await _next(context);
 				return;
 			}
 
-			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+			if (validHash)
+			{
+				context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+				return;
+			}
+
+			// scurity hash is invalid, user must be reauthenticated
+			context.Response.StatusCode = Constants.Status440LoginTimeOut;
+			await _authCache.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
 			return;
 		}
 
@@ -69,12 +85,20 @@ public class AuthorizationMiddleware
 	}
 
 
-	private bool IsUserAuthenticated(HttpContext context, out User? user)
+	private bool IsUserAuthenticated(HttpContext context, out bool validHash, out User? user)
 	{
 		user = null;
-		return context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) &&
-		       _authCache.TryToGet(key, out user) && _securityHash.IsValid(user!.SecurityHash,
-			       context.Request.Headers.UserAgent, context.Connection.RemoteIpAddress);
+
+		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) || !_authCache.TryToGet(key, out user))
+		{
+			validHash = true;
+			return false;
+		}
+
+		validHash = _securityHash.IsValid(user!.SecurityHash, context.Request.Headers.UserAgent,
+			context.Connection.RemoteIpAddress);
+
+		return validHash;
 	}
 
 	/// <summary>

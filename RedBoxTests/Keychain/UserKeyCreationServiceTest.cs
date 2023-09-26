@@ -4,6 +4,7 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using keychain;
 using RedBoxAuthentication;
+using Shared;
 using Xunit.Priority;
 
 namespace RedBoxTests.Keychain;
@@ -81,9 +82,9 @@ public class UserKeyCreationServiceTest
 	public async void CreateChatKey()
 	{
 		var chatKey = Common.CreateAesKey();
-		var userPubKey = await _client.GetUserPublicKeyAsync(new KeyFromIdRequest
+		var userPubKey = await _client.GetUserPublicKeyAsync(new StringMessage
 		{
-			Id = Common.UserId
+			Value = Common.UserId
 		}, _metadata);
 
 		var encrypted = Common.RsaEncrypt(chatKey, userPubKey.Data.ToByteArray());

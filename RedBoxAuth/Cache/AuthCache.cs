@@ -34,7 +34,7 @@ public class AuthCache : IAuthCache
 	{
 		var key = GenerateToken();
 		user.IsAuthenticated = true;
-		Store(user, key, _authSettings.SessionExpireMinutes);
+		StoreInternal(user, key, _authSettings.SessionExpireMinutes);
 		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 		return key;
 	}
@@ -43,7 +43,7 @@ public class AuthCache : IAuthCache
 	public string StorePending(User user, out long expireAt)
 	{
 		var key = GenerateToken();
-		Store(user, key, _authSettings.PendingAuthMinutes);
+		StoreInternal(user, key, _authSettings.PendingAuthMinutes);
 		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 		return key;
 	}
@@ -58,16 +58,16 @@ public class AuthCache : IAuthCache
 	public void SetCompleted(string key, out long expiresAt)
 	{
 		TryToGet(key, out var user);
-		_sessionDb.KeyDeleteAsync(key, CommandFlags.FireAndForget);
+		_sessionDb.KeyDelete(key, CommandFlags.FireAndForget);
 
 		user!.IsAuthenticated = true;
 
-		Store(user, key, _authSettings.SessionExpireMinutes);
+		StoreInternal(user, key, _authSettings.SessionExpireMinutes);
 		expiresAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 	}
 
 	/// <inheritdoc />
-	public async void DeleteAsync(string? key)
+	public async Task DeleteAsync(string? key)
 	{
 		if (!TryToGet(key, out var user)) return;
 
@@ -135,7 +135,7 @@ public class AuthCache : IAuthCache
 		return token;
 	}
 
-	private async void Store(User user, string key, uint minutes)
+	private async void StoreInternal(User user, string key, uint minutes)
 	{
 		var serialized = MemoryPackSerializer.Serialize(user);
 

@@ -1,10 +1,7 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using RedBox.Permission_Utility;
 using RedBoxAuth.Authorization;
-using RedBoxAuth.Settings;
 using RedBoxServices;
 using Shared;
 using Shared.Models;
@@ -12,7 +9,7 @@ using Status = Shared.Status;
 
 namespace RedBox.Services;
 
-public partial class AdminService 
+public partial class AdminService
 {
 	[PermissionsRequired(DefaultPermissions.ManageRoles)]
 	public override async Task<Result> CreateRole(GrpcRole request, ServerCallContext context)

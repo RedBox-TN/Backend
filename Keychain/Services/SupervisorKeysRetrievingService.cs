@@ -6,6 +6,7 @@ using Keychain.Models;
 using MongoDB.Driver;
 using RedBoxAuth;
 using RedBoxAuth.Authorization;
+using Shared;
 using Shared.Models;
 
 namespace Keychain.Services;
@@ -54,11 +55,11 @@ public partial class KeychainServices
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeyResponse> GetSupervisedChatKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<KeyResponse> GetSupervisedChatKey(StringMessage request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var key = await _database.GetCollection<ChatKey>(_settings.SupervisedChatsKeysCollection)
-			.Find(k => k.UserOwnerId == id && k.ChatCollectionName == request.Id).FirstOrDefaultAsync();
+			.Find(k => k.UserOwnerId == id && k.ChatCollectionName == request.Value).FirstOrDefaultAsync();
 
 		return new KeyResponse
 		{
@@ -70,11 +71,11 @@ public partial class KeychainServices
 	}
 
 	[PermissionsRequired(DefaultPermissions.ReadOtherUsersChats)]
-	public override async Task<KeyResponse> GetSupervisedGroupKey(KeyFromIdRequest request, ServerCallContext context)
+	public override async Task<KeyResponse> GetSupervisedGroupKey(StringMessage request, ServerCallContext context)
 	{
 		var id = context.GetUser().Id;
 		var key = await _database.GetCollection<ChatKey>(_settings.SupervisedGroupsKeysCollection)
-			.Find(k => k.UserOwnerId == id && k.ChatCollectionName == request.Id).FirstOrDefaultAsync();
+			.Find(k => k.UserOwnerId == id && k.ChatCollectionName == request.Value).FirstOrDefaultAsync();
 
 		return new KeyResponse
 		{
