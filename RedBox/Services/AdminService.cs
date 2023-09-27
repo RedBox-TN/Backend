@@ -78,7 +78,6 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 				Username = request.Username.Normalize(),
 				Email = request.Email.Normalize(),
 				RoleId = request.RoleId,
-				ChatIds = request.Chats.ToArray(),
 				IsFaEnable = request.IsFaEnabled,
 				PasswordHash = passwordHash,
 				Salt = salt,
@@ -201,22 +200,6 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 		{
 			updates.Add(update.Set(u => u.IsFaEnable, request.IsFaEnabled));
 			if (!request.IsFaEnabled) update.Set(user1 => user1.FaSeed, null);
-		}
-
-		// if chats has elements set new chats directly
-		if (request.Chats.Any())
-		{
-			updates.Add(update.Set<string[]?>(user1 => user1.ChatIds, request.Chats.ToArray()));
-		}
-		else
-		{
-			// remove elements from chats
-			if (request.RemovedChats.Any())
-				updates.Add(update.PullAll(user1 => user1.ChatIds, request.RemovedChats));
-
-			// add new elements to chats
-			if (request.AddedChats.Any())
-				updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.AddedChats));
 		}
 
 		// Combination of all modifications, only if list is not empty

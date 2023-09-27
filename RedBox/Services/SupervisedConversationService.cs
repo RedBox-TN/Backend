@@ -98,7 +98,7 @@ public class SupervisedConversationService : GrpcSupervisedConversationService.G
 		};
 	}
 
-	public override async Task<BucketResponse> GetMessagesInRange(MessageChunkRequest request,
+	public override async Task<ChunkResponse> GetMessagesInRange(MessageChunkRequest request,
 		ServerCallContext context)
 	{
 		List<Message> messages;
@@ -128,7 +128,7 @@ public class SupervisedConversationService : GrpcSupervisedConversationService.G
 				}
 			};
 
-		return new BucketResponse
+		return new ChunkResponse
 		{
 			Result = new Result
 			{

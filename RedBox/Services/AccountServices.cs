@@ -76,22 +76,6 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		if (!string.IsNullOrEmpty(request.Biography))
 			updates.Add(update.Set(user1 => user1.Biography, request.Biography));
 
-		// if chats has elements set new chats directly
-		if (request.Chats.Any())
-		{
-			updates.Add(update.Set<string[]?>(user1 => user1.ChatIds, request.Chats.ToArray()));
-		}
-		else
-		{
-			// remove elements from chats
-			if (request.RemovedChats.Any())
-				updates.Add(update.PullAll(user1 => user1.ChatIds, request.RemovedChats));
-
-			// add new elements to chats
-			if (request.AddedChats.Any())
-				updates.Add(update.AddToSetEach(user1 => user1.ChatIds, request.AddedChats));
-		}
-
 		// Combination of all modifications, only if list is not empty
 		try
 		{
@@ -325,7 +309,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 
 		return new Grpc2faResult
 		{
-			Qrcode = qrcode,
+			QrCode = qrcode,
 			ManualCode = manualCode,
 			Status = new Result
 			{
@@ -460,7 +444,6 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 			IsFaEnabled = result.IsFaEnable,
 			Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
 			Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
-			Chats = { IsChatNull(result.ChatIds) }
 		};
 
 		return new GrpcUserResult
@@ -509,7 +492,6 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 				IsFaEnabled = result[i].IsFaEnable,
 				Username = string.IsNullOrEmpty(result[i].Username) ? "" : result[i].Username,
 				Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography,
-				Chats = { IsChatNull(result[i].ChatIds) }
 			};
 
 		return new GrpcUserResults

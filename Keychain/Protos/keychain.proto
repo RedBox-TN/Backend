@@ -12,14 +12,18 @@ import "shared.proto";
   Messaggio che descrive la chiave aes principale, utilizzata per crittografare tutte le altre chiavi.
 */
 message MasterKey {
+  // la chiave AES utilizzata per cifrare tutte le altre chiavi, cifrata con la password e trasformata in un array di byte
   bytes encrypted_data = 1;
+  // l'iv utilizzato durante la procedura di cifratura della chiave, come array di byte
   bytes iv = 2;
 }
 /*
   Messaggio che descrive la coppia di chiavi del singolo utente, utilizzato per lo scambio di chiavi con altri utenti. 
 */
 message UserKeyPairCreationRequest {
+  // la chiave pubblica della coppia
   bytes public_key = 1;
+  // la chiave privata della coppia, cifrata con la master key dell'utente
   bytes encrypted_private_key = 2;
   // iv della chiave privata cifrata
   bytes iv = 3;
@@ -28,19 +32,28 @@ message UserKeyPairCreationRequest {
   Messaggio che descrive la chiave di una chat
 */
 message ChatKeyCreationRequest {
+  // il nome della collezione di MongoDB che contiene i messaggi, è uguale all'id del documento che descrive la chat
   string chat_collection_name = 1;
+  // l'id dell'utente con cui si intende chattare
   string other_user_id = 2;
+  // la chiave AES della chat cifrata con la chiave pubblica dell'utente con cui si intende chattare
   bytes encrypted_key_for_other_user = 3;
+  // la chiave AES della chat cifrata con la master key dell'utente corrente
   bytes encrypted_key = 4;
+  // l'iv utilizzato per cifrare la chiave dell'utente corrente
   bytes iv = 5;
+  // la chiave AES della chat cifrata con la chiave pubblica dei supervisori
   bytes encrypted_key_for_supervisors = 6;
 }
 /*
   Messaggio che descrive la chiave di un membro di un gruppo quando viene creato
 */
 message GroupMemberKey {
+  // l'id dell'utente
   string user_id = 1;
+  // la chiave AES come array di byte
   bytes data = 2;
+  // l'iv con cui è stata cifrata
   bytes iv = 3;
 }
 /*
@@ -49,94 +62,126 @@ message GroupMemberKey {
   membro aggiunto durante la creazione
 */
 message GroupKeysCreationRequest {
+  // la chiave AES del gruppo, cifrata con la master key dell'utente che lo ha creato
   bytes encrypted_creator_key = 1;
+  // l'iv con cui è stata cifrata
   bytes iv = 2;
+  // il nome della collezione del gruppo che contiene i messaggi, equivale all'id del documento che definisce il gruppo
   string group_collection_name = 3;
+  // la chiave AES del gruppo cifrata con la chiave pubblica dei supervisori
   bytes encrypted_key_for_supervisors = 4;
+  // la chiave AES del gruppo cifrata con la chiave pubblica del membro, una per ogni partecipante
   repeated GroupMemberKey members_keys = 5;
 }
 /*
   Messaggio che descrive la chiave di un membro di un gruppo aggiunto successivamente, la chiave è criptata con la chiave pubblica dell'utente
 */
 message UserGroupKeyCreationRequest {
+  // l'id dell'utente
   string user_id = 1;
+  // il nome della collezione che contiene i messaggi del gruppo
   string chat_collection_name = 2;
+  // la chiave AES del gruppo cifrata con la chiave pubblica dell'utente
   bytes encrypted_key = 3;
 }
 /*
-  Messaggio che rappresenta una chiave del supervisore crittografata con la chiave pubblica dell'utente o con la chiave master.
+  Messaggio che rappresenta una chiave del supervisore crittografata con la chiave pubblica dell'utente
 */
 message SupervisorKeyCreationRequest {
+  // la chiave master (AES) dei supervisori cifrata con la chiave pubblica dell'utente a cui è stato assegnato il permesso 
   bytes encrypted_key = 1;
+  // l'id dell'utente
   string user_id = 2;
-  optional bytes iv = 3;
 }
 /*
   Messaggio utilizzato per aggiornare una chiave esistente, l'id è specializzato dal contesto
 */
 message UpdateKeyRequest {
+  // l'id della chiave
   string key_id = 1;
+  // la chiave come array di byte
   bytes key_data = 2;
-  bytes iv = 3;
+  // l'iv con cui è stata cifrata
+  optional bytes iv = 3;
+  // se True, allora la chiave è stata cifrata con la chiave pubblica dell'utente
   bool is_encrypted_with_public_key = 4;
 }
 /*
-  Messaggio che rappresenta più chiavi da aggiornare
+  Messaggio che rappresenta più chiavi da aggiornare, utile quando si cambia la master key
 */
 message UpdateKeysRequest {
+  // le chiavi delle chat aggiornate
   repeated UpdateKeyRequest chat_keys = 1;
+  // le chiavi dei gruppi aggiornate
   repeated UpdateKeyRequest group_keys = 2;
+  // la chiave pubblica e privata aggiornata
   optional UpdateUserKeyPairRequest key_pair = 3;
+  // la master key dell'utente aggiornata
   optional MasterKey master_key = 4;
 }
 /*
   Messaggio utilizzato per aggiornare una coppia di chiavi esistente, l'id è specializzato dal contesto
 */
 message UpdateUserKeyPairRequest {
+  // la chiave pubblica come array di byte
   optional bytes public_key_data = 2;
+  // la chiave privata cifrata con la chiave master dell'utente
   bytes private_key_data = 4;
+  // l'iv con cui è stata cifrata la chiave privata dell'utente
   bytes private_key_iv = 5;
 }
 /*
-  Messaggio che rappresenta più chiavi di supervisore che devono essere aggiornate
+  Messaggio che rappresenta più chiavi di supervisore che devono essere aggiornate, utile quando si cambia la master key dei supervisori
 */
 message UpdateSupervisorKeysRequest {
+  // le chiavi delle chat supervisionate da aggiornare
   repeated UpdateKeyRequest chat_keys = 1;
+  // le chiavi dei gruppi supervisionati aggiornate
   repeated UpdateKeyRequest group_keys = 2;
+  // la chiave master dell'utente supervisore aggiornata
   optional MasterKey master_key = 3;
 }
 /*
   Messaggio che rappresenta una chiave recuperata con il portachiavi corrispondente, i parametri sono popolati in base al tipo di chiave
 */
 message KeyResponse {
+  // l'id della chiave
   optional string id = 1;
+  // la chiave cifrata come array di byte
   optional bytes data = 2;
+  // l'iv con cui la chiave è stata cifrata
   optional bytes iv = 3;
+  // il nome della collezione contenente i messaggi cifrati con questa chiave 
   optional string chat_collection_name = 4;
 }
 /*
   Messaggio che rappresenta più chiavi dello stesso tipo (i parametri devono essere popolati in modo uguale)
 */
 message KeysResponse {
+  // le chiavi recuperate
   repeated KeyResponse keys = 1;
 }
 /*
   Messaggio che rappresenta una chiave crittografata dalla chiave pubblica dell'utente o del supervisore.
 */
 message KeyEncryptedWithPublicKey {
+  // la chiave cifrata con la chiave pubblica
   bytes encrypted_key_data = 1;
+  // l'id della chiave
   string key_id = 2;
 }
 /*
   Messaggio che rappresenta chiavi multiple crittografate con la chiave pubblica dell'utente o del supervisore
 */
 message KeysEncryptedWithPublicKey {
+  // le chiavi cifrate con la chiave pubblica
   repeated KeyEncryptedWithPublicKey keys = 1;
 }
 /*
   Messaggio che rappresenta la richiesta di cancellazione di una chiave con l'id proprietario corrispondente; se l'utente vuole cancellare la propria chiave, il parametro  è un parametro opzionale
 */
 message DeleteKeyFromUserIdRequest {
+  // l'id dell'utente di cui si intende eliminare le chiavi, in caso sia assente, viene usato l'id dell'utente che invia la richiesta
   optional string user_id = 1;
 }
 

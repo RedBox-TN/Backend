@@ -65,7 +65,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		_clientsRegistry.Remove(userId);
 	}
 
-	public override async Task<BucketResponse> GetMessagesInRange(MessageChunkRequest request,
+	public override async Task<ChunkResponse> GetMessagesInRange(MessageChunkRequest request,
 		ServerCallContext context)
 	{
 		List<Message> messages;
@@ -95,7 +95,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				}
 			};
 
-		return new BucketResponse
+		return new ChunkResponse
 		{
 			Result = new Result
 			{
