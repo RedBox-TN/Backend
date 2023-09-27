@@ -23,12 +23,15 @@ enum Status {
   rappresenta il risultato dell'operazione, se lo status è diverso da OK allora il campo error contiene cosa ha causato l'errore
 */
 message Result {
+  // l'esito dell'operazione, se ha avuto successo o è fallita
   Status status = 1;
+  // in caso di errore, il messaggio associato all'eccezione sollevata
   optional string error = 2;
 }
 /*
   rappresenta un messaggio generico che contiene una stringa, usato in altre definizioni
 */
 message StringMessage {
+  // una stringa generica, si specializza in base a dove viene usato questo messaggio
   string value = 1;
 }

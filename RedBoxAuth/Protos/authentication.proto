@@ -40,38 +40,55 @@ enum TwoFactorResponseCode {
 }
 // rappresenta una richiesta di login
 message LoginRequest {
+  // l'hash della password dell'utente
   string password = 1;
+  // un'identificatore dell'utente a scelta tra email e username, entrambi univoci
   oneof identifier {
+    // lo username associato all'utente
     string username = 2;
+    // la mail associata all'utente
     string email = 3;
   }
 }
 // rappresenta la risposta della procedura di autenticazione
 message LoginResponse {
+  // l'esito dell'operazione
   LoginStatus status = 1;
+  // il token della sessione
   optional string token = 2;
+  // la data in cui il token sará invalidato e la sessione cancellata 
   optional int64 expires_at = 3;
+  // in caso di credenziali errate, il numero di tentativi rimanenti prima che l'account venga bloccato 
   optional uint32 attempts_left = 4;
 }
 // rappresenta la richiesta di verifica del codice totp
 message TwoFactorRequest {
+  // il codice generato dall'applicazione per l'autenticazione a due fattori
   string two_fa_code = 1;
+  // il token della sessione ottenuto con il login
   string token = 2;
 }
 // rappresenta la risposta delle operazioni di verifica del codice totp
 message TwoFactorResponse {
+  // il risultato dell'operazione
   TwoFactorResponseCode code = 1;
+  // la data di scadenza del token, dopo la quale la sessione temporanea sará eliminata
   optional int64 token_expires_at = 2;
 }
 // rappresenta la risposta dell'operazione di aggiornamento del token
 message TokenRefreshResponse {
+  // il nuovo token
   string token = 1;
+  // la data di scadenza scadenza del nuovo token
   int64 expires_at = 2;
 }
 // rappresenta il risultato dell'operazione di reset della password
 message PasswordResetRequest {
+  // un'identificatore dell'account a scelta tra mail o username
   oneof identifier {
+    // la mail associata all'account
     string email_address = 1;
+    // lo username associato all'account
     string username = 2;
   }
 }

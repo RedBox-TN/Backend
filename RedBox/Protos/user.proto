@@ -10,89 +10,127 @@ import "shared.proto";
 
 // mappa la classe User
 message GrpcUser {
+  // l'id dell'utente, nel formato ObjectId 
   optional string id = 1;
+  // il nome dell'utente
   string name = 2;
+  // il cognome dell'utente
   string surname = 3;
+  // l'indirizzo email dell'utente, univoco
   string email = 4;
+  // l'id del ruolo
   string role_id = 5;
+  // indica se l'utente è bloccato o no, in caso lo sia non potrà effettuare il login
   optional bool is_blocked = 8;
+  // indica se l'autenticazione a due fattori è attiva sull'account
   optional bool is_fa_enabled = 9;
+  // lo username, univoco
   string username = 10;
-  repeated string removed_chats = 11;
-  repeated string added_chats = 12;
-  string biography = 13;
-  repeated string chats = 14;
+  // un breve testo
+  string biography = 11;
 }
 
 // richiesta che contiene un id, uno username o una mail di un utente
 message GrpcUserFetch {
-  oneof identifier{
+  // l'identificatore dell'utente, a scelta tra id, username e email
+  oneof identifier {
+    // l'id dell'utente
     string id = 1;
+    // lo username dell'utente
     string username = 2;
+    // l'email dell'utente
     string email = 3;
   }
 }
 // richiesta di ripristino della password
 message ForgottenPasswordRequest {
+  // il token contenuto nella mail
   string token = 1;
+  // la nuova password
   string new_password = 2;
 }
 // richiesta di cambio della password, data quella vecchia
 message PasswordChange {
+  // la vecchia password
   string old_password = 2;
+  // la nuova password
   string new_password = 3;
 }
 // per attivare o disattivare la 2fa sull'account di un utente
 message Grpc2FAChange {
+  // l'id dell'utente
   optional string id = 1;
+  // indica se l'autenticazione a due fattori è attiva
   optional bool is_fa_enabled = 2;
 }
 // risposta contenente un utente
 message GrpcUserResult {
-  GrpcUser user = 1;
-  shared.Result status = 2;
+  // il risultato dell'operazione
+  shared.Result status = 1;
+  // l'utente richiesto
+  GrpcUser user = 2;
 }
 // riposta contente più utenti
 message GrpcUserResults {
-  repeated GrpcUser user = 1;
-  shared.Result status = 2;
+  // il risultato dell'operazione
+  shared.Result status = 1;
+  // gli utenti richiesti
+  repeated GrpcUser user = 2;
 }
 // risposta contente il risultato dell'attivazione dell'autenticazione a due fattori
 message Grpc2faResult {
-  string qrcode = 1;
-  string manual_code = 2;
-  shared.Result status = 3;
+  // il risultato dell'operazione
+  shared.Result status = 1;
+  // l'immagine del qr code generato in base64 
+  string qr_code = 2;
+  // il codice da usare come seed in caso in cui il qr code non sia utilizzabile
+  string manual_code = 3;
 }
 // risposta contente il risultato dell'operazione di provisoning di un account
 message GrpcProvisionResult {
-  bool fa_provisioning = 1;
-  bool password_provisioning = 2;
-  bool key_provisioning = 3;
-  shared.Result status = 4;
+  // il risultato dell'operazione
+  shared.Result status = 1;
+  // indica se è necessario configurare la l'autenticazione a due fattori
+  bool fa_provisioning = 2;
+  // indica se è necessario impostare una nuova password, avviene dopo che un admin ne ha impostata una temporanea
+  bool password_provisioning = 3;
+  // 
+  bool key_provisioning = 4;
 }
 // mappa la classe Role
 message GrpcRole {
+  // l'id del ruolo
   optional string id = 1;
+  // i permessi associati al ruolo, visti come una maschera di bit
   optional uint32 permissions = 2;
+  // una breve descrizione del gruppo
   string description = 3;
+  // il nome
   string name = 4;
 }
 // richiede un ruolo dato l'id o il nome
 message GrpcRoleIdentifier {
+  // contiene l'id o il nome del ruolo, entrambi univoci
   oneof identifier {
+    // l'id del ruolo
     string id = 1;
+    // il nome del ruolo
     string name = 2;
   }
 }
 // risposta contenente un ruolo
 message GrpcRoleResult {
-  GrpcRole role = 1;
-  shared.Result status = 2;
+  // il risultato dell'operazione
+  shared.Result status = 1;
+  // il ruolo richiesto
+  GrpcRole role = 2;
 }
 // risposta contenente molteplici ruoli
 message GrpcRoleResults {
-  repeated GrpcRole roles = 1;
-  shared.Result status = 2;
+  // il risultato dell'operazione
+  shared.Result status = 1;
+  // i ruoli richiesti
+  repeated GrpcRole roles = 2;
 }
 /*
   Servizi per la gestione del proprio account da parte degli utenti
