@@ -8,6 +8,7 @@
         <UserSecretsId>a465cde5-21b7-42c1-813b-b292652ada31</UserSecretsId>
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
+        <LangVersion>11</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
@@ -17,9 +18,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="GoogleAuthenticator" Version="3.1.1-beta1"/>
+        <PackageReference Include="GoogleAuthenticator" Version="3.1.0" />
         <PackageReference Include="Grpc.AspNetCore" Version="2.57.0"/>
-        <PackageReference Include="Grpc.AspNetCore.Web" Version="2.57.0"/>
         <PackageReference Include="Grpc.Tools" Version="2.58.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -35,12 +35,10 @@
 
     <ItemGroup>
         <Protobuf Include="Protos\authentication.proto" GrpcServices="Server" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
-        <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Shared\Shared.csproj"/>
     </ItemGroup>
-
 
 </Project>

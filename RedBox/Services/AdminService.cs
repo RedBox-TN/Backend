@@ -7,7 +7,6 @@ using RedBox.Permission_Utility;
 using RedBoxAuth.Authorization;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Settings;
-using RedBoxAuth.TOTP_utility;
 using RedBoxServices;
 using Shared;
 using Shared.Models;
@@ -22,18 +21,17 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 	private readonly IPasswordUtility _passwordUtility;
 	private readonly IPermissionUtility _permissionUtility;
 	private readonly IRedBoxEmailUtility _redBoxEmailUtility;
-	private readonly ITotpUtility _totpUtility;
 
 
 	public AdminService(IOptions<AccountDatabaseSettings> databaseSettings, IPasswordUtility passwordUtility,
-		IRedBoxEmailUtility redBoxEmailUtility, ITotpUtility totpUtility, IPermissionUtility permissionUtility)
+		IRedBoxEmailUtility redBoxEmailUtility, IPermissionUtility permissionUtility)
 	{
 		_databaseSettings = databaseSettings.Value;
 		var mongodbClient = new MongoClient(_databaseSettings.UsersCollection);
 		_database = mongodbClient.GetDatabase(_databaseSettings.DatabaseName);
 		_passwordUtility = passwordUtility;
 		_redBoxEmailUtility = redBoxEmailUtility;
-		_totpUtility = totpUtility;
+		_permissionUtility = permissionUtility;
 	}
 
 	[GeneratedRegex(@"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$")]

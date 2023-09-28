@@ -6,6 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
+        <LangVersion>11</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
@@ -18,7 +19,6 @@
 
     <ItemGroup>
         <Protobuf Include="Protos\keychain.proto" GrpcServices="Server" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
-        <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -35,7 +35,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
-        <ProjectReference Include="..\RedBoxTests\RedBoxTests.csproj"/>
+        <ProjectReference Include="..\Shared\Shared.csproj"/>
     </ItemGroup>
 
 </Project>

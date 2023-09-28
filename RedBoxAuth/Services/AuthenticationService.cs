@@ -50,7 +50,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
 	{
 		if (context.GetHttpContext().Request.Headers.ContainsKey(Constants.TokenHeaderName) &&
-		    _authCache.TokenExists(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]))
+		    await _authCache.TokenExistsAsync(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]))
 			return new LoginResponse
 			{
 				Status = LoginStatus.AlreadyLogged
@@ -103,7 +103,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 			updates = Builders<User>.Update.Set(u => u.IsBlocked, true);
 			await _userCollection.FindOneAndUpdateAsync(filter, updates);
-			_emailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
+			await _emailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
 
 			return new LoginResponse
 			{
@@ -124,17 +124,19 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers["User-Agent"],
 			context.GetHttpContext().Connection.RemoteIpAddress);
 
-		long expireAt;
 		if (user.IsFaEnable)
+		{
+			var result = await _authCache.StorePendingAsync(user);
 			return new LoginResponse
 			{
 				Status = LoginStatus.Require2Fa,
-				Token = _authCache.StorePending(user, out expireAt),
-				ExpiresAt = expireAt
+				Token = result.token,
+				ExpiresAt = result.expiresAt
 			};
+		}
 
 		user.IsAuthenticated = true;
-		var key = _authCache.Store(user, out expireAt);
+		var key = await _authCache.StoreAsync(user);
 
 		await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq(u => u.Id, user.Id),
 			Builders<User>.Update.Set(u => u.LastAccess, DateTime.Now).Set(u => u.InvalidLoginAttempts, 0));
@@ -142,8 +144,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		return new LoginResponse
 		{
 			Status = LoginStatus.LoginSuccess,
-			Token = key,
-			ExpiresAt = expireAt
+			Token = key.token,
+			ExpiresAt = key.expiresAt
 		};
 	}
 
@@ -186,7 +188,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				Code = TwoFactorResponseCode.InvalidCode
 			};
 
-		_authCache.SetCompleted(request.Token, out var expiresAt);
+		var expiresAt = await _authCache.SetCompletedAsync(request.Token);
 
 		return new TwoFactorResponse
 		{
@@ -199,13 +201,13 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	[AuthenticationRequired]
 	public override async Task<TokenRefreshResponse> RefreshToken(Empty request, ServerCallContext context)
 	{
-		var token = _authCache.RefreshToken(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]!,
-			out var expiresAt);
+		var token = await _authCache.RefreshTokenAsync(context.GetHttpContext().Request
+			.Headers[Constants.TokenHeaderName]!);
 
 		return new TokenRefreshResponse
 		{
-			Token = token,
-			ExpiresAt = expiresAt
+			Token = token.newToken,
+			ExpiresAt = token.expiresAt
 		};
 	}
 
@@ -249,7 +251,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				Error = "User is blocked"
 			};
 
-		_emailUtility.SendPasswordResetRequestAsync(user.Email, user.Username, user.Id);
+		await _emailUtility.SendPasswordResetRequestAsync(user.Email, user.Username, user.Id);
 
 		return new Result
 		{

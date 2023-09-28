@@ -89,7 +89,8 @@ public class AuthorizationMiddleware
 	{
 		user = null;
 
-		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) || !_authCache.TryToGet(key, out user))
+		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) ||
+		    !_authCache.TryToGet(key, out user))
 		{
 			validHash = true;
 			return false;

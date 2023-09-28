@@ -14,7 +14,7 @@ public interface IBasicAuthCache
 	/// <param name="user">out, the user corresponding to the token</param>
 	/// <returns>Bool, true if token is valid, false if not</returns>
 	public bool TryToGet(string? token, out User? user);
-	
+
 	/// <summary>
 	///     DeleteAsync user from cache
 	/// </summary>
