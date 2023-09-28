@@ -443,7 +443,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 			IsBlocked = result.IsBlocked,
 			IsFaEnabled = result.IsFaEnable,
 			Username = string.IsNullOrEmpty(result.Username) ? "" : result.Username,
-			Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography,
+			Biography = string.IsNullOrEmpty(result.Biography) ? "" : result.Biography
 		};
 
 		return new GrpcUserResult
@@ -491,7 +491,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 				IsBlocked = result[i].IsBlocked,
 				IsFaEnabled = result[i].IsFaEnable,
 				Username = string.IsNullOrEmpty(result[i].Username) ? "" : result[i].Username,
-				Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography,
+				Biography = string.IsNullOrEmpty(result[i].Biography) ? "" : result[i].Biography
 			};
 
 		return new GrpcUserResults

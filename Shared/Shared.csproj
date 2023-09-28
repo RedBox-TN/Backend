@@ -7,6 +7,7 @@
         <RootNamespace>Shared</RootNamespace>
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
+        <LangVersion>11</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
@@ -15,8 +16,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0"/>
-        <PackageReference Include="Grpc.AspNetCore.Web" Version="2.57.0"/>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
         <PackageReference Include="Grpc.Tools" Version="2.58.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -29,5 +29,8 @@
         <PackageReference Include="MongoDB.Driver" Version="2.21.0"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Protobuf Include="Protos\shared.proto"/>
+    </ItemGroup>
 
 </Project>

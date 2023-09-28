@@ -31,10 +31,4 @@ public class Conversation
 		channel = GrpcChannel.ForAddress(Common.KeychainServerAddress);
 		_client = new GrpcConversationServices.GrpcConversationServicesClient(channel);
 	}
-
-	[Fact]
-	[Priority(-1)]
-	public async void CreateChat()
-	{
-	}
 }

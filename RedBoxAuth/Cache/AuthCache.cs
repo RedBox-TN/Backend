@@ -30,40 +30,38 @@ public class AuthCache : IAuthCache
 	}
 
 	/// <inheritdoc />
-	public string Store(User user, out long expireAt)
+	public async Task<(string token, long expiresAt)> StoreAsync(User user)
 	{
-		var key = GenerateToken();
+		var key = await GenerateTokenAsync();
 		user.IsAuthenticated = true;
-		StoreInternal(user, key, _authSettings.SessionExpireMinutes);
-		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-		return key;
+		await SerializeCompressStoreAsync(user, key, _authSettings.SessionExpireMinutes);
+		return (key, ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds());
 	}
 
 	/// <inheritdoc />
-	public string StorePending(User user, out long expireAt)
+	public async Task<(string token, long expiresAt)> StorePendingAsync(User user)
 	{
-		var key = GenerateToken();
-		StoreInternal(user, key, _authSettings.PendingAuthMinutes);
-		expireAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
-		return key;
+		var key = await GenerateTokenAsync();
+		await SerializeCompressStoreAsync(user, key, _authSettings.PendingAuthMinutes);
+		return (key, ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds());
 	}
 
 	/// <inheritdoc />
-	public bool TokenExists(string? key)
+	public Task<bool> TokenExistsAsync(string? key)
 	{
-		return _sessionDb.KeyExists(key);
+		return _sessionDb.KeyExistsAsync(key);
 	}
 
 	/// <inheritdoc />
-	public void SetCompleted(string key, out long expiresAt)
+	public async Task<long> SetCompletedAsync(string key)
 	{
 		TryToGet(key, out var user);
-		_sessionDb.KeyDelete(key, CommandFlags.FireAndForget);
+		await _sessionDb.KeyDeleteAsync(key, CommandFlags.FireAndForget);
 
 		user!.IsAuthenticated = true;
 
-		StoreInternal(user, key, _authSettings.SessionExpireMinutes);
-		expiresAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
+		await SerializeCompressStoreAsync(user, key, _authSettings.SessionExpireMinutes);
+		return ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();
 	}
 
 	/// <inheritdoc />
@@ -79,7 +77,7 @@ public class AuthCache : IAuthCache
 	/// <inheritdoc />
 	public bool TryToGet(string? token, out User? user)
 	{
-		if (!TokenExists(token))
+		if (!_sessionDb.KeyExists(token))
 		{
 			user = null;
 			return false;
@@ -93,19 +91,22 @@ public class AuthCache : IAuthCache
 	}
 
 	/// <inheritdoc />
-	public string RefreshToken(string oldToken, out long expiresAt)
+	public async Task<(string newToken, long expiresAt)> RefreshTokenAsync(string oldToken)
 	{
-		var token = GenerateToken();
+		var token = await GenerateTokenAsync();
 
-		TryToGet(oldToken, out var user);
+		var stream = (byte[]?)_sessionDb.StringGet(token);
 
-		_sessionDb.KeyRenameAsync(oldToken, token);
-		_tokenDb.StringSetAsync(user!.Username, token, TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes - 1),
+		using var decompressor = new Decompressor();
+		var user = MemoryPackSerializer.Deserialize<User>(decompressor.Unwrap(stream));
+
+		await _sessionDb.KeyRenameAsync(oldToken, token);
+		await _tokenDb.StringSetAsync(user!.Username, token,
+			TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes - 1),
 			When.Always, CommandFlags.FireAndForget);
-		_sessionDb.KeyExpireAsync(token, TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes));
-		expiresAt = ((DateTimeOffset)_sessionDb.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds();
+		await _sessionDb.KeyExpireAsync(token, TimeSpan.FromMinutes(_authSettings.SessionExpireMinutes));
 
-		return token;
+		return (token, ((DateTimeOffset)_sessionDb.KeyExpireTime(token)!.Value).ToUnixTimeMilliseconds());
 	}
 
 	/// <inheritdoc />
@@ -120,13 +121,13 @@ public class AuthCache : IAuthCache
 		return true;
 	}
 
-	private string GenerateToken()
+	private async Task<string> GenerateTokenAsync()
 	{
 		var rndBuff = new byte[_authSettings.TokenSizeBytes];
 		RandomNumberGenerator.Fill(rndBuff);
 		var token = Convert.ToBase64String(rndBuff);
 
-		while (_sessionDb.KeyExists(token))
+		while (await _sessionDb.KeyExistsAsync(token))
 		{
 			RandomNumberGenerator.Fill(rndBuff);
 			token = Convert.ToBase64String(rndBuff);
@@ -135,7 +136,7 @@ public class AuthCache : IAuthCache
 		return token;
 	}
 
-	private async void StoreInternal(User user, string key, uint minutes)
+	private async Task SerializeCompressStoreAsync(User user, string key, uint minutes)
 	{
 		var serialized = MemoryPackSerializer.Serialize(user);
 

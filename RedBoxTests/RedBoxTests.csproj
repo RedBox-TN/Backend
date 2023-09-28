@@ -7,6 +7,7 @@
 
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <LangVersion>11</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,10 +17,11 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0-preview-23424-02"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+        <PackageReference Include="MongoDB.Bson" Version="2.21.0"/>
         <PackageReference Include="xunit" Version="2.5.1"/>
         <PackageReference Include="Xunit.Priority" Version="1.1.6"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.2-pre.3">
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.1">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
@@ -30,17 +32,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="..\Keychain\Protos\keychain.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
-        <Protobuf Include="..\RedBoxAuth\Protos\authentication.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
-        <Protobuf Include="..\RedBox\Protos\conversation.proto" GrpcServices="Client" AdditionalImportDirs="..\Shared\Protos\" AdditionalProtocOptions="--experimental_allow_proto3_optional"/>
-        <Protobuf Include="..\Shared\Protos\shared.proto" GrpcServices="None" link="Protos\Shared.proto"/>
+        <ProjectReference Include="..\Shared\Shared.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="MongoDB.Bson">
-            <HintPath>..\..\..\..\.nuget\packages\mongodb.bson\2.19.1\lib\netstandard2.1\MongoDB.Bson.dll</HintPath>
-        </Reference>
+        <Protobuf Include="..\RedBox\Protos\user.proto" GrpcServices="Client" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
+        <Protobuf Include="..\RedBox\Protos\conversation.proto" GrpcServices="Client" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
+        <Protobuf Include="..\Keychain\Protos\keychain.proto" GrpcServices="Client" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
+        <Protobuf Include="..\RedBoxAuth\Protos\authentication.proto" GrpcServices="Client" AdditionalProtocOptions="--experimental_allow_proto3_optional" AdditionalImportDirs="..\Shared\Protos\"/>
     </ItemGroup>
-
 
 </Project>
