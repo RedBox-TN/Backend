@@ -16,14 +16,12 @@ enum LoginStatus {
   MISSING_PARAMETER = 1;
   // l'utente è già correttamente autenticato
   ALREADY_LOGGED = 2;
-  // l'utente non esiste
-  USER_NOT_EXIST = 3;
   // il login ha avuto successo
-  LOGIN_SUCCESS = 4;
+  LOGIN_SUCCESS = 3;
   // le credenziali sono corrette ma è attiva l'autenticazione a due fattori
-  REQUIRE_2FA = 5;
+  REQUIRE_2FA = 4;
   // l'utente è bloccato
-  IS_BLOCKED = 6;
+  IS_BLOCKED = 5;
 }
 // rappresenta il risultato dell'operazione di verifica dell'autenticazione a due fattori
 enum TwoFactorResponseCode {

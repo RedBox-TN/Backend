@@ -78,7 +78,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		if (user is null)
 			return new LoginResponse
 			{
-				Status = LoginStatus.UserNotExist
+				Status = LoginStatus.InvalidCredentials
 			};
 
 		if (user.IsBlocked)
