@@ -16,7 +16,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0"/>
         <PackageReference Include="Grpc.Tools" Version="2.58.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -26,7 +26,7 @@
         <PackageReference Include="MailKit" Version="4.2.0"/>
         <PackageReference Include="MemoryPack" Version="1.9.16"/>
         <PackageReference Include="MimeKit" Version="4.2.0"/>
-        <PackageReference Include="MongoDB.Driver" Version="2.21.0"/>
+        <PackageReference Include="MongoDB.Driver" Version="2.22.0" />
     </ItemGroup>
 
     <ItemGroup>
