@@ -8,7 +8,6 @@ using RedBoxAuth;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddGrpcReflection();
 
 builder.Services.Configure<RedBoxDatabaseSettings>(builder.Configuration.GetSection("RedBoxDB"));
 var settings = builder.Configuration.GetSection("RedBoxApplicationSettings");
@@ -50,7 +49,5 @@ app.MapGrpcService<ConversationService>().EnableGrpcWeb();
 app.MapGrpcService<SupervisedConversationService>().EnableGrpcWeb();
 
 app.UseRedBoxAuthenticationAndAuthorization();
-
-if (app.Environment.IsDevelopment()) app.MapGrpcReflectionService();
 
 app.Run();
