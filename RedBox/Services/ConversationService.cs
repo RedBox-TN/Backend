@@ -14,7 +14,7 @@ using RedBoxAuth.Settings;
 using RedBoxServices;
 using Shared;
 using Shared.Models;
-using Status = Shared.Status;
+using Status = Grpc.Core.Status;
 
 namespace RedBox.Services;
 
@@ -59,7 +59,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 					break;
 				case ClientUpdate.OperationOneofCase.None:
 				default:
-					throw new ArgumentOutOfRangeException(nameof(requestStream));
+					throw new RpcException(new Status(StatusCode.InvalidArgument, nameof(requestStream)));
 			}
 
 		_clientsRegistry.Remove(userId);
@@ -68,119 +68,155 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 	public override async Task<ChunkResponse> GetMessagesInRange(MessageChunkRequest request,
 		ServerCallContext context)
 	{
-		List<Message> messages;
-		if (request.Collection.HasChat)
-			messages = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
-				.GetCollection<Message>(request.Collection.Chat).Find(_ => true)
-				.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
-				.ToListAsync();
-		else
-			messages = await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
-				.GetCollection<Message>(request.Collection.Group).Find(_ => true)
-				.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
-				.ToListAsync();
+		try
+		{
+			List<Message> messages;
+			if (request.Collection.HasChat)
+				messages = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
+					.GetCollection<Message>(request.Collection.Chat).Find(_ => true)
+					.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
+					.ToListAsync();
+			else
+				messages = await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
+					.GetCollection<Message>(request.Collection.Group).Find(_ => true)
+					.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
+					.ToListAsync();
 
-		var result = new GrpcMessage[messages.Count];
-		for (var i = 0; i < messages.Count; i++)
-			result[i] = new GrpcMessage
-			{
-				Id = messages[i].Id,
-				Timestamp = Timestamp.FromDateTime(messages[i].Timestamp),
-				SenderId = messages[i].SenderId,
-				EncryptedText = ByteString.CopyFrom(messages[i].EncryptedText),
-				Iv = ByteString.CopyFrom(messages[i].Iv),
-				Attachments =
+			var result = new GrpcMessage[messages.Count];
+			for (var i = 0; i < messages.Count; i++)
+				result[i] = new GrpcMessage
 				{
-					ToGrpcAttachments(messages[i].Attachments)
+					Id = messages[i].Id,
+					Timestamp = Timestamp.FromDateTime(messages[i].Timestamp),
+					SenderId = messages[i].SenderId,
+					EncryptedText = ByteString.CopyFrom(messages[i].EncryptedText),
+					Iv = ByteString.CopyFrom(messages[i].Iv),
+					Attachments =
+					{
+						ToGrpcAttachments(messages[i].Attachments)
+					}
+				};
+
+			return new ChunkResponse
+			{
+				Result = new Result
+				{
+					Status = Shared.Status.Ok
+				},
+				Messages =
+				{
+					result
 				}
 			};
-
-		return new ChunkResponse
+		}
+		catch (Exception e)
 		{
-			Result = new Result
+			return new ChunkResponse
 			{
-				Status = Status.Ok
-			},
-			Messages =
-			{
-				result
-			}
-		};
+				Result = new Result
+				{
+					Status = Shared.Status.Error,
+					Error = e.Message
+				}
+			};
+		}
 	}
 
 	public override async Task<GrpcAttachment> GetAttachmentData(AttachmentRequest request, ServerCallContext context)
 	{
-		var bucket = new GridFSBucket(_mongoClient.GetDatabase(_dbSettings.GridFsDatabase),
-			new GridFSBucketOptions
-			{
-				BucketName = request.BucketName,
-				ChunkSizeBytes = _dbSettings.GridFsChunkSizeBytes
-			});
-
-		var fileMetadata =
-			await (await bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(f => f.Id, new ObjectId(request.FileId))))
-				.FirstAsync();
-
-		return new GrpcAttachment
+		try
 		{
-			Id = request.FileId,
-			Name = fileMetadata.Filename,
-			Data = ByteString.CopyFrom(await bucket.DownloadAsBytesAsync(fileMetadata.Id, new GridFSDownloadOptions
+			var bucket = new GridFSBucket(_mongoClient.GetDatabase(_dbSettings.GridFsDatabase),
+				new GridFSBucketOptions
+				{
+					BucketName = request.BucketName,
+					ChunkSizeBytes = _dbSettings.GridFsChunkSizeBytes
+				});
+
+			var fileMetadata =
+				await (await bucket.FindAsync(
+						Builders<GridFSFileInfo>.Filter.Eq(f => f.Id, new ObjectId(request.FileId))))
+					.FirstAsync();
+
+			return new GrpcAttachment
 			{
-				CheckMD5 = false
-			}))
-		};
+				Id = request.FileId,
+				Name = fileMetadata.Filename,
+				Data = ByteString.CopyFrom(await bucket.DownloadAsBytesAsync(fileMetadata.Id, new GridFSDownloadOptions
+				{
+					CheckMD5 = false
+				}))
+			};
+		}
+		catch (Exception e)
+		{
+			throw new RpcException(new Status(StatusCode.Internal, e.Message));
+		}
 	}
 
 	[PermissionsRequired(DefaultPermissions.CreateChats)]
 	public override async Task<AvailableUsersResponse> GetUsersForConversation(Empty request, ServerCallContext context)
 	{
-		var user = context.GetUser();
-		var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-			.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-			.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
+		try
+		{
+			var user = context.GetUser();
+			var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+				.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+				.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
 
-		var excluded = chats.Select(c => c.MembersIds.First(u => u != user.Id));
+			var excluded = chats.Select(c => c.MembersIds.First(u => u != user.Id));
 
-		var found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
-			.GetCollection<User>(_userDbSettings.UsersCollection)
-			.Find(Builders<User>.Filter.Not(Builders<User>.Filter.In(u => u.Id, excluded))).ToListAsync();
+			var found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
+				.GetCollection<User>(_userDbSettings.UsersCollection)
+				.Find(Builders<User>.Filter.Not(Builders<User>.Filter.In(u => u.Id, excluded))).ToListAsync();
 
-		if (found.Count == 0)
+			if (found.Count == 0)
+				return new AvailableUsersResponse
+				{
+					Result = new Result
+					{
+						Status = Shared.Status.Ok
+					},
+					Users =
+					{
+						Array.Empty<UserInfo>()
+					}
+				};
+
+			var users = new UserInfo[found.Count];
+			for (var i = 0; i < found.Count; i++)
+				users[i] = new UserInfo
+				{
+					Id = found[i].Id,
+					Name = found[i].Name,
+					Surname = found[i].Surname,
+					Email = found[i].Email,
+					Username = found[i].Username
+				};
+
 			return new AvailableUsersResponse
 			{
 				Result = new Result
 				{
-					Status = Status.Ok
+					Status = Shared.Status.Ok
 				},
 				Users =
 				{
-					Array.Empty<UserInfo>()
+					users
 				}
 			};
-
-		var users = new UserInfo[found.Count];
-		for (var i = 0; i < found.Count; i++)
-			users[i] = new UserInfo
-			{
-				Id = found[i].Id,
-				Name = found[i].Name,
-				Surname = found[i].Surname,
-				Email = found[i].Email,
-				Username = found[i].Username
-			};
-
-		return new AvailableUsersResponse
+		}
+		catch (Exception e)
 		{
-			Result = new Result
+			return new AvailableUsersResponse
 			{
-				Status = Status.Ok
-			},
-			Users =
-			{
-				users
-			}
-		};
+				Result = new Result
+				{
+					Error = e.Message,
+					Status = Shared.Status.Error
+				}
+			};
+		}
 	}
 
 	private static IEnumerable<GrpcAttachment> ToGrpcAttachments(Attachment[]? attachments)
@@ -209,7 +245,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Status.MissingParameters,
+					Status = Shared.Status.MissingParameters,
 					Error =
 						"Each message must contain one collection, an iv and at least some text or one attachment"
 				}
@@ -224,7 +260,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Status.InvalidParameter,
+					Status = Shared.Status.InvalidParameter,
 					Error =
 						"Invalid collection name"
 				}
@@ -247,7 +283,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Status.InvalidParameter,
+					Status = Shared.Status.InvalidParameter,
 					Error = "Too many attachments"
 				}
 			});
@@ -262,7 +298,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				{
 					Result = new Result
 					{
-						Status = Status.InvalidParameter,
+						Status = Shared.Status.InvalidParameter,
 						Error = $"{attachment.Name} was empty"
 					}
 				});
@@ -274,7 +310,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Status.AttachmentTooBig,
+					Status = Shared.Status.AttachmentTooBig,
 					Error = $"{attachment.Name} was too big"
 				}
 			});
@@ -285,7 +321,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		{
 			Result = new Result
 			{
-				Status = Status.Ok
+				Status = Shared.Status.Ok
 			}
 		};
 		using var session = await _mongoClient.StartSessionAsync();
@@ -339,13 +375,13 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 
 			await session.CommitTransactionAsync();
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			await response.WriteAsync(new ServerUpdate
 			{
 				Result = new Result
 				{
-					Status = Status.Error,
+					Status = Shared.Status.Error,
 					Error = e.Message
 				}
 			});
@@ -369,7 +405,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Status.MissingParameters,
+					Status = Shared.Status.MissingParameters,
 					Error = "Each request must contains at least one message id and the collection in which it belongs"
 				}
 			});
@@ -392,7 +428,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 					{
 						Result = new Result
 						{
-							Status = Status.Ok
+							Status = Shared.Status.Ok
 						},
 						DeletedMessages = new DeleteMessagesRequest
 						{
@@ -413,7 +449,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 					{
 						Result = new Result
 						{
-							Status = Status.Ok
+							Status = Shared.Status.Ok
 						},
 						DeletedMessages = new DeleteMessagesRequest
 						{
@@ -425,13 +461,13 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 					});
 			}
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			await response.WriteAsync(new ServerUpdate
 			{
 				Result = new Result
 				{
-					Status = Status.Error,
+					Status = Shared.Status.Error,
 					Error = e.Message
 				}
 			});
@@ -442,7 +478,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		{
 			Result = new Result
 			{
-				Status = Status.Ok
+				Status = Shared.Status.Ok
 			}
 		});
 	}
@@ -456,7 +492,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Status.MissingParameters,
+					Status = Shared.Status.MissingParameters,
 					Error = "Each request must contains one chat or group id"
 				}
 			});
@@ -468,7 +504,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		{
 			Result = new Result
 			{
-				Status = Status.Ok
+				Status = Shared.Status.Ok
 			}
 		};
 
@@ -520,13 +556,13 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				};
 			}
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			await response.WriteAsync(new ServerUpdate
 			{
 				Result = new Result
 				{
-					Status = Status.Error,
+					Status = Shared.Status.Error,
 					Error = e.Message
 				}
 			});
@@ -539,29 +575,36 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 	private async Task<GrpcMessage?> GetMessageFromCollectionAsync(string collectionId, string? messageId = null,
 		bool isGroup = false)
 	{
-		var collection = isGroup
-			? _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).GetCollection<Message>(collectionId)
-			: _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(collectionId);
-
-		Message? found;
-		if (messageId is not null)
-			found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstAsync();
-		else
-			found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstAsync();
-
-		if (found is null) return null;
-
-		return new GrpcMessage
+		try
 		{
-			Id = found.Id,
-			Timestamp = Timestamp.FromDateTime(found.Timestamp),
-			EncryptedText = ByteString.CopyFrom(found.EncryptedText),
-			Iv = ByteString.CopyFrom(found.Iv),
-			SenderId = found.SenderId,
-			Attachments =
+			var collection = isGroup
+				? _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).GetCollection<Message>(collectionId)
+				: _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(collectionId);
+
+			Message? found;
+			if (messageId is not null)
+				found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstAsync();
+			else
+				found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstAsync();
+
+			if (found is null) return null;
+
+			return new GrpcMessage
 			{
-				ToGrpcAttachments(found.Attachments)
-			}
-		};
+				Id = found.Id,
+				Timestamp = Timestamp.FromDateTime(found.Timestamp),
+				EncryptedText = ByteString.CopyFrom(found.EncryptedText),
+				Iv = ByteString.CopyFrom(found.Iv),
+				SenderId = found.SenderId,
+				Attachments =
+				{
+					ToGrpcAttachments(found.Attachments)
+				}
+			};
+		}
+		catch (Exception e)
+		{
+			throw new RpcException(new Status(StatusCode.Internal, e.Message));
+		}
 	}
 }

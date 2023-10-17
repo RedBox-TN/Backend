@@ -1,3 +1,4 @@
+using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using RedBoxAuth.Cache;
 using RedBoxAuth.Security_hash_utility;
@@ -49,15 +50,11 @@ public class AuthorizationMiddleware
 			}
 			else if (validHash)
 			{
-				context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-				return;
+				throw new RpcException(new Status(StatusCode.PermissionDenied, string.Empty));
 			}
 			else
 			{
-				// scurity hash is invalid, user must be reauthenticated
-				context.Response.StatusCode = Constants.Status440LoginTimeOut;
-				await _authCache.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
-				return;
+				throw new RpcException(new Status(StatusCode.Unauthenticated, "User must be reauthenticated"));
 			}
 
 		if (metadata.Contains(new AuthenticationRequiredAttribute()))
@@ -71,14 +68,11 @@ public class AuthorizationMiddleware
 
 			if (validHash)
 			{
-				context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-				return;
+				throw new RpcException(new Status(StatusCode.PermissionDenied, string.Empty));
 			}
 
-			// scurity hash is invalid, user must be reauthenticated
-			context.Response.StatusCode = Constants.Status440LoginTimeOut;
 			await _authCache.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
-			return;
+			throw new RpcException(new Status(StatusCode.Unauthenticated, "User must be reauthenticated"));
 		}
 
 		await _next(context);

@@ -81,7 +81,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		{
 			if (updates.Any()) await collection.UpdateOneAsync(filter, update.Combine(updates));
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -175,72 +175,71 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 	/// <returns>Status code and message of the operation</returns>
 	public override async Task<Result> FinalizeEmailChange(StringMessage request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
-
-		// Retrieve token and convert ot bytes
-		var byteToken = HttpUtility.UrlDecodeToBytes(request.Value);
-
-		if (byteToken.Length < 17)
-			return new Result
-			{
-				Status = Status.Error,
-				Error = "Wrong token"
-			};
-
-		// Retrieve IV and Ciphertext, derive AES key
-		var iv = byteToken.Take(16).ToArray();
-		var ciphertext = byteToken.Skip(16).ToArray();
-		var key = _encryptionUtility.DeriveKey(_commonEmailSettings.TokenEncryptionKey);
-
-		byte[] plainText;
 		try
 		{
-			plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv);
-		}
-		catch (Exception)
-		{
-			return new Result
+			var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
+
+			// Retrieve token and convert ot bytes
+			var byteToken = HttpUtility.UrlDecodeToBytes(request.Value);
+
+			if (byteToken.Length < 17)
+				return new Result
+				{
+					Status = Status.Error,
+					Error = "Wrong token"
+				};
+
+			// Retrieve IV and Ciphertext, derive AES key
+			var iv = byteToken.Take(16).ToArray();
+			var ciphertext = byteToken.Skip(16).ToArray();
+			var key = _encryptionUtility.DeriveKey(_commonEmailSettings.TokenEncryptionKey);
+
+			byte[] plainText;
+			try
 			{
-				Status = Status.Error,
-				Error = "Wrong token"
-			};
-		}
-
-		var splitData = Encoding.UTF8.GetString(plainText).Split("#");
-
-		// Check email validity
-		if (!MyRegex().IsMatch(splitData[0]))
-			return new Result
+				plainText = await _encryptionUtility.AesDecryptAsync(ciphertext, key, iv);
+			}
+			catch (Exception)
 			{
-				Status = Status.Error,
-				Error = "Wrong token"
-			};
+				return new Result
+				{
+					Status = Status.Error,
+					Error = "Wrong token"
+				};
+			}
 
-		// Extract expiration time from string
-		if (!long.TryParse(splitData[^1], out var expiration))
-			return new Result
-			{
-				Status = Status.Error,
-				Error = "Invalid token"
-			};
+			var splitData = Encoding.UTF8.GetString(plainText).Split("#");
 
-		// Check if token is expired
-		if (expiration - DateTimeOffset.Now.ToUnixTimeMilliseconds() <= 0)
-			return new Result
-			{
-				Status = Status.Error,
-				Error = "Token Expired"
-			};
+			// Check email validity
+			if (!MyRegex().IsMatch(splitData[0]))
+				return new Result
+				{
+					Status = Status.Error,
+					Error = "Wrong token"
+				};
 
-		var filter = Builders<User>.Filter.Eq(user => user.Id, splitData[1]);
-		var update = Builders<User>.Update.Set(user => user.Email, splitData[0]);
+			// Extract expiration time from string
+			if (!long.TryParse(splitData[^1], out var expiration))
+				return new Result
+				{
+					Status = Status.Error,
+					Error = "Invalid token"
+				};
 
-		// Try to access user by ID
-		try
-		{
+			// Check if token is expired
+			if (expiration - DateTimeOffset.Now.ToUnixTimeMilliseconds() <= 0)
+				return new Result
+				{
+					Status = Status.Error,
+					Error = "Token Expired"
+				};
+
+			var filter = Builders<User>.Filter.Eq(user => user.Id, splitData[1]);
+			var update = Builders<User>.Update.Set(user => user.Email, splitData[0]);
+
 			await collection.UpdateOneAsync(filter, update);
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -264,58 +263,58 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 	[PermissionsRequired(DefaultPermissions.EnableLocal2Fa)]
 	public override async Task<Grpc2faResult> FAStateChange(Grpc2FAChange request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
-
-		// missing parameters
-		if (!request.HasIsFaEnabled || !request.HasId)
-			return new Grpc2faResult
-			{
-				Status = new Result
-				{
-					Status = Status.MissingParameters
-				}
-			};
-
-		var filter = Builders<User>.Filter.Eq(user1 => user1.Id, request.Id);
-		var update = Builders<User>.Update.Set(user1 => user1.IsFaEnable, request.IsFaEnabled);
-		string? qrcode = null, manualCode = null;
-
-		if (request.IsFaEnabled)
-		{
-			var userFetched = await collection.Find(u => u.Id == request.Id).FirstOrDefaultAsync();
-			var faSeed = _totpUtility.CreateSharedSecret(userFetched.Email, out qrcode, out manualCode);
-			update.Set(user1 => user1.FaSeed, faSeed);
-		}
-		else
-		{
-			update.Set(user1 => user1.FaSeed, null);
-		}
-
 		try
 		{
+			var collection = _database.GetCollection<User>(_databaseSettings.UsersCollection);
+
+			// missing parameters
+			if (!request.HasIsFaEnabled || !request.HasId)
+				return new Grpc2faResult
+				{
+					Result = new Result
+					{
+						Status = Status.MissingParameters
+					}
+				};
+
+			var filter = Builders<User>.Filter.Eq(user1 => user1.Id, request.Id);
+			var update = Builders<User>.Update.Set(user1 => user1.IsFaEnable, request.IsFaEnabled);
+			string? qrcode = null, manualCode = null;
+
+			if (request.IsFaEnabled)
+			{
+				var userFetched = await collection.Find(u => u.Id == request.Id).FirstOrDefaultAsync();
+				var faSeed = _totpUtility.CreateSharedSecret(userFetched.Email, out qrcode, out manualCode);
+				update.Set(user1 => user1.FaSeed, faSeed);
+			}
+			else
+			{
+				update.Set(user1 => user1.FaSeed, null);
+			}
+
 			await collection.UpdateOneAsync(filter, update);
+
+			return new Grpc2faResult
+			{
+				QrCode = qrcode,
+				ManualCode = manualCode,
+				Result = new Result
+				{
+					Status = Status.Ok
+				}
+			};
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Grpc2faResult
 			{
-				Status = new Result
+				Result = new Result
 				{
 					Status = Status.Error,
 					Error = e.Message
 				}
 			};
 		}
-
-		return new Grpc2faResult
-		{
-			QrCode = qrcode,
-			ManualCode = manualCode,
-			Status = new Result
-			{
-				Status = Status.Ok
-			}
-		};
 	}
 
 	/// <summary>
@@ -332,7 +331,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		if (!request.HasId)
 			return new GrpcProvisionResult
 			{
-				Status = new Result
+				Result = new Result
 				{
 					Status = Status.MissingParameters
 				}
@@ -351,7 +350,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		{
 			return new GrpcProvisionResult
 			{
-				Status = new Result
+				Result = new Result
 				{
 					Status = Status.Error,
 					Error = e.Message
@@ -374,7 +373,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 			FaProvisioning = faProvisioning,
 			PasswordProvisioning = passwordProvisioning,
 			KeyProvisioning = keyProvisioning,
-			Status = new Result
+			Result = new Result
 			{
 				Status = Status.Ok
 			}
@@ -399,7 +398,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 			case GrpcUserFetch.IdentifierOneofCase.None:
 				return new GrpcUserResult
 				{
-					Status = new Result
+					Result = new Result
 					{
 						Status = Status.MissingParameters
 					}
@@ -414,7 +413,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 				if (!MyRegex().IsMatch(request.Email))
 					return new GrpcUserResult
 					{
-						Status = new Result
+						Result = new Result
 						{
 							Status = Status.MissingParameters
 						}
@@ -426,7 +425,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		if (result == null)
 			return new GrpcUserResult
 			{
-				Status = new Result
+				Result = new Result
 				{
 					Status = Status.Error,
 					Error = "User not exists"
@@ -449,7 +448,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		return new GrpcUserResult
 		{
 			User = user,
-			Status = new Result
+			Result = new Result
 			{
 				Status = Status.Ok
 			}
@@ -473,7 +472,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		if (result.Count == 0)
 			return new GrpcUserResults
 			{
-				Status = new Result
+				Result = new Result
 				{
 					Status = Status.Error,
 					Error = "No user found"
@@ -497,16 +496,11 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		return new GrpcUserResults
 		{
 			User = { users },
-			Status = new Result
+			Result = new Result
 			{
 				Status = Status.Ok
 			}
 		};
-	}
-
-	private string[] IsChatNull(string[]? chats)
-	{
-		return chats ?? Array.Empty<string>();
 	}
 
 	/// <summary>
@@ -601,7 +595,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 
 			await collection.UpdateOneAsync(filter, update);
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -631,7 +625,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		{
 			user = await collection.Find(filter).FirstOrDefaultAsync();
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -665,7 +659,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		{
 			await collection.UpdateOneAsync(filter, update);
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -700,7 +694,7 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		{
 			user = await collection.Find(filter).FirstOrDefaultAsync();
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{

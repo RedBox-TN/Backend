@@ -25,7 +25,7 @@ public partial class ConversationService
 
 		try
 		{
-			await session.AbortTransactionAsync();
+			session.StartTransaction();
 
 			members = new[] { userId, request.Value };
 			var chatDetail = new Chat
@@ -59,8 +59,9 @@ public partial class ConversationService
 
 			await session.CommitTransactionAsync();
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
+			await session.AbortTransactionAsync();
 			return new ChatResponse
 			{
 				Result = new Result

@@ -35,7 +35,7 @@ public partial class AdminService
 				Name = request.Name
 			});
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -104,7 +104,7 @@ public partial class AdminService
 		{
 			if (updates.Any()) await collection.UpdateOneAsync(filter, update.Combine(updates));
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -123,93 +123,121 @@ public partial class AdminService
 	[AuthenticationRequired]
 	public override async Task<GrpcRoleResult> FetchRole(GrpcRoleIdentifier request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<Role>(_databaseSettings.RolesCollection);
-		Role result;
-
-		switch (request.IdentifierCase)
+		try
 		{
-			case GrpcRoleIdentifier.IdentifierOneofCase.Id:
-				result = await collection.Find(r => r.Id == request.Id).FirstOrDefaultAsync();
-				break;
-			case GrpcRoleIdentifier.IdentifierOneofCase.Name:
-				result = await collection.Find(r => r.Name == request.Name).FirstOrDefaultAsync();
-				break;
-			case GrpcRoleIdentifier.IdentifierOneofCase.None:
-			default:
+			var collection = _database.GetCollection<Role>(_databaseSettings.RolesCollection);
+			Role result;
+
+			switch (request.IdentifierCase)
+			{
+				case GrpcRoleIdentifier.IdentifierOneofCase.Id:
+					result = await collection.Find(r => r.Id == request.Id).FirstOrDefaultAsync();
+					break;
+				case GrpcRoleIdentifier.IdentifierOneofCase.Name:
+					result = await collection.Find(r => r.Name == request.Name).FirstOrDefaultAsync();
+					break;
+				case GrpcRoleIdentifier.IdentifierOneofCase.None:
+				default:
+					return new GrpcRoleResult
+					{
+						Result = new Result
+						{
+							Status = Status.MissingParameters
+						}
+					};
+			}
+
+			if (result == null)
 				return new GrpcRoleResult
 				{
-					Status = new Result
+					Result = new Result
 					{
-						Status = Status.MissingParameters
+						Status = Status.Error,
+						Error = "User not exists"
 					}
 				};
-		}
 
-		if (result == null)
-			return new GrpcRoleResult
+			var grpcRole = new GrpcRole
 			{
-				Status = new Result
-				{
-					Status = Status.Error,
-					Error = "User not exists"
-				}
+				Id = result.Id,
+				Permissions = result.Permissions,
+				Description = result.Description,
+				Name = result.Name
 			};
 
-		var grpcRole = new GrpcRole
-		{
-			Id = result.Id,
-			Permissions = result.Permissions,
-			Description = result.Description,
-			Name = result.Name
-		};
-
-		return new GrpcRoleResult
-		{
-			Role = grpcRole,
-			Status = new Result
+			return new GrpcRoleResult
 			{
-				Status = Status.Ok
-			}
-		};
+				Role = grpcRole,
+				Result = new Result
+				{
+					Status = Status.Ok
+				}
+			};
+		}
+		catch (Exception e)
+		{
+			return new GrpcRoleResult
+			{
+				Result = new Result
+				{
+					Status = Status.Error,
+					Error = e.Message
+				}
+			};
+		}
 	}
 
 	[AuthenticationRequired]
 	public override async Task<GrpcRoleResults> FetchAllRoles(Empty request, ServerCallContext context)
 	{
-		var collection = _database.GetCollection<Role>(_databaseSettings.RolesCollection);
+		try
+		{
+			var collection = _database.GetCollection<Role>(_databaseSettings.RolesCollection);
 
-		var result = await collection.Find(_ => true).ToListAsync();
-		var grpcRoles = new GrpcRole[result.Count];
+			var result = await collection.Find(_ => true).ToListAsync();
+			var grpcRoles = new GrpcRole[result.Count];
 
-		if (result.Count == 0)
+			if (result.Count == 0)
+				return new GrpcRoleResults
+				{
+					Result = new Result
+					{
+						Status = Status.Error,
+						Error = "No role found"
+					}
+				};
+
+			for (var i = 0; i < result.Count; i++)
+				grpcRoles[i] = new GrpcRole
+				{
+					Id = result[i].Id,
+					Permissions = result[i].Permissions,
+					Description = result[i].Description,
+					Name = result[i].Name
+				};
+
 			return new GrpcRoleResults
 			{
-				Status = new Result
+				Roles =
 				{
-					Status = Status.Error,
-					Error = "No role found"
+					grpcRoles
+				},
+				Result = new Result
+				{
+					Status = Status.Ok
 				}
 			};
-
-		for (var i = 0; i < result.Count; i++)
-			grpcRoles[i] = new GrpcRole
-			{
-				Id = result[i].Id,
-				Permissions = result[i].Permissions,
-				Description = result[i].Description,
-				Name = result[i].Name
-			};
-
-		return new GrpcRoleResults
+		}
+		catch (Exception e)
 		{
-			Roles =
+			return new GrpcRoleResults
 			{
-				grpcRoles
-			},
-			Status = new Result
-			{
-				Status = Status.Ok
-			}
-		};
+				Result = new Result
+				{
+					Error = e.Message,
+					Status = Status.Error
+				}
+			};
+		}
 	}
 }
