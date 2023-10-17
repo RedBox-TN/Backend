@@ -66,21 +66,21 @@ message Grpc2FAChange {
 // risposta contenente un utente
 message GrpcUserResult {
   // il risultato dell'operazione
-  shared.Result status = 1;
+  shared.Result result = 1;
   // l'utente richiesto
   GrpcUser user = 2;
 }
 // riposta contente più utenti
 message GrpcUserResults {
   // il risultato dell'operazione
-  shared.Result status = 1;
+  shared.Result result = 1;
   // gli utenti richiesti
   repeated GrpcUser user = 2;
 }
 // risposta contente il risultato dell'attivazione dell'autenticazione a due fattori
 message Grpc2faResult {
   // il risultato dell'operazione
-  shared.Result status = 1;
+  shared.Result result = 1;
   // l'immagine del qr code generato in base64 
   string qr_code = 2;
   // il codice da usare come seed in caso in cui il qr code non sia utilizzabile
@@ -89,7 +89,7 @@ message Grpc2faResult {
 // risposta contente il risultato dell'operazione di provisoning di un account
 message GrpcProvisionResult {
   // il risultato dell'operazione
-  shared.Result status = 1;
+  shared.Result result = 1;
   // indica se è necessario configurare la l'autenticazione a due fattori
   bool fa_provisioning = 2;
   // indica se è necessario impostare una nuova password, avviene dopo che un admin ne ha impostata una temporanea
@@ -121,14 +121,14 @@ message GrpcRoleIdentifier {
 // risposta contenente un ruolo
 message GrpcRoleResult {
   // il risultato dell'operazione
-  shared.Result status = 1;
+  shared.Result result = 1;
   // il ruolo richiesto
   GrpcRole role = 2;
 }
 // risposta contenente molteplici ruoli
 message GrpcRoleResults {
   // il risultato dell'operazione
-  shared.Result status = 1;
+  shared.Result result = 1;
   // i ruoli richiesti
   repeated GrpcRole roles = 2;
 }

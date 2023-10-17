@@ -31,7 +31,7 @@ public partial class KeychainServices
 				Status = Status.Ok
 			};
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -68,7 +68,7 @@ public partial class KeychainServices
 				Status = Status.Ok
 			};
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -97,7 +97,7 @@ public partial class KeychainServices
 				Status = Status.Ok
 			};
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -126,7 +126,7 @@ public partial class KeychainServices
 				Status = Status.Ok
 			};
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -176,7 +176,7 @@ public partial class KeychainServices
 				Status = Status.Ok
 			};
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{

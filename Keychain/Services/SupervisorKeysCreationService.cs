@@ -1,7 +1,6 @@
 using Grpc.Core;
 using keychain;
 using Keychain.Models;
-using MongoDB.Driver;
 using RedBoxAuth.Authorization;
 using Shared;
 using Shared.Models;
@@ -32,11 +31,11 @@ public partial class KeychainServices
 				IsEncryptedWithUserPublicKey = true
 			});
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
-				Error = e.WriteError.Message,
+				Error = e.Message,
 				Status = Status.Error
 			};
 		}
@@ -72,11 +71,11 @@ public partial class KeychainServices
 				Data = request.PublicKey.ToByteArray()
 			});
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
-				Error = e.WriteError.Message,
+				Error = e.Message,
 				Status = Status.Error
 			};
 		}

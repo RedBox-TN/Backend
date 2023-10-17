@@ -84,7 +84,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 				NeedsProvisioning = true
 			});
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -205,7 +205,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 		{
 			if (updates.Any()) await collection.UpdateOneAsync(filter, update.Combine(updates));
 		}
-		catch (MongoException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -250,7 +250,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 				await _redBoxEmailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
 			}
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{
@@ -312,7 +312,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 		{
 			await collection.UpdateOneAsync(filter, update);
 		}
-		catch (MongoWriteException e)
+		catch (Exception e)
 		{
 			return new Result
 			{

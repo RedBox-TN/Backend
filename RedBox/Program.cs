@@ -33,7 +33,10 @@ builder.Services.AddCors(options =>
 		b => b
 			.AllowAnyOrigin()
 			.AllowAnyHeader()
-			.AllowAnyMethod());
+			.AllowAnyMethod()
+			.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding", "X-Grpc-Web",
+				"User-Agent"));
+	;
 });
 
 

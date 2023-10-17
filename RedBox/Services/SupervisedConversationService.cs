@@ -34,111 +34,152 @@ public class SupervisedConversationService : GrpcSupervisedConversationService.G
 
 	public override async Task<ChatsResponse> GetAllChats(Empty request, ServerCallContext context)
 	{
-		var user = context.GetUser();
-		var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-			.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-			.Find(Builders<Chat>.Filter.Not(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds))).ToListAsync();
-
-		var result = new GrpcChat[chats.Count];
-		for (var i = 0; i < chats.Count; i++)
-			result[i] = new GrpcChat
-			{
-				Id = chats[i].Id,
-				CreatedAt = Timestamp.FromDateTime(chats[i].CreatedAt),
-				Members = { chats[i].MembersIds },
-				Messages = { await GetMessageFromCollectionAsync(chats[i].Id!) }
-			};
-
-		return new ChatsResponse
+		try
 		{
-			Result = new Result
+			var user = context.GetUser();
+			var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+				.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+				.Find(Builders<Chat>.Filter.Not(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds))).ToListAsync();
+
+			var result = new GrpcChat[chats.Count];
+			for (var i = 0; i < chats.Count; i++)
+				result[i] = new GrpcChat
+				{
+					Id = chats[i].Id,
+					CreatedAt = Timestamp.FromDateTime(chats[i].CreatedAt),
+					Members = { chats[i].MembersIds },
+					Messages = { await GetMessageFromCollectionAsync(chats[i].Id!) }
+				};
+			return new ChatsResponse
 			{
-				Status = Status.Ok
-			},
-			Chats = { result }
-		};
+				Result = new Result
+				{
+					Status = Status.Ok
+				},
+				Chats = { result }
+			};
+		}
+		catch (Exception e)
+		{
+			return new ChatsResponse
+			{
+				Result = new Result
+				{
+					Status = Status.Ok,
+					Error = e.Message
+				}
+			};
+		}
 	}
 
 	public override async Task<GroupsResponse> GetAllGroups(Empty request, ServerCallContext context)
 	{
-		var ids = context.GetUser().GroupIds;
-		if (ids.Length == 0)
+		try
+		{
+			var ids = context.GetUser().GroupIds;
+			if (ids.Length == 0)
+				return new GroupsResponse
+				{
+					Result = new Result
+					{
+						Status = Status.Ok
+					}
+				};
+
+			var found = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+				.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
+				.Find(Builders<Group>.Filter.Not(Builders<Group>.Filter.In(g => g.Id, ids)))
+				.ToListAsync();
+
+			var result = new GrpcGroup[found.Count];
+			for (var i = 0; i < found.Count; i++)
+				result[i] = new GrpcGroup
+				{
+					Id = found[i].Id,
+					Name = found[i].Name,
+					Admins = { found[i].AdminsIds },
+					Members = { found[i].MembersIds },
+					CreatedAt = Timestamp.FromDateTime(found[i].CreatedAt),
+					Messages = { await GetMessageFromCollectionAsync(found[i].Id!, isGroup: true) }
+				};
+
 			return new GroupsResponse
 			{
 				Result = new Result
 				{
 					Status = Status.Ok
+				},
+				Groups = { result }
+			};
+		}
+		catch (Exception e)
+		{
+			return new GroupsResponse
+			{
+				Result = new Result
+				{
+					Status = Status.Error,
+					Error = e.Message
 				}
 			};
-
-		var found = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-			.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
-			.Find(Builders<Group>.Filter.Not(Builders<Group>.Filter.In(g => g.Id, ids)))
-			.ToListAsync();
-
-		var result = new GrpcGroup[found.Count];
-		for (var i = 0; i < found.Count; i++)
-			result[i] = new GrpcGroup
-			{
-				Id = found[i].Id,
-				Name = found[i].Name,
-				Admins = { found[i].AdminsIds },
-				Members = { found[i].MembersIds },
-				CreatedAt = Timestamp.FromDateTime(found[i].CreatedAt),
-				Messages = { await GetMessageFromCollectionAsync(found[i].Id!, isGroup: true) }
-			};
-
-		return new GroupsResponse
-		{
-			Result = new Result
-			{
-				Status = Status.Ok
-			},
-			Groups = { result }
-		};
+		}
 	}
 
 	public override async Task<ChunkResponse> GetMessagesInRange(MessageChunkRequest request,
 		ServerCallContext context)
 	{
-		List<Message> messages;
-		if (request.Collection.HasChat)
-			messages = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
-				.GetCollection<Message>(request.Collection.Chat).Find(_ => true)
-				.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
-				.ToListAsync();
-		else
-			messages = await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
-				.GetCollection<Message>(request.Collection.Group).Find(_ => true)
-				.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
-				.ToListAsync();
+		try
+		{
+			List<Message> messages;
+			if (request.Collection.HasChat)
+				messages = await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
+					.GetCollection<Message>(request.Collection.Chat).Find(_ => true)
+					.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
+					.ToListAsync();
+			else
+				messages = await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
+					.GetCollection<Message>(request.Collection.Group).Find(_ => true)
+					.Skip(request.Chunk * _appSettings.MsgRetrieveChunkSize).Limit(_appSettings.MsgRetrieveChunkSize)
+					.ToListAsync();
 
-		var result = new GrpcMessage[messages.Count];
-		for (var i = 0; i < messages.Count; i++)
-			result[i] = new GrpcMessage
-			{
-				Id = messages[i].Id,
-				Timestamp = Timestamp.FromDateTime(messages[i].Timestamp),
-				SenderId = messages[i].SenderId,
-				EncryptedText = ByteString.CopyFrom(messages[i].EncryptedText),
-				Iv = ByteString.CopyFrom(messages[i].Iv),
-				Attachments =
+			var result = new GrpcMessage[messages.Count];
+			for (var i = 0; i < messages.Count; i++)
+				result[i] = new GrpcMessage
 				{
-					ToGrpcAttachments(messages[i].Attachments)
+					Id = messages[i].Id,
+					Timestamp = Timestamp.FromDateTime(messages[i].Timestamp),
+					SenderId = messages[i].SenderId,
+					EncryptedText = ByteString.CopyFrom(messages[i].EncryptedText),
+					Iv = ByteString.CopyFrom(messages[i].Iv),
+					Attachments =
+					{
+						ToGrpcAttachments(messages[i].Attachments)
+					}
+				};
+
+			return new ChunkResponse
+			{
+				Result = new Result
+				{
+					Status = Status.Ok
+				},
+				Messages =
+				{
+					result
 				}
 			};
-
-		return new ChunkResponse
+		}
+		catch (Exception e)
 		{
-			Result = new Result
+			return new ChunkResponse
 			{
-				Status = Status.Ok
-			},
-			Messages =
-			{
-				result
-			}
-		};
+				Result = new Result
+				{
+					Status = Status.Error,
+					Error = e.Message
+				}
+			};
+		}
 	}
 
 	public override async Task<GrpcAttachment> GetAttachmentData(AttachmentRequest request, ServerCallContext context)
@@ -183,29 +224,36 @@ public class SupervisedConversationService : GrpcSupervisedConversationService.G
 	private async Task<GrpcMessage?> GetMessageFromCollectionAsync(string collectionId, string? messageId = null,
 		bool isGroup = false)
 	{
-		var collection = isGroup
-			? _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).GetCollection<Message>(collectionId)
-			: _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(collectionId);
-
-		Message? found;
-		if (messageId is not null)
-			found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstAsync();
-		else
-			found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstAsync();
-
-		if (found is null) return null;
-
-		return new GrpcMessage
+		try
 		{
-			Id = found.Id,
-			Timestamp = Timestamp.FromDateTime(found.Timestamp),
-			EncryptedText = ByteString.CopyFrom(found.EncryptedText),
-			Iv = ByteString.CopyFrom(found.Iv),
-			SenderId = found.SenderId,
-			Attachments =
+			var collection = isGroup
+				? _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).GetCollection<Message>(collectionId)
+				: _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(collectionId);
+
+			Message? found;
+			if (messageId is not null)
+				found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstAsync();
+			else
+				found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstAsync();
+
+			if (found is null) return null;
+
+			return new GrpcMessage
 			{
-				ToGrpcAttachments(found.Attachments)
-			}
-		};
+				Id = found.Id,
+				Timestamp = Timestamp.FromDateTime(found.Timestamp),
+				EncryptedText = ByteString.CopyFrom(found.EncryptedText),
+				Iv = ByteString.CopyFrom(found.Iv),
+				SenderId = found.SenderId,
+				Attachments =
+				{
+					ToGrpcAttachments(found.Attachments)
+				}
+			};
+		}
+		catch (Exception e)
+		{
+			throw new RpcException(new Grpc.Core.Status(StatusCode.Internal, e.Message));
+		}
 	}
 }

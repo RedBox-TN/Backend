@@ -125,12 +125,12 @@ public class AuthCache : IAuthCache
 	{
 		var rndBuff = new byte[_authSettings.TokenSizeBytes];
 		RandomNumberGenerator.Fill(rndBuff);
-		var token = Convert.ToBase64String(rndBuff);
+		var token = Convert.ToHexString(rndBuff);
 
 		while (await _sessionDb.KeyExistsAsync(token))
 		{
 			RandomNumberGenerator.Fill(rndBuff);
-			token = Convert.ToBase64String(rndBuff);
+			token = Convert.ToHexString(rndBuff);
 		}
 
 		return token;
