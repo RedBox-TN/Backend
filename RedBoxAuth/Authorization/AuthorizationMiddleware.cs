@@ -34,6 +34,12 @@ public class AuthorizationMiddleware
 	/// <param name="context">Current Http context</param>
 	public async Task InvokeAsync(HttpContext context)
 	{
+		if (context.GetEndpoint() is null)
+		{
+			await _next(context);
+			return;
+		}
+		
 		var metadata = context.GetEndpoint()!.Metadata;
 
 		User? user;

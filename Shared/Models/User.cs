@@ -16,18 +16,18 @@ public partial class User
 	public string Username { get; set; } = null!;
 	[MemoryPackIgnore] public byte[] PasswordHash { get; set; } = null!;
 	[MemoryPackIgnore] public byte[] Salt { get; set; } = null!;
-	[MemoryPackIgnore] public List<(byte[] Password, byte[] Salt)>? PasswordHistory { get; set; } = null!;
+	[MemoryPackIgnore] public List<(byte[] Password, byte[] Salt)>? PasswordHistory { get; set; }
 	[MemoryPackIgnore] public byte InvalidLoginAttempts { get; set; }
 	[MemoryPackIgnore] public bool IsBlocked { get; set; } = false;
-	public bool IsFaEnable { get; set; } = false;
-	public byte[]? FaSeed { get; set; } = null!;
+	public bool IsFaEnable { get; set; }
+	public byte[]? FaSeed { get; set; }
 	[BsonIgnore] public ulong SecurityHash { get; set; }
 	[MemoryPackIgnore] public DateTime LastAccess { get; set; }
 
-	[BsonRepresentation(BsonType.String)] public string[] ChatIds { get; set; } = null!;
+	[BsonRepresentation(BsonType.ObjectId)] public string[]? ChatIds { get; set; }
 
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string[] GroupIds { get; set; } = null!;
+	public string[]? GroupIds { get; set; }
 
 	[BsonRepresentation(BsonType.ObjectId)]
 	[MemoryPackIgnore]

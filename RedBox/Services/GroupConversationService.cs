@@ -144,7 +144,7 @@ public partial class ConversationService
 				var groupDetails = new Group
 				{
 					Name = request.Name,
-					CreatedAt = DateTime.Now,
+					CreatedAt = DateTime.UtcNow,
 					AdminsIds = request.Admins.ToArray(),
 					MembersIds = members
 				};
@@ -154,7 +154,7 @@ public partial class ConversationService
 					.GetCollection<Group>(_dbSettings.GroupDetailsCollection).InsertOneAsync(groupDetails);
 
 				groupId = groupDetails.Id!;
-				timestamp = Timestamp.FromDateTime(groupDetails.CreatedAt);
+				timestamp = Timestamp.FromDateTime(groupDetails.CreatedAt.ToUniversalTime());
 
 				await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase).CreateCollectionAsync(groupDetails.Id);
 				var collection = _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
