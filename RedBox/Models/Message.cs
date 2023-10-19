@@ -16,7 +16,6 @@ public sealed class Message
 	public byte[]? Iv { get; set; } = null!;
 
 	[BsonIgnoreIfNull]
-	[BsonRepresentation(BsonType.ObjectId)]
 	public Attachment[]? Attachments { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.DateTime)]
