@@ -30,7 +30,7 @@ public partial class ConversationService
 			members = new[] { userId, request.Value };
 			var chatDetail = new Chat
 			{
-				CreatedAt = DateTime.Now,
+				CreatedAt = DateTime.UtcNow,
 				MembersIds = members
 			};
 
@@ -38,7 +38,7 @@ public partial class ConversationService
 				.GetCollection<Chat>(_dbSettings.ChatDetailsCollection).InsertOneAsync(chatDetail);
 
 			chatId = chatDetail.Id!;
-			timestamp = Timestamp.FromDateTime(chatDetail.CreatedAt);
+			timestamp = Timestamp.FromDateTime(chatDetail.CreatedAt.ToUniversalTime());
 
 			await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).CreateCollectionAsync(chatId);
 

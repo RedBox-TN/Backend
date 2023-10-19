@@ -12,7 +12,7 @@ using RedBoxAuth.TOTP_utility;
 using RedBoxAuthentication;
 using Shared;
 using Shared.Models;
-using Status = Shared.Status;
+using Status = Grpc.Core.Status;
 
 namespace RedBoxAuth.Services;
 
@@ -49,104 +49,111 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	/// <inheritdoc />
 	public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
 	{
-		if (context.GetHttpContext().Request.Headers.ContainsKey(Constants.TokenHeaderName) &&
-		    await _authCache.TokenExistsAsync(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]))
-			return new LoginResponse
-			{
-				Status = LoginStatus.AlreadyLogged
-			};
-
-		User? user;
-
-		switch (request.IdentifierCase)
+		try
 		{
-			default:
-			case LoginRequest.IdentifierOneofCase.None:
+			if (context.GetHttpContext().Request.Headers.ContainsKey(Constants.TokenHeaderName) &&
+			    await _authCache.TokenExistsAsync(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]))
 				return new LoginResponse
 				{
-					Status = LoginStatus.MissingParameter
+					Status = LoginStatus.AlreadyLogged
 				};
-			case LoginRequest.IdentifierOneofCase.Username:
-				user = await _userCollection.Find(u => u.Username == request.Username.Normalize())
-					.FirstOrDefaultAsync();
-				break;
-			case LoginRequest.IdentifierOneofCase.Email:
-				user = await _userCollection.Find(u => u.Email == request.Email.Normalize()).FirstOrDefaultAsync();
-				break;
-		}
 
-		if (user is null)
-			return new LoginResponse
+			User? user;
+
+			switch (request.IdentifierCase)
 			{
-				Status = LoginStatus.InvalidCredentials
-			};
+				default:
+				case LoginRequest.IdentifierOneofCase.None:
+					return new LoginResponse
+					{
+						Status = LoginStatus.MissingParameter
+					};
+				case LoginRequest.IdentifierOneofCase.Username:
+					user = await _userCollection.Find(u => u.Username == request.Username.Normalize())
+						.FirstOrDefaultAsync();
+					break;
+				case LoginRequest.IdentifierOneofCase.Email:
+					user = await _userCollection.Find(u => u.Email == request.Email.Normalize()).FirstOrDefaultAsync();
+					break;
+			}
 
-		if (user.IsBlocked)
-			return new LoginResponse
-			{
-				Status = LoginStatus.IsBlocked
-			};
-
-		if (!_passwordUtility.VerifyPassword(request.Password, user.Salt, user.PasswordHash))
-		{
-			var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
-			var updates = Builders<User>.Update.Inc(u => u.InvalidLoginAttempts, 1);
-			await _userCollection.FindOneAndUpdateAsync(filter, updates);
-			user.InvalidLoginAttempts++;
-
-			if (user.InvalidLoginAttempts < _authOptions.MaxLoginAttempts)
+			if (user is null)
 				return new LoginResponse
 				{
-					Status = LoginStatus.InvalidCredentials,
-					AttemptsLeft = _authOptions.MaxLoginAttempts - user.InvalidLoginAttempts
+					Status = LoginStatus.InvalidCredentials
 				};
 
-			updates = Builders<User>.Update.Set(u => u.IsBlocked, true);
-			await _userCollection.FindOneAndUpdateAsync(filter, updates);
-			await _emailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
+			if (user.IsBlocked)
+				return new LoginResponse
+				{
+					Status = LoginStatus.IsBlocked
+				};
 
-			return new LoginResponse
+			if (!_passwordUtility.VerifyPassword(request.Password, user.Salt, user.PasswordHash))
 			{
-				Status = LoginStatus.IsBlocked
-			};
-		}
+				var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
+				var updates = Builders<User>.Update.Inc(u => u.InvalidLoginAttempts, 1);
+				await _userCollection.FindOneAndUpdateAsync(filter, updates);
+				user.InvalidLoginAttempts++;
 
-		if (_authCache.IsUserAlreadyLogged(user.Username, out var token, out var remainingTime))
+				if (user.InvalidLoginAttempts < _authOptions.MaxLoginAttempts)
+					return new LoginResponse
+					{
+						Status = LoginStatus.InvalidCredentials,
+						AttemptsLeft = _authOptions.MaxLoginAttempts - user.InvalidLoginAttempts
+					};
+
+				updates = Builders<User>.Update.Set(u => u.IsBlocked, true);
+				await _userCollection.FindOneAndUpdateAsync(filter, updates);
+				await _emailUtility.SendAccountLockNotificationAsync(user.Email, user.Username);
+
+				return new LoginResponse
+				{
+					Status = LoginStatus.IsBlocked
+				};
+			}
+
+			if (_authCache.IsUserAlreadyLogged(user.Username, out var token, out var remainingTime))
+				return new LoginResponse
+				{
+					Status = LoginStatus.LoginSuccess,
+					Token = token,
+					ExpiresAt = remainingTime
+				};
+
+			user.Role = await _roleCollection.Find(r => r.Id == user.RoleId).FirstOrDefaultAsync();
+
+			user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers["User-Agent"],
+				context.GetHttpContext().Connection.RemoteIpAddress);
+
+			if (user.IsFaEnable)
+			{
+				var result = await _authCache.StorePendingAsync(user);
+				return new LoginResponse
+				{
+					Status = LoginStatus.Require2Fa,
+					Token = result.token,
+					ExpiresAt = result.expiresAt
+				};
+			}
+
+			user.IsAuthenticated = true;
+			var key = await _authCache.StoreAsync(user);
+
+			await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq(u => u.Id, user.Id),
+				Builders<User>.Update.Set(u => u.LastAccess, DateTime.UtcNow).Set(u => u.InvalidLoginAttempts, 0));
+
 			return new LoginResponse
 			{
 				Status = LoginStatus.LoginSuccess,
-				Token = token,
-				ExpiresAt = remainingTime
-			};
-
-		user.Role = await _roleCollection.Find(r => r.Id == user.RoleId).FirstOrDefaultAsync();
-
-		user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers["User-Agent"],
-			context.GetHttpContext().Connection.RemoteIpAddress);
-
-		if (user.IsFaEnable)
-		{
-			var result = await _authCache.StorePendingAsync(user);
-			return new LoginResponse
-			{
-				Status = LoginStatus.Require2Fa,
-				Token = result.token,
-				ExpiresAt = result.expiresAt
+				Token = key.token,
+				ExpiresAt = key.expiresAt
 			};
 		}
-
-		user.IsAuthenticated = true;
-		var key = await _authCache.StoreAsync(user);
-
-		await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq(u => u.Id, user.Id),
-			Builders<User>.Update.Set(u => u.LastAccess, DateTime.Now).Set(u => u.InvalidLoginAttempts, 0));
-
-		return new LoginResponse
+		catch (Exception e)
 		{
-			Status = LoginStatus.LoginSuccess,
-			Token = key.token,
-			ExpiresAt = key.expiresAt
-		};
+			throw new RpcException(new Status(StatusCode.Internal, e.Message));
+		}
 	}
 
 	/// <inheritdoc />
@@ -222,7 +229,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 			case PasswordResetRequest.IdentifierOneofCase.None:
 				return new Result
 				{
-					Status = Status.MissingParameters
+					Status = Shared.Status.MissingParameters
 				};
 
 			case PasswordResetRequest.IdentifierOneofCase.EmailAddress:
@@ -240,14 +247,14 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		if (user is null)
 			return new Result
 			{
-				Status = Status.Error,
+				Status = Shared.Status.Error,
 				Error = "User not exists"
 			};
 
 		if (user.IsBlocked)
 			return new Result
 			{
-				Status = Status.Error,
+				Status = Shared.Status.Error,
 				Error = "User is blocked"
 			};
 
@@ -255,7 +262,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 		return new Result
 		{
-			Status = Status.Ok
+			Status = Shared.Status.Ok
 		};
 	}
 }

@@ -79,9 +79,14 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 				IsFaEnable = request.IsFaEnabled,
 				PasswordHash = passwordHash,
 				Salt = salt,
-				PasswordHistory = new List<(byte[] Password, byte[] Salt)> { (Password: passwordHash, Salt: salt) },
+				PasswordHistory = new List<(byte[] Password, byte[] Salt)>
+				{
+					(Password: passwordHash, Salt: salt)
+				},
 				Biography = "Business account",
-				NeedsProvisioning = true
+				NeedsProvisioning = true,
+				ChatIds = Array.Empty<string>(),
+				GroupIds = Array.Empty<string>()
 			});
 		}
 		catch (Exception e)

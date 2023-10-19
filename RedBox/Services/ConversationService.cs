@@ -160,15 +160,27 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		try
 		{
 			var user = context.GetUser();
-			var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-				.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-				.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
+			List<User> found;
 
-			var excluded = chats.Select(c => c.MembersIds.First(u => u != user.Id));
+			if (user.ChatIds is not null && user.ChatIds.Length > 0)
+			{
+				var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+					.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+					.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
 
-			var found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
-				.GetCollection<User>(_userDbSettings.UsersCollection)
-				.Find(Builders<User>.Filter.Not(Builders<User>.Filter.In(u => u.Id, excluded))).ToListAsync();
+				var excluded = chats.Select(c => c.MembersIds.First(u => u != user.Id));
+
+				found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
+					.GetCollection<User>(_userDbSettings.UsersCollection)
+					.Find(Builders<User>.Filter.Not(Builders<User>.Filter.In(u => u.Id, excluded))).ToListAsync();
+			}
+			else
+			{
+				found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
+					.GetCollection<User>(_userDbSettings.UsersCollection)
+					.Find(u => u.Id != user.Id).ToListAsync();
+			}
+
 
 			if (found.Count == 0)
 				return new AvailableUsersResponse
@@ -272,7 +284,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		{
 			SenderId = userId,
 			Iv = msgColl.Message.Iv.ToByteArray(),
-			Timestamp = DateTime.Now
+			Timestamp = DateTime.UtcNow
 		};
 
 		if (msgColl.Message.HasEncryptedText) dbMessage.EncryptedText = msgColl.Message.EncryptedText.ToByteArray();
