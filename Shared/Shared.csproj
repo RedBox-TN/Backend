@@ -7,16 +7,20 @@
         <RootNamespace>Shared</RootNamespace>
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
-        <LangVersion>11</LangVersion>
+        <LangVersion>latestmajor</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
         <PlatformTarget>ARM64</PlatformTarget>
-        <Optimize Condition=" '$(Optimize)' == '' ">true</Optimize>
+        <Optimize>true</Optimize>
+        <DebugSymbols>false</DebugSymbols>
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>full</TrimMode>
+        <DebugType>none</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.58.0" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.58.0"/>
         <PackageReference Include="Grpc.Tools" Version="2.59.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -32,5 +36,5 @@
     <ItemGroup>
         <Protobuf Include="Protos\shared.proto"/>
     </ItemGroup>
-    
+
 </Project>

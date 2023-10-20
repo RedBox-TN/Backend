@@ -203,7 +203,8 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 					Name = found[i].Name,
 					Surname = found[i].Surname,
 					Email = found[i].Email,
-					Username = found[i].Username
+					Username = found[i].Username,
+					Biography = found[i].Biography
 				};
 
 			return new AvailableUsersResponse

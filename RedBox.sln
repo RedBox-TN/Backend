@@ -44,6 +44,5 @@ Global
 		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{030C9CBB-2CF5-456F-A42E-A8C1DD9E349A}.Release ARM|ARM64.ActiveCfg = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

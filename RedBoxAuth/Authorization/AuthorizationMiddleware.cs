@@ -39,7 +39,7 @@ public class AuthorizationMiddleware
 			await _next(context);
 			return;
 		}
-		
+
 		var metadata = context.GetEndpoint()!.Metadata;
 
 		User? user;
@@ -72,10 +72,7 @@ public class AuthorizationMiddleware
 				return;
 			}
 
-			if (validHash)
-			{
-				throw new RpcException(new Status(StatusCode.PermissionDenied, string.Empty));
-			}
+			if (validHash) throw new RpcException(new Status(StatusCode.PermissionDenied, string.Empty));
 
 			await _authCache.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
 			throw new RpcException(new Status(StatusCode.Unauthenticated, "User must be reauthenticated"));

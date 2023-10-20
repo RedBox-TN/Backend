@@ -15,8 +15,7 @@ public sealed class Message
 	public byte[]? EncryptedText { get; set; } = null!;
 	public byte[]? Iv { get; set; } = null!;
 
-	[BsonIgnoreIfNull]
-	public Attachment[]? Attachments { get; set; } = null!;
+	[BsonIgnoreIfNull] public Attachment[]? Attachments { get; set; } = null!;
 
 	[BsonRepresentation(BsonType.DateTime)]
 	public DateTime Timestamp { get; set; }
