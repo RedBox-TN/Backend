@@ -51,12 +51,6 @@ public partial class ConversationService
 			};
 			await collection.Indexes.CreateManyAsync(indexes);
 
-			var userCollection = _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
-				.GetCollection<User>(_userDbSettings.UsersCollection);
-
-			await userCollection.UpdateManyAsync(Builders<User>.Filter.In(u => u.Id, members),
-				Builders<User>.Update.Push(u => u.ChatIds, chatId));
-
 			await session.CommitTransactionAsync();
 		}
 		catch (Exception e)
@@ -136,7 +130,7 @@ public partial class ConversationService
 		var user = context.GetUser();
 		var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 			.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-			.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
+			.Find(Builders<Chat>.Filter.AnyEq(c => c.MembersIds, user.Id)).ToListAsync();
 
 		var result = new GrpcChat[chats.Count];
 		for (var i = 0; i < chats.Count; i++)

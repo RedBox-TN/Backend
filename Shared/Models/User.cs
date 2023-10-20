@@ -24,11 +24,6 @@ public partial class User
 	[BsonIgnore] public ulong SecurityHash { get; set; }
 	[MemoryPackIgnore] public DateTime LastAccess { get; set; }
 
-	[BsonRepresentation(BsonType.ObjectId)] public string[]? ChatIds { get; set; }
-
-	[BsonRepresentation(BsonType.ObjectId)]
-	public string[]? GroupIds { get; set; }
-
 	[BsonRepresentation(BsonType.ObjectId)]
 	[MemoryPackIgnore]
 	public string RoleId { get; set; } = null!;

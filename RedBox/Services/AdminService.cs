@@ -85,8 +85,6 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 				},
 				Biography = "Business account",
 				NeedsProvisioning = true,
-				ChatIds = Array.Empty<string>(),
-				GroupIds = Array.Empty<string>()
 			});
 		}
 		catch (Exception e)

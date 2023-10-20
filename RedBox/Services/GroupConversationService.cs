@@ -79,19 +79,11 @@ public partial class ConversationService
 	{
 		try
 		{
-			var ids = context.GetUser().GroupIds;
-			if (ids.Length == 0)
-				return new GroupsResponse
-				{
-					Result = new Result
-					{
-						Status = Status.Ok
-					}
-				};
+			var user = context.GetUser();
 
 			var found = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 				.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
-				.Find(Builders<Group>.Filter.In(g => g.Id, ids))
+				.Find(Builders<Group>.Filter.AnyEq(g => g.MembersIds, user.Id))
 				.ToListAsync();
 
 			var result = new GrpcGroup[found.Count];
@@ -165,12 +157,6 @@ public partial class ConversationService
 					new(Builders<Message>.IndexKeys.Ascending(m => m.UserDeleted))
 				};
 				await collection.Indexes.CreateManyAsync(indexes);
-
-				var userCollection = _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
-					.GetCollection<User>(_userDbSettings.UsersCollection);
-
-				await userCollection.UpdateManyAsync(Builders<User>.Filter.In(u => u.Id, request.Members),
-					Builders<User>.Update.Push(u => u.GroupIds, groupDetails.Id));
 
 				await session.CommitTransactionAsync();
 			}
