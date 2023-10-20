@@ -39,7 +39,7 @@ public class SupervisedConversationService : GrpcSupervisedConversationService.G
 			var user = context.GetUser();
 			var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 				.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-				.Find(Builders<Chat>.Filter.Not(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds))).ToListAsync();
+				.Find(Builders<Chat>.Filter.Not(Builders<Chat>.Filter.AnyEq(c => c.MembersIds, user.Id))).ToListAsync();
 
 			var result = new GrpcChat[chats.Count];
 			for (var i = 0; i < chats.Count; i++)
@@ -76,19 +76,10 @@ public class SupervisedConversationService : GrpcSupervisedConversationService.G
 	{
 		try
 		{
-			var ids = context.GetUser().GroupIds;
-			if (ids.Length == 0)
-				return new GroupsResponse
-				{
-					Result = new Result
-					{
-						Status = Status.Ok
-					}
-				};
-
+			var id = context.GetUser().Id;
 			var found = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 				.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
-				.Find(Builders<Group>.Filter.Not(Builders<Group>.Filter.In(g => g.Id, ids)))
+				.Find(Builders<Group>.Filter.Not(Builders<Group>.Filter.AnyEq(g => g.MembersIds, id)))
 				.ToListAsync();
 
 			var result = new GrpcGroup[found.Count];

@@ -162,13 +162,14 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			var user = context.GetUser();
 			List<User> found;
 
-			if (user.ChatIds is not null && user.ChatIds.Length > 0)
-			{
-				var chats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
-					.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-					.Find(Builders<Chat>.Filter.In(c => c.Id, user.ChatIds)).ToListAsync();
 
-				var excluded = chats.Select(c => c.MembersIds.First(u => u != user.Id));
+			var currentChats = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
+				.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
+				.Find(Builders<Chat>.Filter.AnyEq(x => x.MembersIds, user.Id)).ToListAsync();
+
+			if (currentChats.Count > 0)
+			{
+				var excluded = currentChats.Select(c => c.MembersIds.First(u => u != user.Id));
 
 				found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
 					.GetCollection<User>(_userDbSettings.UsersCollection)
@@ -180,7 +181,6 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 					.GetCollection<User>(_userDbSettings.UsersCollection)
 					.Find(u => u.Id != user.Id).ToListAsync();
 			}
-
 
 			if (found.Count == 0)
 				return new AvailableUsersResponse
