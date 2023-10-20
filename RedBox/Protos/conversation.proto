@@ -98,6 +98,8 @@ message UserInfo {
   string surname = 4;
   // l'indirizzo email dell'utente
   string email = 5;
+  // la biografia dell'utente
+  string biography = 6;
 }
 
 /*

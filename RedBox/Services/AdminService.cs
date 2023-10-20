@@ -84,7 +84,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 					(Password: passwordHash, Salt: salt)
 				},
 				Biography = "Business account",
-				NeedsProvisioning = true,
+				NeedsProvisioning = true
 			});
 		}
 		catch (Exception e)

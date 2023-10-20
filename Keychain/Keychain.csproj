@@ -6,15 +6,16 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Configurations>Debug;Release;Release ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
-        <LangVersion>11</LangVersion>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <DebugSymbols>false</DebugSymbols>
+        <LangVersion>latestmajor</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release ARM|ARM64' ">
+        <PlatformTarget>ARM64</PlatformTarget>
+        <Optimize>true</Optimize>
         <DebugSymbols>false</DebugSymbols>
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>full</TrimMode>
+        <DebugType>none</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,8 +23,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.58.0" />
-        <PackageReference Include="Grpc.AspNetCore.Web" Version="2.58.0" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.58.0"/>
+        <PackageReference Include="Grpc.AspNetCore.Web" Version="2.58.0"/>
         <PackageReference Include="Grpc.Tools" Version="2.59.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -36,5 +37,5 @@
         <ProjectReference Include="..\RedBoxAuth\RedBoxAuth.csproj"/>
         <ProjectReference Include="..\Shared\Shared.csproj"/>
     </ItemGroup>
-    
+
 </Project>
