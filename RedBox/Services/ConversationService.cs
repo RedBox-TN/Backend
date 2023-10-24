@@ -169,7 +169,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 
 			if (currentChats.Count > 0)
 			{
-				var excluded = currentChats.Select(c => c.MembersIds.First(u => u != user.Id));
+				var excluded = currentChats.Select(c => c.MembersIds.First(u => u != user.Id)).Append(user.Id);
 
 				found = await _mongoClient.GetDatabase(_userDbSettings.DatabaseName)
 					.GetCollection<User>(_userDbSettings.UsersCollection)
