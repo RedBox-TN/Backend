@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>Shared</RootNamespace>
-        <Configurations>Debug;Release;Release ARM</Configurations>
+        <Configurations>Debug;Release;Release ARM;Debug ARM</Configurations>
         <Platforms>AnyCPU;ARM64</Platforms>
         <LangVersion>latestmajor</LangVersion>
     </PropertyGroup>
@@ -17,6 +17,11 @@
         <PublishTrimmed>true</PublishTrimmed>
         <TrimMode>full</TrimMode>
         <DebugType>none</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug ARM|ARM64' ">
+      <DebugSymbols>true</DebugSymbols>
+      <DebugType>full</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
