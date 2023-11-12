@@ -35,8 +35,8 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Handlebars.Net" Version="2.1.4"/>
-        <PackageReference Include="MailKit" Version="4.2.0"/>
-        <PackageReference Include="MimeKit" Version="4.2.0"/>
+        <PackageReference Include="MailKit" Version="4.3.0" />
+        <PackageReference Include="MimeKit" Version="4.3.0" />
         <PackageReference Include="MongoDB.Driver" Version="2.22.0"/>
         <PackageReference Include="MongoDB.Driver.GridFS" Version="2.22.0"/>
         <PackageReference Include="StackExchange.Redis" Version="2.7.4" />
