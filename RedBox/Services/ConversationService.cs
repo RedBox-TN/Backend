@@ -136,7 +136,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			var fileMetadata =
 				await (await bucket.FindAsync(
 						Builders<GridFSFileInfo>.Filter.Eq(f => f.Id, new ObjectId(request.FileId))))
-					.FirstAsync();
+					.FirstOrDefaultAsync();
 
 			return new GrpcAttachment
 			{
@@ -527,7 +527,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				var chat = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 					.GetCollection<Chat>(_dbSettings.ChatDetailsCollection)
-					.Find(g => g.Id == request.Chat && g.MembersIds.Contains(userId)).FirstAsync();
+					.Find(g => g.Id == request.Chat && g.MembersIds.Contains(userId)).FirstOrDefaultAsync();
 
 				update.Chat = new GrpcChat
 				{
@@ -547,7 +547,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				var group = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
 					.GetCollection<Group>(_dbSettings.GroupDetailsCollection)
-					.Find(g => g.Id == request.Group && g.MembersIds.Contains(userId)).FirstAsync();
+					.Find(g => g.Id == request.Group && g.MembersIds.Contains(userId)).FirstOrDefaultAsync();
 
 				update.Group = new GrpcGroup
 				{
@@ -596,11 +596,22 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 
 			Message? found;
 			if (messageId is not null)
-				found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstAsync();
+				found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstOrDefaultAsync();
 			else
-				found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstAsync();
+				found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstOrDefaultAsync();
 
-			if (found is null) return null;
+			if (found is null) return new GrpcMessage
+			{
+				Id = "",
+				Timestamp = null,
+				EncryptedText = ByteString.Empty,
+				Iv = ByteString.Empty,
+				SenderId = "",
+				Attachments =
+				{
+					ToGrpcAttachments(null)
+				}
+			};
 
 			return new GrpcMessage
 			{
