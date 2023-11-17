@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RedBox.Email_utility;
 using RedBox.Permission_Utility;
 using RedBox.PermissionUtility;
@@ -8,10 +9,8 @@ using RedBoxAuth;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.Configure<RedBoxDatabaseSettings>(builder.Configuration.GetSection("RedBoxDB"));
-var settings = builder.Configuration.GetSection("RedBoxApplicationSettings");
-builder.Services.Configure<RedBoxApplicationSettings>(settings);
+builder.Services.Configure<RedBoxApplicationSettings>(builder.Configuration.GetSection("RedBoxApplicationSettings"));
 builder.Services.Configure<RedBoxEmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
 builder.Services.AddSingleton<IRedBoxEmailUtility, RedBoxEmailUtility>();
@@ -20,11 +19,23 @@ builder.Services.AddSingleton<IClientsRegistryProvider, ClientsRegistryProvider>
 
 builder.AddRedBoxAuthenticationAndAuthorization();
 
+var appSettings = builder.Configuration.GetSection("RedBoxApplicationSettings").Get<RedBoxApplicationSettings>() ??
+                  new RedBoxApplicationSettings();
+
 builder.Services.AddGrpc(options =>
 {
 	options.MaxReceiveMessageSize =
-		(settings.GetValue<int>("MaxAttachmentSizeMb") * (settings.GetValue<int>("MaxAttachmentsPerMsg") + 1) +
-		 settings.GetValue<int>("MaxMessageSizeMb")) * 1024 * 1024;
+		(appSettings.MaxAttachmentSizeMb * (appSettings.MaxAttachmentsPerMsg + 1) + appSettings.MaxMessageSizeMb) *
+		1024 * 1024;
+});
+
+builder.Services.AddGrpcHealthChecks()
+	.AddCheck("Backend up and running", () => HealthCheckResult.Healthy());
+
+builder.Services.Configure<HealthCheckPublisherOptions>(options =>
+{
+	options.Delay = TimeSpan.FromSeconds(appSettings.GrpcHealthCheckStartupDelay);
+	options.Period = TimeSpan.FromSeconds(appSettings.GrpcHealthCheckInterval);
 });
 
 builder.Services.AddCors(options =>
@@ -45,6 +56,8 @@ var app = builder.Build();
 app.UseCors("AllowBlazorAppOrigin");
 
 app.UseGrpcWeb();
+
+app.MapGrpcHealthChecksService();
 
 app.MapGrpcService<AccountServices>().EnableGrpcWeb();
 app.MapGrpcService<AdminService>().EnableGrpcWeb();

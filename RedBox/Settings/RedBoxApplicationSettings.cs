@@ -7,4 +7,6 @@ public class RedBoxApplicationSettings
 	public int MaxAttachmentSizeMb { get; set; } = 256;
 	public int MaxAttachmentsPerMsg { get; set; } = 4;
 	public int MsgRetrieveChunkSize { get; set; } = 20;
+	public int GrpcHealthCheckStartupDelay { get; set; } = 5;
+	public int GrpcHealthCheckInterval { get; set; } = 10;
 }
