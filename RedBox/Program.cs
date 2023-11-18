@@ -29,8 +29,7 @@ builder.Services.AddGrpc(options =>
 		1024 * 1024;
 });
 
-builder.Services.AddGrpcHealthChecks()
-	.AddCheck("Backend up and running", () => HealthCheckResult.Healthy());
+builder.Services.AddGrpcHealthChecks().AddCheck<RedBoxGrpcHealthCheck>("Backend up and running");
 
 builder.Services.Configure<HealthCheckPublisherOptions>(options =>
 {

@@ -42,8 +42,4 @@
         <Protobuf Include="Protos\shared.proto"/>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Healt check\" />
-    </ItemGroup>
-
 </Project>
