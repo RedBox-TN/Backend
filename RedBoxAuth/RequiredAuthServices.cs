@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using RedBoxAuth.Authorization;
-using RedBoxAuth.Cache;
 using RedBoxAuth.Email_utility;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Security_hash_utility;
 using RedBoxAuth.Services;
+using RedBoxAuth.Session_storage;
 using RedBoxAuth.Settings;
 using RedBoxAuth.TOTP_utility;
 using Shared.Settings;
@@ -44,9 +44,9 @@ public static class RequiredAuthServices
 		builder.Services.AddSingleton<IEncryptionUtility, EncryptionUtility>();
 		builder.Services.AddSingleton<IAuthEmailUtility, AuthEmailUtility>();
 		builder.Services.AddSingleton<IPasswordUtility, PasswordUtility>();
-		builder.Services.AddSingleton<IBasicAuthCache, AuthCache>();
+		builder.Services.AddSingleton<IBasicSessionStorage, SessionStorage>();
 		builder.Services.AddSingleton<ITotpUtility, TotpUtility>();
-		builder.Services.AddSingleton<IAuthCache, AuthCache>();
+		builder.Services.AddSingleton<ISessionStorage, SessionStorage>();
 		builder.Services.AddHttpContextAccessor();
 	}
 
@@ -65,7 +65,7 @@ public static class RequiredAuthServices
 		var redis = ConnectionMultiplexer.Connect(redisHost);
 
 		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
-		builder.Services.AddSingleton<IBasicAuthCache, BasicAuthCache>();
+		builder.Services.AddSingleton<IBasicSessionStorage, BasicSessionStorage>();
 		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
 	}
 
