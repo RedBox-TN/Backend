@@ -3,10 +3,10 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RedBoxAuth.Authorization;
-using RedBoxAuth.Cache;
 using RedBoxAuth.Email_utility;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Security_hash_utility;
+using RedBoxAuth.Session_storage;
 using RedBoxAuth.Settings;
 using RedBoxAuth.TOTP_utility;
 using RedBoxAuthentication;
@@ -19,17 +19,18 @@ namespace RedBoxAuth.Services;
 /// <inheritdoc />
 public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrpcServiceBase
 {
-	private readonly IAuthCache _authCache;
 	private readonly AuthSettings _authOptions;
 	private readonly IAuthEmailUtility _emailUtility;
 	private readonly ISecurityHashUtility _hashUtility;
 	private readonly IPasswordUtility _passwordUtility;
 	private readonly IMongoCollection<Role> _roleCollection;
+	private readonly ISessionStorage _sessionStorage;
 	private readonly ITotpUtility _totp;
 	private readonly IMongoCollection<User> _userCollection;
 
 	/// <inheritdoc />
-	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp, IAuthCache authCache,
+	public AuthenticationService(IOptions<AccountDatabaseSettings> dbOptions, ITotpUtility totp,
+		ISessionStorage sessionStorage,
 		IPasswordUtility passwordUtility, IOptions<AuthSettings> authOptions, ISecurityHashUtility hashUtility,
 		IAuthEmailUtility emailUtility)
 	{
@@ -38,7 +39,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		_emailUtility = emailUtility;
 		_passwordUtility = passwordUtility;
 		_authOptions = authOptions.Value;
-		_authCache = authCache;
+		_sessionStorage = sessionStorage;
 
 		var mongoClient = new MongoClient(dbOptions.Value.ConnectionString);
 		var db = mongoClient.GetDatabase(dbOptions.Value.DatabaseName);
@@ -52,7 +53,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 		try
 		{
 			if (context.GetHttpContext().Request.Headers.ContainsKey(Constants.TokenHeaderName) &&
-			    await _authCache.TokenExistsAsync(context.GetHttpContext().Request.Headers[Constants.TokenHeaderName]))
+			    await _sessionStorage.TokenExistsAsync(context.GetHttpContext().Request
+				    .Headers[Constants.TokenHeaderName]))
 				return new LoginResponse
 				{
 					Status = LoginStatus.AlreadyLogged
@@ -113,7 +115,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				};
 			}
 
-			if (_authCache.IsUserAlreadyLogged(user.Username, out var token, out var remainingTime))
+			if (_sessionStorage.IsUserAlreadyLogged(user.Username, out var token, out var remainingTime))
 				return new LoginResponse
 				{
 					Status = LoginStatus.LoginSuccess,
@@ -128,7 +130,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 			if (user.IsFaEnable)
 			{
-				var result = await _authCache.StorePendingAsync(user);
+				var result = await _sessionStorage.StorePendingAsync(user);
 				return new LoginResponse
 				{
 					Status = LoginStatus.Require2Fa,
@@ -138,7 +140,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 			}
 
 			user.IsAuthenticated = true;
-			var key = await _authCache.StoreAsync(user);
+			var key = await _sessionStorage.StoreAsync(user);
 
 			await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq(u => u.Id, user.Id),
 				Builders<User>.Update.Set(u => u.LastAccess, DateTime.UtcNow).Set(u => u.InvalidLoginAttempts, 0));
@@ -162,7 +164,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	{
 		var key = context.GetHttpContext().Request.Headers[Constants.TokenHeaderName];
 
-		await _authCache.DeleteAsync(key);
+		await _sessionStorage.DeleteAsync(key);
 
 		return new Empty();
 	}
@@ -170,7 +172,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	/// <inheritdoc />
 	public override async Task<TwoFactorResponse> Verify2FA(TwoFactorRequest request, ServerCallContext context)
 	{
-		if (!_authCache.TryToGet(request.Token, out var user))
+		if (!_sessionStorage.TryToGet(request.Token, out var user))
 			return new TwoFactorResponse
 			{
 				Code = TwoFactorResponseCode.UserNotLogged
@@ -195,7 +197,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				Code = TwoFactorResponseCode.InvalidCode
 			};
 
-		var expiresAt = await _authCache.SetCompletedAsync(request.Token);
+		var expiresAt = await _sessionStorage.SetCompletedAsync(request.Token);
 
 		return new TwoFactorResponse
 		{
@@ -208,7 +210,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	[AuthenticationRequired]
 	public override async Task<TokenRefreshResponse> RefreshToken(Empty request, ServerCallContext context)
 	{
-		var token = await _authCache.RefreshTokenAsync(context.GetHttpContext().Request
+		var token = await _sessionStorage.RefreshTokenAsync(context.GetHttpContext().Request
 			.Headers[Constants.TokenHeaderName]!);
 
 		return new TokenRefreshResponse

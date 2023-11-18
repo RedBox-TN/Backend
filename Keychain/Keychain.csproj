@@ -19,7 +19,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug ARM|ARM64' ">
-      <DebugType>full</DebugType>
+        <DebugType>full</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
@@ -27,14 +27,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.59.0" />
-        <PackageReference Include="Grpc.AspNetCore.Web" Version="2.59.0" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.59.0"/>
+        <PackageReference Include="Grpc.AspNetCore.HealthChecks" Version="2.59.0"/>
+        <PackageReference Include="Grpc.AspNetCore.Web" Version="2.59.0"/>
         <PackageReference Include="Grpc.Tools" Version="2.59.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="MongoDB.Driver" Version="2.22.0"/>
-        <PackageReference Include="StackExchange.Redis" Version="2.7.4" />
+        <PackageReference Include="StackExchange.Redis" Version="2.7.4"/>
     </ItemGroup>
 
     <ItemGroup>

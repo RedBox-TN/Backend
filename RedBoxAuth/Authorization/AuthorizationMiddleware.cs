@@ -1,7 +1,7 @@
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
-using RedBoxAuth.Cache;
 using RedBoxAuth.Security_hash_utility;
+using RedBoxAuth.Session_storage;
 using Shared.Models;
 
 namespace RedBoxAuth.Authorization;
@@ -11,19 +11,20 @@ namespace RedBoxAuth.Authorization;
 /// </summary>
 public class AuthorizationMiddleware
 {
-	private readonly IBasicAuthCache _authCache;
 	private readonly RequestDelegate _next;
 	private readonly ISecurityHashUtility _securityHash;
+	private readonly IBasicSessionStorage _sessionStorage;
 
 	/// <summary>
 	///     Dependency injection constructor
 	/// </summary>
-	/// <param name="authCache"></param>
+	/// <param name="sessionStorage"></param>
 	/// <param name="securityHash"></param>
 	/// <param name="next"></param>
-	public AuthorizationMiddleware(IBasicAuthCache authCache, ISecurityHashUtility securityHash, RequestDelegate next)
+	public AuthorizationMiddleware(IBasicSessionStorage sessionStorage, ISecurityHashUtility securityHash,
+		RequestDelegate next)
 	{
-		_authCache = authCache;
+		_sessionStorage = sessionStorage;
 		_securityHash = securityHash;
 		_next = next;
 	}
@@ -74,7 +75,7 @@ public class AuthorizationMiddleware
 
 			if (validHash) throw new RpcException(new Status(StatusCode.PermissionDenied, string.Empty));
 
-			await _authCache.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
+			await _sessionStorage.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
 			throw new RpcException(new Status(StatusCode.Unauthenticated, "User must be reauthenticated"));
 		}
 
@@ -87,7 +88,7 @@ public class AuthorizationMiddleware
 		user = null;
 
 		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) ||
-		    !_authCache.TryToGet(key, out user))
+		    !_sessionStorage.TryToGet(key, out user))
 		{
 			validHash = true;
 			return false;
