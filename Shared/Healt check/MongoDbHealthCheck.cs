@@ -7,11 +7,11 @@ using Shared.Settings;
 
 namespace Shared.Healt_check;
 
-public abstract class CommonGrpcHealthCheck : IHealthCheck
+public abstract class MongoDbHealthCheck : IHealthCheck
 {
 	private readonly CommonDatabaseSettings _dbSettings;
 
-	protected CommonGrpcHealthCheck(IOptions<CommonDatabaseSettings> dbSettings)
+	protected MongoDbHealthCheck(IOptions<CommonDatabaseSettings> dbSettings)
 	{
 		_dbSettings = dbSettings.Value;
 	}
@@ -19,7 +19,7 @@ public abstract class CommonGrpcHealthCheck : IHealthCheck
 	public abstract Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context,
 		CancellationToken cancellationToken = default);
 
-	protected async Task<(DependingServiceStatus status, string message)> IsMongoHealthyAsync()
+	protected async Task<(HealthStatus status, string message)> IsMongoHealthyAsync()
 	{
 		try
 		{
@@ -37,23 +37,16 @@ public abstract class CommonGrpcHealthCheck : IHealthCheck
 				sb.AppendLine($"\t{member["name"].AsString}");
 			}
 
-			if (bad <= 0) return (DependingServiceStatus.Ok, "");
+			if (bad <= 0) return (HealthStatus.Healthy, "");
 
 			sb.Insert(0,
 				$"{bad} of {rsStatus["members"].AsBsonArray.Count} members are unavailable, in details:\n");
 
-			return (DependingServiceStatus.Degraded, sb.ToString());
+			return (HealthStatus.Degraded, sb.ToString());
 		}
 		catch (MongoException e)
 		{
-			return (DependingServiceStatus.Ko, e.Message);
+			return (HealthStatus.Unhealthy, e.Message);
 		}
-	}
-
-	protected enum DependingServiceStatus
-	{
-		Ok,
-		Degraded,
-		Ko
 	}
 }
