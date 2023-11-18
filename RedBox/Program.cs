@@ -17,7 +17,7 @@ builder.Services.AddSingleton<IRedBoxEmailUtility, RedBoxEmailUtility>();
 builder.Services.AddSingleton<IPermissionUtility, PermissionUtility>();
 builder.Services.AddSingleton<IClientsRegistryProvider, ClientsRegistryProvider>();
 
-builder.AddRedBoxAuthenticationAndAuthorization();
+await builder.AddRedBoxAuthenticationAndAuthorizationAsync();
 
 var appSettings = builder.Configuration.GetSection("RedBoxApplicationSettings").Get<RedBoxApplicationSettings>() ??
                   new RedBoxApplicationSettings();
@@ -29,7 +29,7 @@ builder.Services.AddGrpc(options =>
 		1024 * 1024;
 });
 
-builder.Services.AddGrpcHealthChecks().AddCheck<RedBoxGrpcHealthCheck>("Backend up and running");
+builder.Services.AddGrpcHealthChecks().AddCheck<RedBoxGrpcHealthCheck>("Backend");
 
 builder.Services.Configure<HealthCheckPublisherOptions>(options =>
 {
