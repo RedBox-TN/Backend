@@ -1,50 +1,59 @@
+using System.Net.Security;
 using System.Text;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using Shared.Settings;
+using RedBoxAuth.Settings;
+using StackExchange.Redis;
 
 namespace RedBoxAuth.Healt_check;
 
-public abstract class RedisHealthCheck : IHealthCheck
+public class RedisHealthCheck
 {
-	private readonly CommonDatabaseSettings _dbSettings;
+	private readonly RedisSettings _settings;
 
-	protected RedisHealthCheck(IOptions<CommonDatabaseSettings> dbSettings)
+	public RedisHealthCheck(IOptions<RedisSettings> settings)
 	{
-		_dbSettings = dbSettings.Value;
+		_settings = settings.Value;
 	}
-
-	public abstract Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context,
-		CancellationToken cancellationToken = default);
-
-	protected async Task<(HealthStatus status, string message)> IsMongoHealthyAsync()
+	
+	public async Task<(HealthStatus status, string message)> IsRedisHealthyAsync()
 	{
 		try
 		{
-			var mongoClient = new MongoClient(_dbSettings.ConnectionString);
-			var rsStatus = await mongoClient.GetDatabase("admin")
-				.RunCommandAsync<BsonDocument>("{ replSetGetStatus: 1 }");
+			var redis = await ConnectionMultiplexer.ConnectAsync(_settings.ConnectionString,
+				options => options.CertificateValidation += (_, _, _, errors) =>
+				{
+					return errors switch
+					{
+						SslPolicyErrors.None => true,
+						SslPolicyErrors.RemoteCertificateNameMismatch => true,
+						SslPolicyErrors.RemoteCertificateNotAvailable => false,
+						SslPolicyErrors.RemoteCertificateChainErrors => false,
+						_ => false
+					};
+				});
 
 			var sb = new StringBuilder();
 			var bad = 0;
-			foreach (var member in rsStatus["members"].AsBsonArray)
-			{
-				if (member.AsBsonDocument["health"].AsDouble != 0) continue;
-
-				bad++;
-				sb.AppendLine($"\t{member["name"].AsString}");
-			}
+			foreach (var server in redis.GetServers())
+				try
+				{
+					await server.PingAsync(CommandFlags.NoRedirect);
+				}
+				catch (RedisException)
+				{
+					bad++;
+					sb.AppendLine($"\t\u25cb {server.EndPoint}");
+				}
 
 			if (bad <= 0) return (HealthStatus.Healthy, "");
 
 			sb.Insert(0,
-				$"{bad} of {rsStatus["members"].AsBsonArray.Count} members are unavailable, in details:\n");
+				$"{bad} of {redis.GetServers().Length} servers are unavailable, in details:\n");
 
 			return (HealthStatus.Degraded, sb.ToString());
 		}
-		catch (MongoException e)
+		catch (RedisException e)
 		{
 			return (HealthStatus.Unhealthy, e.Message);
 		}

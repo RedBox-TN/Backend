@@ -7,19 +7,16 @@ using Shared.Settings;
 
 namespace Shared.Healt_check;
 
-public abstract class MongoDbHealthCheck : IHealthCheck
+public class MongoDbHealthCheck
 {
 	private readonly CommonDatabaseSettings _dbSettings;
 
-	protected MongoDbHealthCheck(IOptions<CommonDatabaseSettings> dbSettings)
+	public MongoDbHealthCheck(IOptions<CommonDatabaseSettings> dbSettings)
 	{
 		_dbSettings = dbSettings.Value;
 	}
 
-	public abstract Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context,
-		CancellationToken cancellationToken = default);
-
-	protected async Task<(HealthStatus status, string message)> IsMongoHealthyAsync()
+	public async Task<(HealthStatus status, string message)> IsMongoHealthyAsync()
 	{
 		try
 		{
@@ -34,7 +31,7 @@ public abstract class MongoDbHealthCheck : IHealthCheck
 				if (member.AsBsonDocument["health"].AsDouble != 0) continue;
 
 				bad++;
-				sb.AppendLine($"\t{member["name"].AsString}");
+				sb.AppendLine($"\t\u25cb {member["name"].AsString}");
 			}
 
 			if (bad <= 0) return (HealthStatus.Healthy, "");
