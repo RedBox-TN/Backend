@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using RedBoxAuth.Authorization;
-using RedBoxAuth.Cache;
 using RedBoxAuth.Email_utility;
 using RedBoxAuth.Password_utility;
 using RedBoxAuth.Security_hash_utility;
 using RedBoxAuth.Services;
+using RedBoxAuth.Session_storage;
 using RedBoxAuth.Settings;
 using RedBoxAuth.TOTP_utility;
 using Shared.Settings;
@@ -23,7 +23,7 @@ public static class RequiredAuthServices
 	///     Add required dependencies for authentication and authorization
 	/// </summary>
 	/// <param name="builder">WebApplicationBuilder of the current application</param>
-	public static void AddRedBoxAuthenticationAndAuthorization(this WebApplicationBuilder builder)
+	public static async Task AddRedBoxAuthenticationAndAuthorizationAsync(this WebApplicationBuilder builder)
 	{
 		builder.Services.Configure<CommonEmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 		builder.Services.Configure<AccountDatabaseSettings>(builder.Configuration.GetSection("UsersDB"));
@@ -35,7 +35,7 @@ public static class RequiredAuthServices
 		if (redisHost == null)
 			Environment.Exit(-1);
 
-		var redis = ConnectionMultiplexer.Connect(redisHost);
+		var redis = await ConnectionMultiplexer.ConnectAsync(redisHost);
 
 		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 		builder.Services.AddSingleton<CommonEmailUtility>();
@@ -44,9 +44,9 @@ public static class RequiredAuthServices
 		builder.Services.AddSingleton<IEncryptionUtility, EncryptionUtility>();
 		builder.Services.AddSingleton<IAuthEmailUtility, AuthEmailUtility>();
 		builder.Services.AddSingleton<IPasswordUtility, PasswordUtility>();
-		builder.Services.AddSingleton<IBasicAuthCache, AuthCache>();
+		builder.Services.AddSingleton<IBasicSessionStorage, SessionStorage>();
 		builder.Services.AddSingleton<ITotpUtility, TotpUtility>();
-		builder.Services.AddSingleton<IAuthCache, AuthCache>();
+		builder.Services.AddSingleton<ISessionStorage, SessionStorage>();
 		builder.Services.AddHttpContextAccessor();
 	}
 
@@ -54,7 +54,7 @@ public static class RequiredAuthServices
 	///     Add required dependencies for basic authorization of users and ability to access authenticated users
 	/// </summary>
 	/// <param name="builder">WebApplicationBuilder of the current application</param>
-	public static void AddRedBoxBasicAuthorization(this WebApplicationBuilder builder)
+	public static async Task AddRedBoxBasicAuthorizationAsync(this WebApplicationBuilder builder)
 	{
 		builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
 
@@ -62,10 +62,10 @@ public static class RequiredAuthServices
 		if (redisHost == null)
 			Environment.Exit(-1);
 
-		var redis = ConnectionMultiplexer.Connect(redisHost);
+		var redis = await ConnectionMultiplexer.ConnectAsync(redisHost);
 
 		builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
-		builder.Services.AddSingleton<IBasicAuthCache, BasicAuthCache>();
+		builder.Services.AddSingleton<IBasicSessionStorage, BasicSessionStorage>();
 		builder.Services.AddSingleton<ISecurityHashUtility, SecurityHashUtility>();
 	}
 

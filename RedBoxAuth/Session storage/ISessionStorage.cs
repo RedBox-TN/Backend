@@ -1,11 +1,11 @@
 using Shared.Models;
 
-namespace RedBoxAuth.Cache;
+namespace RedBoxAuth.Session_storage;
 
 /// <summary>
 ///     Expose methods for working whit user stored in redis
 /// </summary>
-public interface IAuthCache : IBasicAuthCache
+public interface ISessionStorage : IBasicSessionStorage
 {
 	/// <summary>
 	///     Check if the token exists and correspond to a authenticated user

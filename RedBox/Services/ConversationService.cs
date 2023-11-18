@@ -598,20 +598,22 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			if (messageId is not null)
 				found = await collection.Find(m => m.Id == messageId && !m.UserDeleted).FirstOrDefaultAsync();
 			else
-				found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp).FirstOrDefaultAsync();
+				found = await collection.Find(m => !m.UserDeleted).SortByDescending(m => m.Timestamp)
+					.FirstOrDefaultAsync();
 
-			if (found is null) return new GrpcMessage
-			{
-				Id = "",
-				Timestamp = null,
-				EncryptedText = ByteString.Empty,
-				Iv = ByteString.Empty,
-				SenderId = "",
-				Attachments =
+			if (found is null)
+				return new GrpcMessage
 				{
-					ToGrpcAttachments(null)
-				}
-			};
+					Id = "",
+					Timestamp = null,
+					EncryptedText = ByteString.Empty,
+					Iv = ByteString.Empty,
+					SenderId = "",
+					Attachments =
+					{
+						ToGrpcAttachments(null)
+					}
+				};
 
 			return new GrpcMessage
 			{
