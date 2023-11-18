@@ -5,10 +5,10 @@ using Shared.Models;
 using StackExchange.Redis;
 using ZstdSharp;
 
-namespace RedBoxAuth.Cache;
+namespace RedBoxAuth.Session_storage;
 
 /// <inheritdoc />
-public class BasicAuthCache : IBasicAuthCache
+public class BasicSessionStorage : IBasicSessionStorage
 {
 	// contains serialized users associated to the token
 	private readonly IDatabase _sessionDb;
@@ -21,7 +21,7 @@ public class BasicAuthCache : IBasicAuthCache
 	/// </summary>
 	/// <param name="redis">Redis connection</param>
 	/// <param name="redisSettings">Redis settings</param>
-	public BasicAuthCache(IConnectionMultiplexer redis, IOptions<RedisSettings> redisSettings)
+	public BasicSessionStorage(IConnectionMultiplexer redis, IOptions<RedisSettings> redisSettings)
 	{
 		_sessionDb = redis.GetDatabase(redisSettings.Value.SessionDatabaseIndex);
 		_tokenDb = redis.GetDatabase(redisSettings.Value.UsernameTokenDatabaseIndex);

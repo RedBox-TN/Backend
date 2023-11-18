@@ -26,11 +26,6 @@ public class AuthSettings
 	public uint TokenSizeBytes { get; set; } = 12;
 
 	/// <summary>
-	///     TTL of a user entry saved in local cache
-	/// </summary>
-	public uint LocalCacheExpirationScanMinutes { get; set; } = 5;
-
-	/// <summary>
 	///     Size in byte of shared secret for 2fa
 	/// </summary>
 	public int TotpSharedSecretSize { get; set; } = 16;

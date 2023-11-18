@@ -6,12 +6,12 @@ using Shared.Models;
 using StackExchange.Redis;
 using ZstdSharp;
 
-namespace RedBoxAuth.Cache;
+namespace RedBoxAuth.Session_storage;
 
 /// <summary>
-///     Implementation of IAuthCache
+///     Implementation of ISessionStorage
 /// </summary>
-public class AuthCache : IAuthCache
+public class SessionStorage : ISessionStorage
 {
 	private readonly AuthSettings _authSettings;
 
@@ -21,7 +21,7 @@ public class AuthCache : IAuthCache
 	// contains current token associated to the username
 	private readonly IDatabase _tokenDb;
 
-	public AuthCache(IConnectionMultiplexer redis, IOptions<AuthSettings> options,
+	public SessionStorage(IConnectionMultiplexer redis, IOptions<AuthSettings> options,
 		IOptions<RedisSettings> redisSettings)
 	{
 		_authSettings = options.Value;
