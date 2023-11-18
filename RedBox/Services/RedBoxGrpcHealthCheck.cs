@@ -6,7 +6,7 @@ using Shared.Healt_check;
 
 namespace RedBox.Services;
 
-public class RedBoxGrpcHealthCheck : CommonGrpcHealthCheck
+public class RedBoxGrpcHealthCheck : MongoDbHealthCheck
 {
 	public RedBoxGrpcHealthCheck(IOptions<RedBoxDatabaseSettings> dbSettings) : base(dbSettings)
 	{
@@ -18,23 +18,27 @@ public class RedBoxGrpcHealthCheck : CommonGrpcHealthCheck
 		var mongoCheck = await IsMongoHealthyAsync();
 		var sb = new StringBuilder();
 
+		var unHealty = false;
+		var degraded = false;
+
 		switch (mongoCheck.status)
 		{
-			case DependingServiceStatus.Ok:
+			case HealthStatus.Healthy:
 				sb.AppendLine("MongoDB is up and running");
 				break;
-			case DependingServiceStatus.Degraded:
+			case HealthStatus.Degraded:
+				degraded = true;
 				sb.AppendLine($"MongoDB is degraded:\n\t{mongoCheck.message}");
 				break;
 			default:
-			case DependingServiceStatus.Ko:
+			case HealthStatus.Unhealthy:
+				unHealty = true;
 				sb.AppendLine($"MongoDB is down:\n\t{mongoCheck.message}");
 				break;
 		}
 
-
-		if (mongoCheck.status == DependingServiceStatus.Ko) return HealthCheckResult.Unhealthy(sb.ToString());
-		if (mongoCheck.status == DependingServiceStatus.Degraded) return HealthCheckResult.Degraded(sb.ToString());
+		if (unHealty) return HealthCheckResult.Unhealthy(sb.ToString());
+		if (degraded) return HealthCheckResult.Degraded(sb.ToString());
 
 		return HealthCheckResult.Healthy(sb.ToString());
 	}
