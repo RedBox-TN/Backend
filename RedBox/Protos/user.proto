@@ -132,10 +132,21 @@ message GrpcRoleResults {
   // i ruoli richiesti
   repeated GrpcRole roles = 2;
 }
+// risposta contenente l'utente che corrente
+message FetchMeResult {
+  // il risultato dell'operazione
+  shared.Result result = 1;
+  // l'utente corrente
+  GrpcUser user = 2;
+  // il ruolo dell'utente
+  GrpcRole role = 3;
+}
 /*
   Servizi per la gestione del proprio account da parte degli utenti
 */
 service GrpcAccountServices {
+  // ottiene informazioni sul proprio account utente
+  rpc FetchMe(google.protobuf.Empty) returns (FetchMeResult);
   // consente di apportare modifiche al proprio account utente
   rpc ModifyUser (GrpcUser) returns (shared.Result);
   // consente di verificare se il token utilizzato per le altre richieste è valido
