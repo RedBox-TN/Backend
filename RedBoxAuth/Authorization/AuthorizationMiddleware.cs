@@ -66,14 +66,14 @@ public class AuthorizationMiddleware
 
 		if (metadata.Contains(new AuthenticationRequiredAttribute()))
 		{
-			if (IsUserAuthenticated(context, out var validHash, out user))
+			if (IsUserAuthenticated(context, out var invalidHash, out user))
 			{
 				context.Items[Constants.UserContextKey] = user;
 				await _next(context);
 				return;
 			}
 
-			if (validHash) throw new RpcException(new Status(StatusCode.PermissionDenied, string.Empty));
+			if (invalidHash) throw new RpcException(new Status(StatusCode.Unauthenticated, string.Empty));
 
 			await _sessionStorage.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
 			throw new RpcException(new Status(StatusCode.Unauthenticated, "User must be reauthenticated"));

@@ -30,7 +30,7 @@ public partial class User
 
 	[BsonIgnore] public Role Role { get; set; } = null!;
 	public string Name { get; set; } = null!;
-	[BsonIgnore] public bool IsAuthenticated { get; set; }
+	[BsonIgnore] public bool IsAuthenticationCompleted { get; set; }
 	public string Biography { get; set; } = null!;
-	[BsonIgnoreIfDefault] public bool NeedsProvisioning { get; set; } = false;
+	[BsonIgnoreIfDefault] public bool NeedsProvisioning { get; set; }
 }

@@ -14,9 +14,4 @@ public struct Constants
 	///     Key of user stored in HttpContext.Items after authorization
 	/// </summary>
 	public const string UserContextKey = "user";
-
-	/// <summary>
-	///     Status used to indicate invalid security hash
-	/// </summary>
-	public const int Status440LoginTimeOut = 440;
 }
