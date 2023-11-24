@@ -15,7 +15,7 @@ public class RedisHealthCheck
 	{
 		_settings = settings.Value;
 	}
-	
+
 	public async Task<(HealthStatus status, string message)> IsRedisHealthyAsync()
 	{
 		try

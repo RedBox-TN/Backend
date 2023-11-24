@@ -33,7 +33,7 @@ public class SessionStorage : ISessionStorage
 	public async Task<(string token, long expiresAt)> StoreAsync(User user)
 	{
 		var key = await GenerateTokenAsync();
-		user.IsAuthenticated = true;
+		user.IsAuthenticationCompleted = true;
 		await SerializeCompressStoreAsync(user, key, _authSettings.SessionExpireMinutes);
 		return (key, ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds());
 	}
@@ -58,7 +58,7 @@ public class SessionStorage : ISessionStorage
 		TryToGet(key, out var user);
 		await _sessionDb.KeyDeleteAsync(key, CommandFlags.FireAndForget);
 
-		user!.IsAuthenticated = true;
+		user!.IsAuthenticationCompleted = true;
 
 		await SerializeCompressStoreAsync(user, key, _authSettings.SessionExpireMinutes);
 		return ((DateTimeOffset)_sessionDb.KeyExpireTime(key)!.Value).ToUnixTimeMilliseconds();

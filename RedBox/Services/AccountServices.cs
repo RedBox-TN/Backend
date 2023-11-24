@@ -97,6 +97,50 @@ public partial class AccountServices : GrpcAccountServices.GrpcAccountServicesBa
 		};
 	}
 
+	[AuthenticationRequired]
+	public override Task<FetchMeResult> FetchMe(Empty request, ServerCallContext context)
+	{
+		try
+		{
+			var user = context.GetUser();
+
+			return Task.FromResult(new FetchMeResult
+			{
+				Result = new Result
+				{
+					Status = Status.Ok
+				},
+				User = new GrpcUser
+				{
+					Id = user.Id,
+					Biography = user.Biography,
+					IsFaEnabled = user.IsFaEnable,
+					Username = user.Username,
+					Email = user.Email,
+					Name = user.Name,
+					Surname = user.Surname
+				},
+				Role = new GrpcRole
+				{
+					Id = user.Role.Id,
+					Name = user.Role.Name,
+					Permissions = user.Role.Permissions
+				}
+			});
+		}
+		catch (Exception e)
+		{
+			return Task.FromResult(new FetchMeResult
+			{
+				Result = new Result
+				{
+					Status = Status.Error,
+					Error = e.Message
+				}
+			});
+		}
+	}
+
 	/// <summary>
 	///     API to check if the token hasn't expired yet (Token verification To Be Implemented)
 	/// </summary>

@@ -139,7 +139,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				};
 			}
 
-			user.IsAuthenticated = true;
+			user.IsAuthenticationCompleted = true;
 			var key = await _sessionStorage.StoreAsync(user);
 
 			await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq(u => u.Id, user.Id),
@@ -185,7 +185,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 				Code = TwoFactorResponseCode.TfaNotEnabled
 			};
 
-		if (user.IsAuthenticated)
+		if (user.IsAuthenticationCompleted)
 			return new TwoFactorResponse
 			{
 				Code = TwoFactorResponseCode.AlreadyVerified
