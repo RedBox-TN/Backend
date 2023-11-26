@@ -56,7 +56,7 @@ app.UseCors("AllowBlazorAppOrigin");
 
 app.UseGrpcWeb();
 
-app.MapGrpcHealthChecksService();
+app.MapGrpcHealthChecksService().EnableGrpcWeb();
 
 app.MapGrpcService<AccountServices>().EnableGrpcWeb();
 app.MapGrpcService<AdminService>().EnableGrpcWeb();
