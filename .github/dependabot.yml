@@ -2,6 +2,11 @@ version: 2
 updates:
 - package-ecosystem: nuget
   directory: "/"
+  directory: "/RedBox"
+  directory: "/RedBoxAuth"
+  directory: "/Keychain"
+  directory: "/RedBoxTests"
+  directory: "/Shared"
   schedule:
     interval: daily
   open-pull-requests-limit: 10
