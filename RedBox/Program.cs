@@ -46,7 +46,6 @@ builder.Services.AddCors(options =>
 			.AllowAnyMethod()
 			.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding", "X-Grpc-Web",
 				"User-Agent"));
-	;
 });
 
 
