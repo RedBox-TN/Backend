@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Debug" type="DotNetFolderPublish" factoryName="Publish to folder">
+    <riderPublish configuration="Debug ARM" delete_existing_files="true" platform="ARM64" produce_single_file="true" ready_to_run="true" runtime="linux-arm64" target_folder="$USER_HOME$/Backend" target_framework="net8.0" uuid_high="399119055287371264" uuid_low="-5167099662498054112" />
+    <method v="2" />
+  </configuration>
+</component>
