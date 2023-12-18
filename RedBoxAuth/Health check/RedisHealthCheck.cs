@@ -5,16 +5,11 @@ using Microsoft.Extensions.Options;
 using RedBoxAuth.Settings;
 using StackExchange.Redis;
 
-namespace RedBoxAuth.Healt_check;
+namespace RedBoxAuth.Health_check;
 
-public class RedisHealthCheck
+public class RedisHealthCheck(IOptions<RedisSettings> settings)
 {
-	private readonly RedisSettings _settings;
-
-	public RedisHealthCheck(IOptions<RedisSettings> settings)
-	{
-		_settings = settings.Value;
-	}
+	private readonly RedisSettings _settings = settings.Value;
 
 	public async Task<(HealthStatus status, string message)> IsRedisHealthyAsync()
 	{
