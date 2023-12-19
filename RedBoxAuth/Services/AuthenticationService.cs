@@ -52,9 +52,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	{
 		try
 		{
-			if (context.GetHttpContext().Request.Headers.ContainsKey(Constants.TokenHeaderName) &&
-			    await _sessionStorage.TokenExistsAsync(context.GetHttpContext().Request
-				    .Headers[Constants.TokenHeaderName]))
+			if (context.GetHttpContext().Request.Headers.TryGetValue(Constants.TokenHeader, out var value) &&
+			    await _sessionStorage.TokenExistsAsync(value))
 				return new LoginResponse
 				{
 					Status = LoginStatus.AlreadyLogged
@@ -125,8 +124,8 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 
 			user.Role = await _roleCollection.Find(r => r.Id == user.RoleId).FirstOrDefaultAsync();
 
-			user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers["User-Agent"],
-				context.GetHttpContext().Connection.RemoteIpAddress);
+			user.SecurityHash = _hashUtility.Calculate(context.GetHttpContext().Request.Headers.UserAgent,
+				context.GetRequestIp());
 
 			if (user.IsFaEnable)
 			{
@@ -162,7 +161,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	[AuthenticationRequired]
 	public override async Task<Empty> Logout(Empty request, ServerCallContext context)
 	{
-		var key = context.GetHttpContext().Request.Headers[Constants.TokenHeaderName];
+		var key = context.GetHttpContext().Request.Headers[Constants.TokenHeader];
 
 		await _sessionStorage.DeleteAsync(key);
 
@@ -211,7 +210,7 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 	public override async Task<TokenRefreshResponse> RefreshToken(Empty request, ServerCallContext context)
 	{
 		var token = await _sessionStorage.RefreshTokenAsync(context.GetHttpContext().Request
-			.Headers[Constants.TokenHeaderName]!);
+			.Headers[Constants.TokenHeader]!);
 
 		return new TokenRefreshResponse
 		{

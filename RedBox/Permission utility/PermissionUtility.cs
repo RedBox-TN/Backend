@@ -1,7 +1,7 @@
 using RedBox.Permission_Utility;
 using Shared.Models;
 
-namespace RedBox.PermissionUtility;
+namespace RedBox.Permission_utility;
 
 public class PermissionUtility : IPermissionUtility
 {

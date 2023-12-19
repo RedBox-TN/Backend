@@ -2,9 +2,9 @@ using System.Text;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using RedBox.Settings;
-using RedBoxAuth.Healt_check;
+using RedBoxAuth.Health_check;
 using RedBoxAuth.Settings;
-using Shared.Healt_check;
+using Shared.Health_check;
 
 namespace RedBox.Services;
 
