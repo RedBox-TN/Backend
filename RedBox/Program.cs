@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RedBox.Email_utility;
+using RedBox.Permission_utility;
 using RedBox.Permission_Utility;
-using RedBox.PermissionUtility;
 using RedBox.Providers;
 using RedBox.Services;
 using RedBox.Settings;
