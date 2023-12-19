@@ -34,8 +34,8 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="MongoDB.Driver" Version="2.23.1" />
-        <PackageReference Include="StackExchange.Redis" Version="2.7.10" />
+        <PackageReference Include="MongoDB.Driver" Version="2.23.1"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.7.10"/>
     </ItemGroup>
 
     <ItemGroup>

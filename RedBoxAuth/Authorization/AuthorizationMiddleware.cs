@@ -75,7 +75,7 @@ public class AuthorizationMiddleware
 
 			if (invalidHash) throw new RpcException(new Status(StatusCode.Unauthenticated, string.Empty));
 
-			await _sessionStorage.DeleteAsync(context.Request.Headers[Constants.TokenHeaderName]);
+			await _sessionStorage.DeleteAsync(context.Request.Headers[Constants.TokenHeader]);
 			throw new RpcException(new Status(StatusCode.Unauthenticated, "User must be reauthenticated"));
 		}
 
@@ -87,7 +87,7 @@ public class AuthorizationMiddleware
 	{
 		user = null;
 
-		if (!context.Request.Headers.TryGetValue(Constants.TokenHeaderName, out var key) ||
+		if (!context.Request.Headers.TryGetValue(Constants.TokenHeader, out var key) ||
 		    !_sessionStorage.TryToGet(key, out user))
 		{
 			validHash = true;
@@ -95,7 +95,7 @@ public class AuthorizationMiddleware
 		}
 
 		validHash = _securityHash.IsValid(user!.SecurityHash, context.Request.Headers.UserAgent,
-			context.Connection.RemoteIpAddress);
+			context.GetRequestIp());
 
 		return validHash;
 	}
