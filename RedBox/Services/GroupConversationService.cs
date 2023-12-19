@@ -184,10 +184,6 @@ public partial class ConversationService
 
 			await _clientsRegistry.NotifyMultiAsync(members.Where(i => i != context.GetUser().Id), new ServerUpdate
 			{
-				Result = new Result
-				{
-					Status = Status.Ok
-				},
 				Group = group
 			});
 

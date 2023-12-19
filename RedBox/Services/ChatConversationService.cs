@@ -75,10 +75,6 @@ public partial class ConversationService
 
 		await _clientsRegistry.NotifyOneAsync(request.Value, new ServerUpdate
 		{
-			Result = new Result
-			{
-				Status = Status.Ok
-			},
 			Chat = chat
 		});
 

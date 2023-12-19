@@ -14,7 +14,7 @@ using RedBoxAuth.Settings;
 using RedBoxServices;
 using Shared;
 using Shared.Models;
-using Status = Grpc.Core.Status;
+using Status = Shared.Status;
 
 namespace RedBox.Services;
 
@@ -24,7 +24,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 	private readonly RedBoxApplicationSettings _appSettings;
 	private readonly IClientsRegistryProvider _clientsRegistry;
 	private readonly RedBoxDatabaseSettings _dbSettings;
-	private readonly IMongoClient _mongoClient;
+	private readonly MongoClient _mongoClient;
 	private readonly AccountDatabaseSettings _userDbSettings;
 
 	public ConversationService(IOptions<RedBoxDatabaseSettings> dbSettings,
@@ -37,32 +37,6 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		_appSettings = appSettings.Value;
 
 		_mongoClient = new MongoClient(_dbSettings.ConnectionString);
-	}
-
-	public override async Task Sync(IAsyncStreamReader<ClientUpdate> requestStream,
-		IServerStreamWriter<ServerUpdate> responseStream, ServerCallContext context)
-	{
-		var userId = context.GetUser().Id;
-		_clientsRegistry.Add(userId, responseStream);
-
-		while (await requestStream.MoveNext())
-			switch (requestStream.Current.OperationCase)
-			{
-				case ClientUpdate.OperationOneofCase.SentMessage:
-					await SendMessage(requestStream.Current.SentMessage, responseStream, userId);
-					break;
-				case ClientUpdate.OperationOneofCase.DeletedMessages:
-					await DeleteMessages(requestStream.Current.DeletedMessages, responseStream, userId);
-					break;
-				case ClientUpdate.OperationOneofCase.GetCollectionDetails:
-					await GetCollectionDetails(requestStream.Current.GetCollectionDetails, responseStream, userId);
-					break;
-				case ClientUpdate.OperationOneofCase.None:
-				default:
-					throw new RpcException(new Status(StatusCode.InvalidArgument, nameof(requestStream)));
-			}
-
-		_clientsRegistry.Remove(userId);
 	}
 
 	public override async Task<ChunkResponse> GetMessagesInRange(MessageChunkRequest request,
@@ -101,7 +75,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Shared.Status.Ok
+					Status = Status.Ok
 				},
 				Messages =
 				{
@@ -115,7 +89,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Shared.Status.Error,
+					Status = Status.Error,
 					Error = e.Message
 				}
 			};
@@ -150,7 +124,34 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		}
 		catch (Exception e)
 		{
-			throw new RpcException(new Status(StatusCode.Internal, e.Message));
+			throw new RpcException(new Grpc.Core.Status(StatusCode.Internal, e.Message));
+		}
+	}
+
+	public override async Task GetUpdateFromServer(Empty request, IServerStreamWriter<ServerUpdate> responseStream,
+		ServerCallContext context)
+	{
+		var userId = context.GetUser().Id;
+		_clientsRegistry.Add(userId, responseStream);
+		while (!context.CancellationToken.IsCancellationRequested) await Task.Delay(1000);
+		_clientsRegistry.Remove(userId);
+	}
+
+	public override Task<Result> SendUpdateToServer(ClientUpdate request, ServerCallContext context)
+	{
+		var userId = context.GetUser().Id;
+
+		switch (request.OperationCase)
+		{
+			case ClientUpdate.OperationOneofCase.SentMessage:
+				return SendMessageAsync(request.SentMessage, userId);
+			case ClientUpdate.OperationOneofCase.DeletedMessages:
+				return DeleteMessagesAsync(request.DeletedMessages, userId);
+			case ClientUpdate.OperationOneofCase.GetCollectionDetails:
+				return GetCollectionDetails(request.GetCollectionDetails, userId);
+			case ClientUpdate.OperationOneofCase.None:
+			default:
+				throw new RpcException(new Grpc.Core.Status(StatusCode.InvalidArgument, nameof(request)));
 		}
 	}
 
@@ -187,7 +188,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				{
 					Result = new Result
 					{
-						Status = Shared.Status.Ok
+						Status = Status.Ok
 					},
 					Users =
 					{
@@ -211,7 +212,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			{
 				Result = new Result
 				{
-					Status = Shared.Status.Ok
+					Status = Status.Ok
 				},
 				Users =
 				{
@@ -226,13 +227,14 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				Result = new Result
 				{
 					Error = e.Message,
-					Status = Shared.Status.Error
+					Status = Status.Error
 				}
 			};
 		}
 	}
 
-	private static IEnumerable<GrpcAttachment> ToGrpcAttachments(Attachment[]? attachments)
+	// ReSharper disable once ReturnTypeCanBeEnumerable.Local
+	private static GrpcAttachment[] ToGrpcAttachments(Attachment[]? attachments)
 	{
 		if (attachments is null) return Array.Empty<GrpcAttachment>();
 
@@ -247,39 +249,26 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		return result;
 	}
 
-	private async Task SendMessage(MessageOfCollection msgColl,
-		IAsyncStreamWriter<ServerUpdate> response, string userId)
+	private async Task<Result> SendMessageAsync(MessageOfCollection msgColl, string userId)
 	{
 		if ((string.IsNullOrEmpty(msgColl.Collection.Chat) && string.IsNullOrEmpty(msgColl.Collection.Group)) ||
 		    (msgColl.Message.EncryptedText.IsEmpty && msgColl.Message.Attachments.Count == 0) ||
 		    msgColl.Message.Iv.IsEmpty)
-		{
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.MissingParameters,
-					Error =
-						"Each message must contain one collection, an iv and at least some text or one attachment"
-				}
-			});
-			return;
-		}
+				Status = Status.MissingParameters,
+				Error =
+					"Each message must contain one collection, an iv and at least some text or one attachment"
+			};
 
 		if ((msgColl.Collection.HasChat && !await IsInChatAsync(userId, msgColl.Collection.Chat)) ||
 		    !await IsInGroupAsync(userId, msgColl.Collection.Group))
-		{
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.InvalidParameter,
-					Error =
-						"Invalid collection name"
-				}
-			});
-			return;
-		}
+				Status = Status.InvalidParameter,
+				Error =
+					"Invalid collection name"
+			};
 
 		var dbMessage = new Message
 		{
@@ -291,52 +280,30 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		if (msgColl.Message.HasEncryptedText) dbMessage.EncryptedText = msgColl.Message.EncryptedText.ToByteArray();
 
 		if (msgColl.Message.Attachments.Count > _appSettings.MaxAttachmentsPerMsg)
-		{
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.InvalidParameter,
-					Error = "Too many attachments"
-				}
-			});
-			return;
-		}
+				Status = Status.InvalidParameter,
+				Error = "Too many attachments"
+			};
 
 		foreach (var attachment in msgColl.Message.Attachments)
 		{
 			if (attachment.Data.IsEmpty)
-			{
-				await response.WriteAsync(new ServerUpdate
+				return new Result
 				{
-					Result = new Result
-					{
-						Status = Shared.Status.InvalidParameter,
-						Error = $"{attachment.Name} was empty"
-					}
-				});
-				return;
-			}
+					Status = Status.InvalidParameter,
+					Error = $"{attachment.Name} was empty"
+				};
 
 			if (attachment.Data.Length <= _appSettings.MaxAttachmentSizeMb * 1024 * 1024) continue;
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.AttachmentTooBig,
-					Error = $"{attachment.Name} was too big"
-				}
-			});
-			return;
+				Status = Status.AttachmentTooBig,
+				Error = $"{attachment.Name} was too big"
+			};
 		}
 
-		var update = new ServerUpdate
-		{
-			Result = new Result
-			{
-				Status = Shared.Status.Ok
-			}
-		};
+		var update = new ServerUpdate();
 		using var session = await _mongoClient.StartSessionAsync();
 		try
 		{
@@ -344,18 +311,16 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 
 			if (msgColl.Collection.HasChat)
 			{
-				var chat = _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
-					.GetCollection<Message>(msgColl.Collection.Chat);
-				await chat.InsertOneAsync(dbMessage);
+				await _mongoClient.GetDatabase(_dbSettings.ChatsDatabase)
+					.GetCollection<Message>(msgColl.Collection.Chat).InsertOneAsync(dbMessage);
 
 				msgColl.Message.Id = dbMessage.Id;
 				update.ReceivedMessage = msgColl;
 			}
 			else
 			{
-				var group = _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
-					.GetCollection<Message>(msgColl.Collection.Group);
-				await group.InsertOneAsync(dbMessage);
+				await _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
+					.GetCollection<Message>(msgColl.Collection.Group).InsertOneAsync(dbMessage);
 
 				msgColl.Message.Id = dbMessage.Id;
 				update.ReceivedMessage = msgColl;
@@ -390,40 +355,34 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		}
 		catch (Exception e)
 		{
-			await response.WriteAsync(new ServerUpdate
-			{
-				Result = new Result
-				{
-					Status = Shared.Status.Error,
-					Error = e.Message
-				}
-			});
-
 			await session.AbortTransactionAsync();
+			return new Result
+			{
+				Status = Status.Error,
+				Error = e.Message
+			};
 		}
 
 		if (msgColl.Collection.HasChat)
 			await _clientsRegistry.NotifyOneAsync(GetOtherChatUser(msgColl.Collection.Chat, userId), update);
 		else
 			await _clientsRegistry.NotifyMultiAsync(GetGroupMembers(msgColl.Collection.Group, userId), update);
+
+		return new Result
+		{
+			Status = Status.Ok
+		};
 	}
 
-	private async Task DeleteMessages(DeleteMessagesRequest request, IAsyncStreamWriter<ServerUpdate> response,
-		string userId)
+	private async Task<Result> DeleteMessagesAsync(DeleteMessagesRequest request, string userId)
 	{
 		if ((string.IsNullOrEmpty(request.Collection.Chat) && string.IsNullOrEmpty(request.Collection.Group)) ||
 		    request.MessageIds.Count == 0)
-		{
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.MissingParameters,
-					Error = "Each request must contains at least one message id and the collection in which it belongs"
-				}
-			});
-			return;
-		}
+				Status = Status.MissingParameters,
+				Error = "Each request must contains at least one message id and the collection in which it belongs"
+			};
 
 		var chat = _mongoClient.GetDatabase(_dbSettings.ChatsDatabase).GetCollection<Message>(request.Collection.Chat);
 		var group = _mongoClient.GetDatabase(_dbSettings.GroupsDatabase)
@@ -439,10 +398,6 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				await _clientsRegistry.NotifyOneAsync(GetOtherChatUser(request.Collection.Chat, userId),
 					new ServerUpdate
 					{
-						Result = new Result
-						{
-							Status = Shared.Status.Ok
-						},
 						DeletedMessages = new DeleteMessagesRequest
 						{
 							Collection = new Collection
@@ -460,10 +415,6 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 				await _clientsRegistry.NotifyMultiAsync(GetGroupMembers(request.Collection.Group, userId),
 					new ServerUpdate
 					{
-						Result = new Result
-						{
-							Status = Shared.Status.Ok
-						},
 						DeletedMessages = new DeleteMessagesRequest
 						{
 							Collection = new Collection
@@ -476,53 +427,33 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		}
 		catch (Exception e)
 		{
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.Error,
-					Error = e.Message
-				}
-			});
-			return;
+				Status = Status.Error,
+				Error = e.Message
+			};
 		}
 
-		await response.WriteAsync(new ServerUpdate
+		return new Result
 		{
-			Result = new Result
-			{
-				Status = Shared.Status.Ok
-			}
-		});
+			Status = Status.Ok
+		};
 	}
 
-	private async Task GetCollectionDetails(Collection request, IServerStreamWriter<ServerUpdate> response,
-		string userId)
+	private async Task<Result> GetCollectionDetails(Collection request, string userId)
 	{
 		if (string.IsNullOrEmpty(request.Chat) && string.IsNullOrEmpty(request.Group))
-		{
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.MissingParameters,
-					Error = "Each request must contains one chat or group id"
-				}
-			});
+				Status = Status.MissingParameters,
+				Error = "Each request must contains one chat or group id"
+			};
 
-			return;
-		}
-
-		var update = new ServerUpdate
-		{
-			Result = new Result
-			{
-				Status = Shared.Status.Ok
-			}
-		};
 
 		try
 		{
+			var update = new ServerUpdate();
+
 			if (request.HasChat)
 			{
 				var chat = await _mongoClient.GetDatabase(_dbSettings.DatabaseName)
@@ -571,18 +502,17 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		}
 		catch (Exception e)
 		{
-			await response.WriteAsync(new ServerUpdate
+			return new Result
 			{
-				Result = new Result
-				{
-					Status = Shared.Status.Error,
-					Error = e.Message
-				}
-			});
-			return;
+				Status = Status.Error,
+				Error = e.Message
+			};
 		}
 
-		await response.WriteAsync(update);
+		return new Result
+		{
+			Status = Status.Ok
+		};
 	}
 
 	private async Task<GrpcMessage?> GetMessageFromCollectionAsync(string collectionId, string? messageId = null,
@@ -630,7 +560,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 		}
 		catch (Exception e)
 		{
-			throw new RpcException(new Status(StatusCode.Internal, e.Message));
+			throw new RpcException(new Grpc.Core.Status(StatusCode.Internal, e.Message));
 		}
 	}
 }

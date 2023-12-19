@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RedBox.Email_utility;
+using RedBox.Permission_utility;
 using RedBox.Permission_Utility;
-using RedBox.PermissionUtility;
 using RedBox.Providers;
 using RedBox.Services;
 using RedBox.Settings;
@@ -37,30 +37,27 @@ builder.Services.Configure<HealthCheckPublisherOptions>(options =>
 	options.Period = TimeSpan.FromSeconds(appSettings.GrpcHealthCheckInterval);
 });
 
-builder.Services.AddCors(options =>
+builder.Services.AddCors(o => o.AddPolicy("AllowAll", b =>
 {
-	options.AddPolicy("AllowBlazorAppOrigin",
-		b => b
-			.AllowAnyOrigin()
-			.AllowAnyHeader()
-			.AllowAnyMethod()
-			.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding", "X-Grpc-Web",
-				"User-Agent"));
-});
+	b.AllowAnyOrigin()
+		.AllowAnyMethod()
+		.AllowAnyHeader()
+		.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding", "X-Grpc-Web",
+			"User-Agent");
+}));
 
 
 var app = builder.Build();
 
-app.UseCors("AllowBlazorAppOrigin");
-
 app.UseGrpcWeb();
+app.UseCors();
 
-app.MapGrpcHealthChecksService().EnableGrpcWeb();
+app.MapGrpcHealthChecksService().EnableGrpcWeb().RequireCors("AllowAll");
 
-app.MapGrpcService<AccountServices>().EnableGrpcWeb();
-app.MapGrpcService<AdminService>().EnableGrpcWeb();
-app.MapGrpcService<ConversationService>().EnableGrpcWeb();
-app.MapGrpcService<SupervisedConversationService>().EnableGrpcWeb();
+app.MapGrpcService<AccountServices>().EnableGrpcWeb().RequireCors("AllowAll");
+app.MapGrpcService<AdminService>().EnableGrpcWeb().RequireCors("AllowAll");
+app.MapGrpcService<ConversationService>().EnableGrpcWeb().RequireCors("AllowAll");
+app.MapGrpcService<SupervisedConversationService>().EnableGrpcWeb().RequireCors("AllowAll");
 
 app.UseRedBoxAuthenticationAndAuthorization();
 

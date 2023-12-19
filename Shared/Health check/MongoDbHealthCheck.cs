@@ -5,16 +5,11 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Shared.Settings;
 
-namespace Shared.Healt_check;
+namespace Shared.Health_check;
 
-public class MongoDbHealthCheck
+public class MongoDbHealthCheck(IOptions<CommonDatabaseSettings> dbSettings)
 {
-	private readonly CommonDatabaseSettings _dbSettings;
-
-	public MongoDbHealthCheck(IOptions<CommonDatabaseSettings> dbSettings)
-	{
-		_dbSettings = dbSettings.Value;
-	}
+	private readonly CommonDatabaseSettings _dbSettings = dbSettings.Value;
 
 	public async Task<(HealthStatus status, string message)> IsMongoHealthyAsync()
 	{

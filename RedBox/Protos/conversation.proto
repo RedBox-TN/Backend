@@ -211,18 +211,16 @@ message ClientUpdate {
 
 // rappresenta un update del server, per il client, come un nuovo messaggio o una nuova conversazione
 message ServerUpdate {
-  // il risultato dell'operazione
-  shared.Result result = 1;
   // l'operazione effettuata
   oneof operation {
     // il client ha ricevuto un nuovo messaggio
-    MessageOfCollection received_message = 2;
+    MessageOfCollection received_message = 1;
     // il client ha richiesto o è stato aggiunto ad una nuova chat
-    GrpcChat chat = 3;
+    GrpcChat chat = 2;
     // il client ha richiesto o è stato aggiunto ad un nuovo gruppo
-    GrpcGroup group = 4;
+    GrpcGroup group = 3;
     // il client deve eliminare dei messaggi
-    DeleteMessagesRequest deleted_messages = 5;
+    DeleteMessagesRequest deleted_messages = 4;
   }
 }
 
@@ -248,8 +246,10 @@ service GrpcConversationServices {
   rpc GetMessagesInRange (MessageChunkRequest) returns (ChunkResponse);
   // ottiene il contenuto di un allegato
   rpc GetAttachmentData (AttachmentRequest) returns (GrpcAttachment);
-  // mantiene i client sincronizzati col server
-  rpc Sync (stream ClientUpdate) returns (stream ServerUpdate);
+  // riceve dal server gli aggiornamenti dello stato, come i nuovi messaggi
+  rpc GetUpdateFromServer (google.protobuf.Empty) returns (stream ServerUpdate);
+  // invia un aggiornamento dello stato al server, come l'invio di un messaggio
+  rpc SendUpdateToServer(ClientUpdate) returns (shared.Result);
 }
 
 // servizi per la letture delle chat da parte dei supervisori
