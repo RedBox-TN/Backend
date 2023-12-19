@@ -1,4 +1,5 @@
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using Shared.Models;
 
 namespace RedBoxAuth;
@@ -14,5 +15,16 @@ public static class HttpContextUserExtension
 	public static User GetUser(this ServerCallContext context)
 	{
 		return context.GetHttpContext().Items[Constants.UserContextKey] as User ?? throw new NullReferenceException();
+	}
+
+	public static string GetRequestIp(this ServerCallContext context)
+	{
+		return GetRequestIp(context.GetHttpContext());
+	}
+
+
+	public static string GetRequestIp(this HttpContext context)
+	{
+		return context.Request.Headers.TryGetValue(Constants.IpAddressHeader, out var ip) ? ip! : string.Empty;
 	}
 }

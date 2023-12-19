@@ -13,7 +13,7 @@ public interface ISecurityHashUtility
 	/// <param name="userAgent">The user agent string of the client</param>
 	/// <param name="ipAddress">The i[ address of the client</param>
 	/// <returns>Calculated hash as ulong</returns>
-	public ulong Calculate(string? userAgent, IPAddress? ipAddress);
+	public ulong Calculate(string? userAgent, string ipAddress);
 
 	/// <summary>
 	///     Check if the parameters produces the same hash as the stored one
@@ -22,5 +22,5 @@ public interface ISecurityHashUtility
 	/// <param name="userAgent">Current User agent</param>
 	/// <param name="ipAddress">Current ip</param>
 	/// <returns>Bool result of the check</returns>
-	public bool IsValid(ulong savedHash, string? userAgent, IPAddress? ipAddress);
+	public bool IsValid(ulong savedHash, string? userAgent, string ipAddress);
 }
