@@ -7,14 +7,9 @@ using Shared.Settings;
 
 namespace Shared.Utility;
 
-public class CommonEmailUtility
+public class CommonEmailUtility(IOptions<CommonEmailSettings> emailSettings)
 {
-	public readonly CommonEmailSettings EmailSettings;
-
-	public CommonEmailUtility(IOptions<CommonEmailSettings> emailSettings)
-	{
-		EmailSettings = emailSettings.Value;
-	}
+	public readonly CommonEmailSettings EmailSettings = emailSettings.Value;
 
 	public async Task SendAsync(string toAddress, string subject, string body)
 	{
@@ -33,8 +28,11 @@ public class CommonEmailUtility
 
 		if (EmailSettings.EnableTls)
 			await smtp.ConnectAsync(EmailSettings.Host, EmailSettings.Port, SecureSocketOptions.StartTls);
+		else if (EmailSettings.EnableSsl)
+			await smtp.ConnectAsync(EmailSettings.Host, EmailSettings.Port, SecureSocketOptions.SslOnConnect);
 		else
 			await smtp.ConnectAsync(EmailSettings.Host, EmailSettings.Port);
+		
 		await smtp.AuthenticateAsync(EmailSettings.FromAddress, EmailSettings.Password);
 		await smtp.SendAsync(email);
 		await smtp.DisconnectAsync(true);

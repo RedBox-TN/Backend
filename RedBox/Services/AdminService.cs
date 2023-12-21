@@ -27,7 +27,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 		IRedBoxEmailUtility redBoxEmailUtility, IPermissionUtility permissionUtility)
 	{
 		_databaseSettings = databaseSettings.Value;
-		var mongodbClient = new MongoClient(_databaseSettings.UsersCollection);
+		var mongodbClient = new MongoClient(_databaseSettings.ConnectionString);
 		_database = mongodbClient.GetDatabase(_databaseSettings.DatabaseName);
 		_passwordUtility = passwordUtility;
 		_redBoxEmailUtility = redBoxEmailUtility;
@@ -83,7 +83,7 @@ public partial class AdminService : GrpcAdminServices.GrpcAdminServicesBase
 				{
 					(Password: passwordHash, Salt: salt)
 				},
-				Biography = "Business account",
+				Biography = request.Biography,
 				NeedsProvisioning = true
 			});
 		}
