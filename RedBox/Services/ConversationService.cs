@@ -252,8 +252,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 	private async Task<Result> SendMessageAsync(MessageOfCollection msgColl, string userId)
 	{
 		if ((string.IsNullOrEmpty(msgColl.Collection.Chat) && string.IsNullOrEmpty(msgColl.Collection.Group)) ||
-		    (msgColl.Message.EncryptedText.IsEmpty && msgColl.Message.Attachments.Count == 0) ||
-		    msgColl.Message.Iv.IsEmpty)
+		    (msgColl.Message.EncryptedText.IsEmpty && msgColl.Message.Attachments.Count == 0))
 			return new Result
 			{
 				Status = Status.MissingParameters,
@@ -262,7 +261,7 @@ public partial class ConversationService : GrpcConversationServices.GrpcConversa
 			};
 
 		if ((msgColl.Collection.HasChat && !await IsInChatAsync(userId, msgColl.Collection.Chat)) ||
-		    !await IsInGroupAsync(userId, msgColl.Collection.Group))
+		    (msgColl.Collection.HasGroup && !await IsInGroupAsync(userId, msgColl.Collection.Group)))
 			return new Result
 			{
 				Status = Status.InvalidParameter,
