@@ -6,19 +6,13 @@ using Shared.Utility;
 
 namespace RedBox.Email_utility;
 
-public class RedBoxEmailUtility : IRedBoxEmailUtility
+public class RedBoxEmailUtility(
+	IOptions<RedBoxEmailSettings> emailSettings,
+	IEncryptionUtility encryptionUtility,
+	CommonEmailUtility commonEmailUtility)
+	: IRedBoxEmailUtility
 {
-	private readonly CommonEmailUtility _commonEmailUtility;
-	private readonly IEncryptionUtility _encryptionUtility;
-	private readonly RedBoxEmailSettings _redBoxEmailSettings;
-
-	public RedBoxEmailUtility(IOptions<RedBoxEmailSettings> emailSettings, IEncryptionUtility encryptionUtility,
-		CommonEmailUtility commonEmailUtility)
-	{
-		_encryptionUtility = encryptionUtility;
-		_redBoxEmailSettings = emailSettings.Value;
-		_commonEmailUtility = commonEmailUtility;
-	}
+	private readonly RedBoxEmailSettings _redBoxEmailSettings = emailSettings.Value;
 
 	public async Task SendAccountCreationAsync(string toAddress, string username, string name, string password)
 	{
@@ -35,7 +29,7 @@ public class RedBoxEmailUtility : IRedBoxEmailUtility
 		var body = template(data);
 		if (body is null) throw new Exception("Unable to compile html template");
 
-		await _commonEmailUtility.SendAsync(toAddress, "Il tuo nuovo account RedBox", body);
+		await commonEmailUtility.SendAsync(toAddress, "Il tuo nuovo account RedBox", body);
 	}
 
 	public async Task SendAdminPasswordChangedAsync(string toAddress, string password, string username)
@@ -50,17 +44,17 @@ public class RedBoxEmailUtility : IRedBoxEmailUtility
 		var body = template(data);
 		if (body is null) throw new Exception("Unable to compile html template");
 
-		await _commonEmailUtility.SendAsync(toAddress, "RedBox: la tua nuova password temporanea", body);
+		await commonEmailUtility.SendAsync(toAddress, "RedBox: la tua nuova password temporanea", body);
 	}
 
 	public async Task SendEmailChangedAsync(string toAddress, string id, string username)
 	{
-		var expireAt = DateTimeOffset.Now.AddMinutes(_commonEmailUtility.EmailSettings.EmailTokenExpireMinutes)
+		var expireAt = DateTimeOffset.Now.AddMinutes(commonEmailUtility.EmailSettings.EmailTokenExpireMinutes)
 			.ToUnixTimeMilliseconds();
 
-		var key = _encryptionUtility.DeriveKey(_commonEmailUtility.EmailSettings.TokenEncryptionKey);
+		var key = encryptionUtility.DeriveKey(commonEmailUtility.EmailSettings.TokenEncryptionKey);
 		var (encData, iv) =
-			await _encryptionUtility.AesEncryptAsync($"{toAddress}#{id}#{expireAt}", key);
+			await encryptionUtility.AesEncryptAsync($"{toAddress}#{id}#{expireAt}", key);
 
 		var token = HttpUtility.UrlEncode(iv.Concat(encData).ToArray());
 
@@ -75,7 +69,7 @@ public class RedBoxEmailUtility : IRedBoxEmailUtility
 		var body = template(data);
 		if (body is null) throw new Exception("Unable to compile html template");
 
-		await _commonEmailUtility.SendAsync(toAddress, "RedBox: conferma il tuo nuovo indirizzo email", body);
+		await commonEmailUtility.SendAsync(toAddress, "RedBox: conferma il tuo nuovo indirizzo email", body);
 	}
 
 	public async Task SendPasswordChangedAsync(string toAddress, string username)
@@ -90,11 +84,11 @@ public class RedBoxEmailUtility : IRedBoxEmailUtility
 		var body = template(data);
 		if (body is null) throw new Exception("Unable to compile html template");
 
-		await _commonEmailUtility.SendAsync(toAddress, "RedBox: password modificata", body);
+		await commonEmailUtility.SendAsync(toAddress, "RedBox: password modificata", body);
 	}
 
 	public Task SendAccountLockNotificationAsync(string toAddress, string username)
 	{
-		return _commonEmailUtility.SendAccountLockNotificationAsync(toAddress, username);
+		return commonEmailUtility.SendAccountLockNotificationAsync(toAddress, username);
 	}
 }

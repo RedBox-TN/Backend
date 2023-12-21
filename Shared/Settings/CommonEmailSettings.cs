@@ -9,6 +9,7 @@ public class CommonEmailSettings
 	public string Password { get; set; } = null!;
 	public string Host { get; set; } = null!;
 	public int Port { get; set; } = 465;
-	public bool EnableTls { get; set; } = false;
+	public bool EnableTls { get; set; }
+	public bool EnableSsl { get; set; }
 	public string AccountLockedTemplateFile { get; set; } = null!;
 }

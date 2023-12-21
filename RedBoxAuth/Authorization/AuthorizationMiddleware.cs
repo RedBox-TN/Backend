@@ -61,6 +61,7 @@ public class AuthorizationMiddleware
 			}
 			else
 			{
+				await _sessionStorage.DeleteAsync(context.Request.Headers[Constants.TokenHeader]);
 				throw new RpcException(new Status(StatusCode.Unauthenticated, "User must be reauthenticated"));
 			}
 
