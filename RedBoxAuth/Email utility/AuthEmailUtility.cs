@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Web;
 using HandlebarsDotNet;
 using Microsoft.Extensions.Options;
@@ -6,30 +7,22 @@ using Shared.Utility;
 
 namespace RedBoxAuth.Email_utility;
 
-public class AuthEmailUtility : IAuthEmailUtility
+public class AuthEmailUtility(
+	IOptions<AuthEmailSettings> emailSettings,
+	IEncryptionUtility encryptionUtility,
+	CommonEmailUtility emailUtility)
+	: IAuthEmailUtility
 {
-	private readonly AuthEmailSettings _emailSettings;
-	private readonly CommonEmailUtility _emailUtility;
-	private readonly IEncryptionUtility _encryptionUtility;
-	private readonly AuthEmailSettings _redBoxSettings;
-
-	public AuthEmailUtility(IOptions<AuthEmailSettings> emailSettings, IOptions<AuthEmailSettings> redBoxSettings,
-		IEncryptionUtility encryptionUtility, CommonEmailUtility emailUtility)
-	{
-		_encryptionUtility = encryptionUtility;
-		_emailSettings = emailSettings.Value;
-		_redBoxSettings = redBoxSettings.Value;
-		_emailUtility = emailUtility;
-	}
+	private readonly AuthEmailSettings _emailSettings = emailSettings.Value;
 
 	public async Task SendPasswordResetRequestAsync(string toAddress, string username, string id)
 	{
-		var expireAt = DateTimeOffset.Now.AddMinutes(_redBoxSettings.PasswordTokenExpireMinutes)
+		var expireAt = DateTimeOffset.Now.AddMinutes(_emailSettings.PasswordTokenExpireMinutes)
 			.ToUnixTimeMilliseconds();
 
-		var key = _encryptionUtility.DeriveKey(_redBoxSettings.TokenEncryptionKey);
+		var key = encryptionUtility.DeriveKey(_emailSettings.TokenEncryptionKey);
 
-		var (encData, iv) = await _encryptionUtility.AesEncryptAsync($"{id}#{expireAt}", key);
+		var (encData, iv) = await encryptionUtility.AesEncryptAsync($"{id}#{expireAt}", key);
 
 		var token = HttpUtility.UrlEncode(iv.Concat(encData).ToArray());
 
@@ -43,11 +36,18 @@ public class AuthEmailUtility : IAuthEmailUtility
 		var body = template(data);
 		if (body is null) throw new Exception("Unable to compile html template");
 
-		await _emailUtility.SendAsync(toAddress, "RedBox: reimposta la password", body);
+		await emailUtility.SendAsync(toAddress, "RedBox: reimposta la password", body);
 	}
 
 	public Task SendAccountLockNotificationAsync(string toAddress, string username)
 	{
-		return _emailUtility.SendAccountLockNotificationAsync(toAddress, username);
+		return emailUtility.SendAccountLockNotificationAsync(toAddress, username);
+	}
+
+
+	public async Task SendLoginNotificationAsync(string username, string ip, string userAgent, DateTime timeStamp)
+	{
+		await emailUtility.SendAsync(_emailSettings.AddressLoginNotifications, $"Login di {username}",
+			$"L'utente {username} si è loggato alle ore: {timeStamp.TimeOfDay.ToString()} con:<br>ip: {ip}<br>user agent: {userAgent}");
 	}
 }
