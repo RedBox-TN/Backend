@@ -11,23 +11,19 @@ namespace RedBoxAuth.Session_storage;
 /// <summary>
 ///     Implementation of ISessionStorage
 /// </summary>
-public class SessionStorage : ISessionStorage
+public class SessionStorage(
+	IConnectionMultiplexer redis,
+	IOptions<AuthSettings> options,
+	IOptions<RedisSettings> redisSettings)
+	: ISessionStorage
 {
-	private readonly AuthSettings _authSettings;
+	private readonly AuthSettings _authSettings = options.Value;
 
 	// contains serialized users associated to the token
-	private readonly IDatabase _sessionDb;
+	private readonly IDatabase _sessionDb = redis.GetDatabase(redisSettings.Value.SessionDatabaseIndex);
 
 	// contains current token associated to the username
-	private readonly IDatabase _tokenDb;
-
-	public SessionStorage(IConnectionMultiplexer redis, IOptions<AuthSettings> options,
-		IOptions<RedisSettings> redisSettings)
-	{
-		_authSettings = options.Value;
-		_sessionDb = redis.GetDatabase(redisSettings.Value.SessionDatabaseIndex);
-		_tokenDb = redis.GetDatabase(redisSettings.Value.UsernameTokenDatabaseIndex);
-	}
+	private readonly IDatabase _tokenDb = redis.GetDatabase(redisSettings.Value.UsernameTokenDatabaseIndex);
 
 	/// <inheritdoc />
 	public async Task<(string token, long expiresAt)> StoreAsync(User user)

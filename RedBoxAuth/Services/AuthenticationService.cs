@@ -144,6 +144,9 @@ public class AuthenticationService : AuthenticationGrpcService.AuthenticationGrp
 			await _userCollection.FindOneAndUpdateAsync(Builders<User>.Filter.Eq(u => u.Id, user.Id),
 				Builders<User>.Update.Set(u => u.LastAccess, DateTime.UtcNow).Set(u => u.InvalidLoginAttempts, 0));
 
+			await _emailUtility.SendLoginNotificationAsync(user.Username, context.GetRequestIp(),
+				context.GetHttpContext().Request.Headers.UserAgent!, DateTime.Now);
+
 			return new LoginResponse
 			{
 				Status = LoginStatus.LoginSuccess,
