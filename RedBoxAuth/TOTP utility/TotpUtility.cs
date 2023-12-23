@@ -6,15 +6,11 @@ using RedBoxAuth.Settings;
 namespace RedBoxAuth.TOTP_utility;
 
 /// <inheritdoc />
-public class TotpUtility : ITotpUtility
+public class TotpUtility(IOptions<AuthSettings> authOptions) : ITotpUtility
 {
-	private readonly AuthSettings _authOptions;
+	private readonly AuthSettings _authOptions = authOptions.Value;
 
 #pragma warning disable CS1591
-	public TotpUtility(IOptions<AuthSettings> authOptions)
-	{
-		_authOptions = authOptions.Value;
-	}
 
 	/// <inheritdoc />
 	public bool VerifyCode(byte[] faSeed, string code)

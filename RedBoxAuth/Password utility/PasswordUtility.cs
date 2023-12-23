@@ -7,16 +7,9 @@ using RedBoxAuth.Settings;
 namespace RedBoxAuth.Password_utility;
 
 /// <inheritdoc />
-public class PasswordUtility : IPasswordUtility
+public class PasswordUtility(IOptions<AuthSettings> authOptions) : IPasswordUtility
 {
-	private readonly AuthSettings _hashingOptions;
-
-#pragma warning disable CS1591
-	public PasswordUtility(IOptions<AuthSettings> authOptions)
-#pragma warning restore CS1591
-	{
-		_hashingOptions = authOptions.Value;
-	}
+	private readonly AuthSettings _hashingOptions = authOptions.Value;
 
 	/// <inheritdoc />
 	public byte[] HashPassword(string password, byte[] salt)
