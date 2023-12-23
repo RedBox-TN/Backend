@@ -8,16 +8,11 @@ using Shared.Health_check;
 
 namespace RedBox.Services;
 
-public class RedBoxGrpcHealthCheck : IHealthCheck
+public class RedBoxGrpcHealthCheck(IOptions<RedBoxDatabaseSettings> dbSettings, IOptions<RedisSettings> redisSettings)
+	: IHealthCheck
 {
-	private readonly MongoDbHealthCheck _mongoCheck;
-	private readonly RedisHealthCheck _redisCheck;
-
-	public RedBoxGrpcHealthCheck(IOptions<RedBoxDatabaseSettings> dbSettings, IOptions<RedisSettings> redisSettings)
-	{
-		_mongoCheck = new MongoDbHealthCheck(dbSettings);
-		_redisCheck = new RedisHealthCheck(redisSettings);
-	}
+	private readonly MongoDbHealthCheck _mongoCheck = new(dbSettings);
+	private readonly RedisHealthCheck _redisCheck = new(redisSettings);
 
 	public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext _, CancellationToken token = default)
 	{

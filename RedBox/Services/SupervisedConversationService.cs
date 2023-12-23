@@ -21,7 +21,7 @@ public class SupervisedConversationService : GrpcSupervisedConversationService.G
 {
 	private readonly RedBoxApplicationSettings _appSettings;
 	private readonly RedBoxDatabaseSettings _dbSettings;
-	private readonly IMongoClient _mongoClient;
+	private readonly MongoClient _mongoClient;
 
 	public SupervisedConversationService(IOptions<RedBoxDatabaseSettings> dbSettings,
 		IOptions<RedBoxApplicationSettings> appSettings)
