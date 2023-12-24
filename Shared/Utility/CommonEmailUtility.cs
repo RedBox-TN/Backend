@@ -32,7 +32,7 @@ public class CommonEmailUtility(IOptions<CommonEmailSettings> emailSettings)
 			await smtp.ConnectAsync(EmailSettings.Host, EmailSettings.Port, SecureSocketOptions.SslOnConnect);
 		else
 			await smtp.ConnectAsync(EmailSettings.Host, EmailSettings.Port);
-		
+
 		await smtp.AuthenticateAsync(EmailSettings.FromAddress, EmailSettings.Password);
 		await smtp.SendAsync(email);
 		await smtp.DisconnectAsync(true);

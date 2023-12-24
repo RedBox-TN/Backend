@@ -1,0 +1,47 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ "master"]
+  workflow_dispatch:
+    
+
+jobs:
+  Build_Release:
+    runs-on: [ self-hosted, linux ]
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+      
+      - name: build RedBox
+        id: build_redbox
+        shell: bash
+        run: |
+          mkdir -p release/redbox
+          dotnet publish ./RedBox/RedBox.csproj -c "Release ARM" --p:Platform=ARM64 -r linux-arm64 --self-contained false -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -o /release/redbox
+          echo "RedBox built"
+
+      - name: build Keychain
+        id: build_keychain
+        shell: bash
+        run: |
+          mkdir -p release/keychain
+          dotnet publish ./Keychain/Keychain.csproj -c "Release ARM" --p:Platform=ARM64 -r linux-arm64 --self-contained false -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -o /release/keychain
+          echo "Keychain built"
+
+      - name: Compress
+        id: compress
+        shell: bash
+        run: tar cf - release/ | xz -9 -T 0 - > /redbox_keychain.txz
+      
+      - name: Publish
+        id: publish
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: /redbox_keychain.txz
+          asset_name: RedBox_And_Keychain_ARM64.txz
+          overwrite: true
+          body: "Backend RedBox e Keychain compilati in release per ARM64, framework depended"
+          release_name: "RedBox & Keychain"
