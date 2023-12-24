@@ -18,7 +18,6 @@ jobs:
         id: build_redbox
         shell: bash
         run: |
-          mkdir -p release/redbox
           dotnet publish ./RedBox/RedBox.csproj -c "Release ARM" --p:Platform=ARM64 -r linux-arm64 --self-contained false -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -o /release/redbox
           echo "RedBox built"
 
@@ -26,14 +25,15 @@ jobs:
         id: build_keychain
         shell: bash
         run: |
-          mkdir -p release/keychain
           dotnet publish ./Keychain/Keychain.csproj -c "Release ARM" --p:Platform=ARM64 -r linux-arm64 --self-contained false -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -o /release/keychain
           echo "Keychain built"
 
       - name: Compress
         id: compress
         shell: bash
-        run: tar cf - release/ | xz -9 -T 0 - > /redbox_keychain.txz
+        run: |
+          tar cf - /release/ | xz -9 -T 0 - > /redbox_keychain.txz
+          rm -rf /release/
       
       - name: Publish
         id: publish
